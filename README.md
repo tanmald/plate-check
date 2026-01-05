@@ -1,54 +1,55 @@
-# Welcome to your Lovable project
+# PlateCheck
 
-## Project info
+PlateCheck is a mobile wellness app that helps people understand whether their daily meals align with a prescribed nutrition plan. It turns a static plan (PDF/image/doc) into structured guidance, then compares meal photos against that plan and returns a clear adherence score with an explanation.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Why PlateCheck
 
-## How can I edit this code?
+Many users follow nutrition plans but struggle to tell if they are actually on track day to day. PlateCheck reduces that friction by:
 
-There are several ways of editing your application.
+- Parsing a nutrition plan into meal templates and rules.
+- Letting users log meals with a photo.
+- Providing an adherence score plus plain-language feedback and uncertainty cues.
 
-**Use Lovable**
+## Key Features (MVP)
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+- Upload and parse nutrition plans (PDF, Word, image)
+- OCR + NLP to extract meal templates and allowed/required foods
+- Photo-based meal logging
+- Adherence score per meal (food-match first, optional macro alignment)
+- Explainable feedback with confidence signals
+- Daily adherence overview
+- Weekly “off-plan” tracking (% meals outside plan)
 
-Changes made via Lovable will be committed automatically to this repo.
+## How it works (high level)
 
-**Use your preferred IDE**
+1. **Plan intake**: User uploads a nutrition plan → OCR extracts text → NLP structures meals, foods, and targets.
+2. **Meal logging**: User takes a meal photo → vision model detects foods (and sometimes portions).
+3. **Matching**: PlateCheck selects the best plan template for the meal type and computes:
+	- Food match score (0–100)
+	- Optional macro alignment score (0–100) when data is reliable
+4. **Feedback**: App returns a score, an explanation, and confidence indicators. Low confidence triggers user confirmation/corrections.
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Who this is for
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+- Users following a structured nutrition plan and wanting quick, actionable feedback
+- Coaches and dietitians who want an at-a-glance adherence overview for clients
+- Early testers and product teams validating photo-based meal logging and plan parsing
 
-Follow these steps:
+## Getting started
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+- Download the app (when available) and follow the in-app onboarding to upload your nutrition plan.
+- Log meals by taking photos; PlateCheck will analyze and return a score with simple feedback.
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+## Privacy & Safety
 
-# Step 3: Install the necessary dependencies.
-npm i
+PlateCheck is a wellness support tool and **not a medical device**. It does **not** provide medical diagnosis, treatment, or clinical recommendations.
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+Core guardrails:
 
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+- Neutral language (on-plan/off-plan, matched/not matched)
+- Confidence-aware results and explicit uncertainty
+- Ability to delete meal photos and associated analysis
+- Minimal data collection, clearly explained in-app
 
 ## What technologies are used for this project?
 
@@ -59,15 +60,3 @@ This project is built with:
 - React
 - shadcn-ui
 - Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
