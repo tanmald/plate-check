@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { AdherenceScore, getScoreStatus } from "@/components/AdherenceScore";
 import { MealCard } from "@/components/MealCard";
 import { BottomNav } from "@/components/BottomNav";
-import { MealLogModal } from "@/components/MealLogModal";
-import { Flame, TrendingUp, Calendar } from "lucide-react";
+import { Flame, TrendingUp, Calendar, Camera, Info } from "lucide-react";
 
 const mockMeals = [
   {
@@ -26,23 +26,13 @@ const mockMeals = [
     foods: ["Chicken breast", "Mixed greens", "Tomatoes", "Caesar dressing"],
     feedback: "Good protein choice. Consider olive oil instead of Caesar.",
   },
-  {
-    id: "3",
-    type: "snack" as const,
-    name: "Greek yogurt",
-    time: "3:30 PM",
-    score: 88,
-    foods: ["Greek yogurt", "Granola"],
-    feedback: "Great snack choice!",
-  },
 ];
 
 export default function Home() {
-  const [isMealLogOpen, setIsMealLogOpen] = useState(false);
-  
   const dailyScore = 85;
   const streak = 7;
   const weeklyAverage = 82;
+  const hasPlan = true;
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -62,78 +52,111 @@ export default function Home() {
       </header>
 
       <main className="px-4 py-6 space-y-6 max-w-lg mx-auto">
-        {/* Daily Score Card */}
-        <Card className="card-shadow overflow-hidden">
-          <CardContent className="p-0">
-            <div className="bg-gradient-to-br from-primary/5 to-secondary p-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground uppercase tracking-wide">Today's adherence</p>
-                    <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                      <Calendar className="w-4 h-4" />
-                      Sunday, Jan 5
-                    </p>
-                  </div>
-                  
-                  <div className="flex gap-4">
-                    <div className="flex items-center gap-2 bg-card/80 backdrop-blur-sm rounded-lg px-3 py-2">
-                      <Flame className="w-4 h-4 text-accent" />
-                      <span className="text-sm font-semibold">{streak} day streak</span>
+        {!hasPlan ? (
+          /* Empty State - No plan */
+          <Card className="card-shadow">
+            <CardContent className="p-8 text-center">
+              <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-4xl">📋</span>
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Get started with your plan</h3>
+              <p className="text-muted-foreground text-sm mb-6">
+                Import your nutrition plan to start tracking your meals and see how well you're sticking to it.
+              </p>
+              <Button asChild size="lg" className="w-full">
+                <Link to="/plan">Import Plan</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            {/* Daily Score Card */}
+            <Card className="card-shadow overflow-hidden">
+              <CardContent className="p-0">
+                <div className="bg-gradient-to-br from-primary/5 to-secondary p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-4">
+                      <div>
+                        <p className="text-sm text-muted-foreground uppercase tracking-wide">Today's adherence</p>
+                        <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                          <Calendar className="w-4 h-4" />
+                          Sunday, Jan 5
+                        </p>
+                      </div>
+                      
+                      <div className="flex gap-3">
+                        <div className="flex items-center gap-2 bg-card/80 backdrop-blur-sm rounded-lg px-3 py-2">
+                          <Flame className="w-4 h-4 text-accent" />
+                          <span className="text-sm font-semibold">{streak} days</span>
+                        </div>
+                        <div className="flex items-center gap-2 bg-card/80 backdrop-blur-sm rounded-lg px-3 py-2">
+                          <TrendingUp className="w-4 h-4 text-primary" />
+                          <span className="text-sm font-semibold">{weeklyAverage}%</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 bg-card/80 backdrop-blur-sm rounded-lg px-3 py-2">
-                      <TrendingUp className="w-4 h-4 text-primary" />
-                      <span className="text-sm font-semibold">{weeklyAverage}% weekly</span>
-                    </div>
+                    
+                    <AdherenceScore score={dailyScore} size="md" />
                   </div>
                 </div>
                 
-                <AdherenceScore score={dailyScore} size="md" />
-              </div>
-            </div>
-            
-            {/* Meal progress */}
-            <div className="p-4 border-t border-border">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium">Meals logged today</span>
-                <span className="text-sm text-muted-foreground">3 of 4</span>
-              </div>
-              <Progress value={75} status={getScoreStatus(75)} />
-            </div>
-          </CardContent>
-        </Card>
+                {/* Meal progress */}
+                <div className="p-4 border-t border-border">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium">Meals logged today</span>
+                    <span className="text-sm text-muted-foreground">2 of 4</span>
+                  </div>
+                  <Progress value={50} status={getScoreStatus(75)} />
+                </div>
+              </CardContent>
+            </Card>
 
-        {/* Today's Meals */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">Today's Meals</h2>
-            <span className="text-sm text-muted-foreground">View all</span>
-          </div>
-          <div className="space-y-3">
-            {mockMeals.map((meal) => (
-              <MealCard key={meal.id} meal={meal} />
-            ))}
-          </div>
+            {/* Primary CTA */}
+            <Button asChild size="xl" className="w-full">
+              <Link to="/log" className="flex items-center gap-2">
+                <Camera className="w-5 h-5" />
+                Log Meal
+              </Link>
+            </Button>
+
+            {/* Today's Meals */}
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold">Today's Meals</h2>
+                <Link to="/progress" className="text-sm text-primary font-medium">View all</Link>
+              </div>
+              <div className="space-y-3">
+                {mockMeals.map((meal) => (
+                  <MealCard key={meal.id} meal={meal} />
+                ))}
+              </div>
+            </div>
+
+            {/* Next meal suggestion */}
+            <Card className="card-shadow border-l-4 border-l-accent">
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <div className="text-2xl">🍽️</div>
+                  <div>
+                    <h3 className="font-semibold text-sm">Dinner suggestion</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Based on your plan, consider grilled salmon with quinoa and roasted vegetables.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        )}
+
+        {/* Trust note */}
+        <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+          <Info className="w-3 h-3" />
+          <span>Wellness support, not medical advice</span>
         </div>
-
-        {/* Upcoming suggestion */}
-        <Card className="card-shadow border-l-4 border-l-accent">
-          <CardContent className="p-4">
-            <div className="flex items-start gap-3">
-              <div className="text-2xl">🍽️</div>
-              <div>
-                <h3 className="font-semibold text-sm">Dinner suggestion</h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Based on your plan, consider grilled salmon with quinoa and roasted vegetables.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </main>
 
-      <BottomNav onCameraClick={() => setIsMealLogOpen(true)} />
-      <MealLogModal isOpen={isMealLogOpen} onClose={() => setIsMealLogOpen(false)} />
+      <BottomNav />
     </div>
   );
 }

@@ -5,9 +5,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import Home from "./pages/Home";
-import Weekly from "./pages/Weekly";
+import Log from "./pages/Log";
+import MealResult from "./pages/MealResult";
 import Plan from "./pages/Plan";
-import Profile from "./pages/Profile";
+import Progress from "./pages/Progress";
+import Settings from "./pages/Settings";
 import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
 
@@ -21,9 +23,11 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/weekly" element={<Weekly />} />
+          <Route path="/log" element={<Log />} />
+          <Route path="/meal-result" element={<MealResult />} />
           <Route path="/plan" element={<Plan />} />
-          <Route path="/profile" element={<Profile />} />
+          <Route path="/progress" element={<Progress />} />
+          <Route path="/settings" element={<Settings />} />
           <Route path="/onboarding" element={<Onboarding />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

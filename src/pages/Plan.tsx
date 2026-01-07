@@ -2,8 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BottomNav } from "@/components/BottomNav";
-import { MealLogModal } from "@/components/MealLogModal";
-import { Upload, FileText, Check, ChevronRight, Plus, Edit2 } from "lucide-react";
+import { Upload, FileText, ChevronRight, Plus, Edit2, Image, File, Info, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const mockPlan = {
@@ -54,10 +53,27 @@ const mockPlan = {
   ],
 };
 
+type ViewState = "empty" | "importing" | "review" | "active";
+
 export default function Plan() {
-  const [isMealLogOpen, setIsMealLogOpen] = useState(false);
+  const [viewState, setViewState] = useState<ViewState>("empty");
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
-  const hasPlan = true;
+  
+  // For demo, we'll use a toggle to show different states
+  const [hasPlan, setHasPlan] = useState(true);
+
+  const handleImportStart = () => {
+    setViewState("importing");
+    // Simulate parsing
+    setTimeout(() => {
+      setViewState("review");
+    }, 2000);
+  };
+
+  const handleConfirmPlan = () => {
+    setViewState("active");
+    setHasPlan(true);
+  };
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -65,36 +81,119 @@ export default function Plan() {
       <header className="bg-card border-b border-border safe-top">
         <div className="px-4 py-4">
           <h1 className="text-2xl font-bold text-foreground">My Plan</h1>
-          <p className="text-sm text-muted-foreground">Your personalized nutrition plan</p>
+          <p className="text-sm text-muted-foreground">
+            {hasPlan ? "Your personalized nutrition plan" : "Import your nutrition plan"}
+          </p>
         </div>
       </header>
 
       <main className="px-4 py-6 space-y-6 max-w-lg mx-auto">
-        {!hasPlan ? (
-          /* Empty state - No plan uploaded */
+        {/* Empty State */}
+        {!hasPlan && viewState === "empty" && (
           <Card className="card-shadow">
             <CardContent className="p-8 text-center">
               <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <FileText className="w-10 h-10 text-primary" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">No plan uploaded yet</h3>
+              <h3 className="text-lg font-semibold mb-2">No plan imported yet</h3>
               <p className="text-muted-foreground text-sm mb-6">
-                Upload your nutrition plan (PDF, Word, or image) and our AI will structure it for you.
+                Upload your nutrition plan (PDF, Word, or image) and we'll parse it into meal templates.
               </p>
-              <Button size="lg" className="w-full">
-                <Upload className="w-5 h-5 mr-2" />
-                Upload Plan
-              </Button>
+              
+              <div className="space-y-3">
+                <Button size="lg" className="w-full" onClick={handleImportStart}>
+                  <Upload className="w-5 h-5 mr-2" />
+                  Upload Plan
+                </Button>
+                
+                <div className="flex gap-2 justify-center">
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <File className="w-3 h-3" /> PDF
+                  </div>
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <FileText className="w-3 h-3" /> Word
+                  </div>
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Image className="w-3 h-3" /> Image
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
-        ) : (
+        )}
+
+        {/* Importing State */}
+        {viewState === "importing" && (
+          <div className="flex flex-col items-center justify-center min-h-[400px] gap-6">
+            <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center">
+              <Loader2 className="w-12 h-12 text-primary animate-spin" />
+            </div>
+            <div className="text-center">
+              <h3 className="text-xl font-semibold mb-2">Parsing your plan...</h3>
+              <p className="text-muted-foreground">Extracting meal templates and guidelines</p>
+            </div>
+          </div>
+        )}
+
+        {/* Review State */}
+        {viewState === "review" && (
+          <>
+            <Card className="card-shadow border-2 border-primary/20 bg-primary/5">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
+                    <FileText className="w-5 h-5 text-primary-foreground" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">Plan parsed successfully!</h3>
+                    <p className="text-sm text-muted-foreground">Review and confirm below</p>
+                  </div>
+                </div>
+                
+                <div className="p-3 bg-card rounded-lg">
+                  <p className="text-sm font-medium">{mockPlan.name}</p>
+                  <p className="text-xs text-muted-foreground">{mockPlan.source}</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Templates to confirm */}
+            <div className="space-y-3">
+              {mockPlan.templates.map((template) => (
+                <Card key={template.id} className="card-shadow">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">{template.icon}</span>
+                      <div className="flex-1">
+                        <h3 className="font-semibold">{template.name}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {template.calories} cal • {template.protein} protein
+                        </p>
+                      </div>
+                      <Button variant="ghost" size="icon">
+                        <Edit2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            <Button size="xl" className="w-full" onClick={handleConfirmPlan}>
+              Confirm Plan
+            </Button>
+          </>
+        )}
+
+        {/* Active Plan State */}
+        {hasPlan && viewState !== "importing" && viewState !== "review" && (
           <>
             {/* Current Plan Info */}
             <Card className="card-shadow">
               <CardContent className="p-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-3">
-                    <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                    <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
                       <FileText className="w-6 h-6 text-primary" />
                     </div>
                     <div>
@@ -213,16 +312,26 @@ export default function Plan() {
             </Card>
 
             {/* Upload New Plan */}
-            <Button variant="outline" size="lg" className="w-full">
+            <Button 
+              variant="outline" 
+              size="lg" 
+              className="w-full"
+              onClick={() => { setHasPlan(false); setViewState("empty"); }}
+            >
               <Upload className="w-5 h-5 mr-2" />
-              Upload New Plan
+              Replace Plan
             </Button>
+
+            {/* Trust note */}
+            <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+              <Info className="w-3 h-3" />
+              <span>Wellness support, not medical advice</span>
+            </div>
           </>
         )}
       </main>
 
-      <BottomNav onCameraClick={() => setIsMealLogOpen(true)} />
-      <MealLogModal isOpen={isMealLogOpen} onClose={() => setIsMealLogOpen(false)} />
+      <BottomNav />
     </div>
   );
 }
