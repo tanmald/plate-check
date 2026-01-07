@@ -1,12 +1,12 @@
 import { NavLink } from "react-router-dom";
-import { Home, Camera, FileText, BarChart3, Settings } from "lucide-react";
+import { Home, FileText, Camera, BarChart3, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function BottomNav() {
   const navItems = [
     { to: "/", icon: Home, label: "Home" },
-    { to: "/log", icon: Camera, label: "Log" },
     { to: "/plan", icon: FileText, label: "Plan" },
+    { to: "/log", icon: Camera, label: "Log", isCenter: true },
     { to: "/progress", icon: BarChart3, label: "Progress" },
     { to: "/settings", icon: Settings, label: "Settings" },
   ];
@@ -20,15 +20,40 @@ export function BottomNav() {
             to={item.to}
             className={({ isActive }) =>
               cn(
-                "flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-colors min-w-[56px]",
-                isActive 
+                "flex flex-col items-center gap-1 rounded-lg transition-colors min-w-[56px]",
+                item.isCenter ? "relative -mt-4" : "px-4 py-2",
+                !item.isCenter && (isActive 
                   ? "text-primary" 
-                  : "text-muted-foreground hover:text-foreground"
+                  : "text-muted-foreground hover:text-foreground")
               )
             }
           >
-            <item.icon className="w-5 h-5" />
-            <span className="text-[10px] font-medium">{item.label}</span>
+            {({ isActive }) => (
+              <>
+                {item.isCenter ? (
+                  <div className="flex flex-col items-center gap-1">
+                    <div 
+                      className={cn(
+                        "w-14 h-14 rounded-full bg-success flex items-center justify-center shadow-lg transition-all",
+                        "animate-pulse",
+                        isActive && "ring-2 ring-success ring-offset-2 ring-offset-card"
+                      )}
+                    >
+                      <item.icon className="w-6 h-6 text-success-foreground" />
+                    </div>
+                    <span className={cn(
+                      "text-[10px] font-medium",
+                      isActive ? "text-success" : "text-muted-foreground"
+                    )}>{item.label}</span>
+                  </div>
+                ) : (
+                  <>
+                    <item.icon className="w-5 h-5" />
+                    <span className="text-[10px] font-medium">{item.label}</span>
+                  </>
+                )}
+              </>
+            )}
           </NavLink>
         ))}
       </div>
