@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { BottomNav } from "@/components/BottomNav";
+import { LogoutDialog } from "@/components/LogoutDialog";
 import { 
   User, 
   Bell, 
@@ -20,6 +21,7 @@ import {
 export default function Settings() {
   const [notifications, setNotifications] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
 
   const user = {
     name: "Sarah Johnson",
@@ -145,11 +147,20 @@ export default function Settings() {
         </Card>
 
         {/* Logout */}
-        <Button variant="ghost" className="w-full text-destructive hover:text-destructive hover:bg-destructive/10">
+        <Button 
+          variant="ghost" 
+          className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
+          onClick={() => setLogoutDialogOpen(true)}
+        >
           <LogOut className="w-5 h-5 mr-2" />
           Log Out
         </Button>
       </main>
+
+      <LogoutDialog 
+        open={logoutDialogOpen} 
+        onOpenChange={setLogoutDialogOpen} 
+      />
 
       <BottomNav />
     </div>
