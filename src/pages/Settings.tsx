@@ -40,7 +40,7 @@ export default function Settings() {
   };
 
   const handleEditProfile = () => {
-    toast.info("Profile editing coming soon");
+    navigate("/settings/profile");
   };
 
   const handleViewPlan = () => {
