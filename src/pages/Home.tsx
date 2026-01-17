@@ -127,7 +127,9 @@ export default function Home() {
               </div>
               <div className="space-y-3">
                 {mockMeals.map((meal) => (
-                  <MealCard key={meal.id} meal={meal} />
+                  <Link key={meal.id} to="/meal-result" state={{ mealType: meal.type }}>
+                    <MealCard meal={meal} />
+                  </Link>
                 ))}
               </div>
             </div>

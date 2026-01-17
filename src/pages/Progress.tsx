@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress as ProgressBar } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { BottomNav } from "@/components/BottomNav";
 import { WeeklyChart } from "@/components/WeeklyChart";
 import { MealCard } from "@/components/MealCard";
+import { toast } from "sonner";
 import { TrendingUp, TrendingDown, Target, AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -50,12 +52,20 @@ const todayMeals = [
 
 export default function Progress() {
   const [activeTab, setActiveTab] = useState<"daily" | "weekly">("daily");
-  
+
   const weeklyAverage = Math.round(weeklyData.reduce((acc, d) => acc + d.score, 0) / weeklyData.length);
   const onPlanDays = weeklyData.filter(d => d.score >= 60).length;
   const offPlanPercentage = Math.round(((7 - onPlanDays) / 7) * 100);
   const lastWeekAverage = 78;
   const trend = weeklyAverage - lastWeekAverage;
+
+  const handlePreviousDay = () => {
+    toast.info("Previous day navigation coming soon");
+  };
+
+  const handlePreviousWeek = () => {
+    toast.info("Previous week navigation coming soon");
+  };
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -100,7 +110,7 @@ export default function Progress() {
           <>
             {/* Date Navigator */}
             <div className="flex items-center justify-between">
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" onClick={handlePreviousDay}>
                 <ChevronLeft className="w-5 h-5" />
               </Button>
               <div className="text-center">
@@ -128,9 +138,11 @@ export default function Progress() {
               <h2 className="text-lg font-semibold mb-4">Today's Meals</h2>
               <div className="space-y-3">
                 {todayMeals.map((meal) => (
-                  <MealCard key={meal.id} meal={meal} />
+                  <Link key={meal.id} to="/meal-result" state={{ mealType: meal.type }}>
+                    <MealCard meal={meal} />
+                  </Link>
                 ))}
-                
+
                 {/* Pending meal */}
                 <Card className="card-shadow border-dashed border-2">
                   <CardContent className="p-4">
@@ -177,7 +189,7 @@ export default function Progress() {
           <>
             {/* Week Navigator */}
             <div className="flex items-center justify-between">
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" onClick={handlePreviousWeek}>
                 <ChevronLeft className="w-5 h-5" />
               </Button>
               <div className="text-center">

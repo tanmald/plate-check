@@ -157,6 +157,20 @@ export default function Onboarding() {
     navigate("/");
   };
 
+  const handleTermsClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    toast.info("Terms of Service coming soon");
+  };
+
+  const handlePrivacyClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    toast.info("Privacy Policy coming soon");
+  };
+
+  const handleWhyPlan = () => {
+    toast.info("PlateCheck compares your meals to your nutrition plan to give you personalized feedback and track your adherence over time.");
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Progress dots for onboarding screens */}
@@ -502,9 +516,9 @@ export default function Onboarding() {
                 />
                 <label htmlFor="terms" className="text-sm text-muted-foreground leading-tight">
                   I agree to the{" "}
-                  <a href="#" className="text-primary underline">Terms of Service</a>
+                  <a href="#" onClick={handleTermsClick} className="text-primary underline">Terms of Service</a>
                   {" "}and{" "}
-                  <a href="#" className="text-primary underline">Privacy Policy</a>
+                  <a href="#" onClick={handlePrivacyClick} className="text-primary underline">Privacy Policy</a>
                 </label>
               </div>
               {errors.terms && (
@@ -745,9 +759,9 @@ export default function Onboarding() {
                 Create manually
               </Button>
 
-              <button 
+              <button
                 className="w-full text-sm text-primary font-medium py-2"
-                onClick={() => {/* Show modal explaining why */}}
+                onClick={handleWhyPlan}
               >
                 Why we ask for your plan
               </button>

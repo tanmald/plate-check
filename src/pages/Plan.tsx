@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BottomNav } from "@/components/BottomNav";
+import { toast } from "sonner";
 import { Upload, FileText, ChevronRight, Plus, Edit2, Image, File, Info, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -73,6 +74,18 @@ export default function Plan() {
   const handleConfirmPlan = () => {
     setViewState("active");
     setHasPlan(true);
+  };
+
+  const handleEditPlan = () => {
+    toast.info("Plan editing coming soon");
+  };
+
+  const handleEditTemplate = () => {
+    toast.info("Template editing coming soon");
+  };
+
+  const handleAddTemplate = () => {
+    toast.info("Add template coming soon");
   };
 
   return (
@@ -170,7 +183,7 @@ export default function Plan() {
                           {template.calories} cal • {template.protein} protein
                         </p>
                       </div>
-                      <Button variant="ghost" size="icon">
+                      <Button variant="ghost" size="icon" onClick={handleEditTemplate}>
                         <Edit2 className="w-4 h-4" />
                       </Button>
                     </div>
@@ -202,7 +215,7 @@ export default function Plan() {
                       <p className="text-xs text-muted-foreground mt-1">Uploaded {mockPlan.uploadedAt}</p>
                     </div>
                   </div>
-                  <Button variant="ghost" size="icon">
+                  <Button variant="ghost" size="icon" onClick={handleEditPlan}>
                     <Edit2 className="w-4 h-4" />
                   </Button>
                 </div>
@@ -213,7 +226,7 @@ export default function Plan() {
             <div>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold">Meal Templates</h2>
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" onClick={handleAddTemplate}>
                   <Plus className="w-4 h-4 mr-1" />
                   Add
                 </Button>

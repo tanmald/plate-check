@@ -1,17 +1,19 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { BottomNav } from "@/components/BottomNav";
 import { LogoutDialog } from "@/components/LogoutDialog";
-import { 
-  User, 
-  Bell, 
-  Moon, 
-  Shield, 
-  HelpCircle, 
-  LogOut, 
+import { toast } from "sonner";
+import {
+  User,
+  Bell,
+  Moon,
+  Shield,
+  HelpCircle,
+  LogOut,
   ChevronRight,
   FileText,
   Trash2,
@@ -20,6 +22,7 @@ import {
 } from "lucide-react";
 
 export default function Settings() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [notifications, setNotifications] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
@@ -32,25 +35,54 @@ export default function Settings() {
     toggle?: boolean;
     value?: boolean;
     onChange?: (val: boolean) => void;
+    onClick?: () => void;
     danger?: boolean;
   };
 
+  const handleEditProfile = () => {
+    toast.info("Profile editing coming soon");
+  };
+
+  const handleViewPlan = () => {
+    navigate("/plan");
+  };
+
+  const handleExportData = () => {
+    toast.info("Data export coming soon");
+  };
+
+  const handleReplacePlan = () => {
+    navigate("/plan");
+  };
+
+  const handlePrivacySettings = () => {
+    toast.info("Privacy settings coming soon");
+  };
+
+  const handleDeleteData = () => {
+    toast.info("Data deletion coming soon");
+  };
+
+  const handleHelpSupport = () => {
+    toast.info("Help & support coming soon");
+  };
+
   const accountItems: MenuItem[] = [
-    { icon: User, label: "Edit Profile", action: true },
+    { icon: User, label: "Edit Profile", action: true, onClick: handleEditProfile },
     { icon: Bell, label: "Notifications", toggle: true, value: notifications, onChange: setNotifications },
     { icon: Moon, label: "Dark Mode", toggle: true, value: darkMode, onChange: setDarkMode },
   ];
 
   const planItems: MenuItem[] = [
-    { icon: FileText, label: "View Current Plan", action: true },
-    { icon: Download, label: "Export Plan Data", action: true },
-    { icon: Trash2, label: "Replace or Discard Plan", action: true, danger: true },
+    { icon: FileText, label: "View Current Plan", action: true, onClick: handleViewPlan },
+    { icon: Download, label: "Export Plan Data", action: true, onClick: handleExportData },
+    { icon: Trash2, label: "Replace or Discard Plan", action: true, danger: true, onClick: handleReplacePlan },
   ];
 
   const privacyItems: MenuItem[] = [
-    { icon: Shield, label: "Privacy Settings", action: true },
-    { icon: Trash2, label: "Delete All My Data", action: true, danger: true },
-    { icon: HelpCircle, label: "Help & Support", action: true },
+    { icon: Shield, label: "Privacy Settings", action: true, onClick: handlePrivacySettings },
+    { icon: Trash2, label: "Delete All My Data", action: true, danger: true, onClick: handleDeleteData },
+    { icon: HelpCircle, label: "Help & Support", action: true, onClick: handleHelpSupport },
   ];
 
   const renderMenuSection = (items: MenuItem[], title: string) => (
@@ -61,17 +93,18 @@ export default function Settings() {
       <CardContent className="p-0">
         <div className="divide-y divide-border">
           {items.map((item) => (
-            <div 
+            <div
               key={item.label}
-              className="flex items-center justify-between px-4 py-3"
+              className={`flex items-center justify-between px-4 py-3 ${item.action ? 'cursor-pointer hover:bg-muted/50 transition-colors' : ''}`}
+              onClick={item.onClick}
             >
               <div className="flex items-center gap-3">
                 <item.icon className={`w-5 h-5 ${item.danger ? 'text-destructive' : 'text-muted-foreground'}`} />
                 <span className={`font-medium ${item.danger ? 'text-destructive' : ''}`}>{item.label}</span>
               </div>
               {item.toggle ? (
-                <Switch 
-                  checked={item.value} 
+                <Switch
+                  checked={item.value}
                   onCheckedChange={item.onChange}
                 />
               ) : (

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { Camera, Image, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BottomNav } from "@/components/BottomNav";
@@ -37,6 +38,10 @@ export default function Log() {
       setStep("select");
       setSelectedMealType(null);
     }
+  };
+
+  const handleGallery = () => {
+    toast.info("Gallery selection coming soon");
   };
 
   return (
@@ -115,7 +120,7 @@ export default function Log() {
 
             {/* Action buttons */}
             <div className="flex gap-3">
-              <Button variant="outline" size="lg" className="flex-1">
+              <Button variant="outline" size="lg" className="flex-1" onClick={handleGallery}>
                 <Image className="w-5 h-5 mr-2" />
                 Gallery
               </Button>
