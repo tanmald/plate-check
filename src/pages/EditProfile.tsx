@@ -185,19 +185,11 @@ export default function EditProfile() {
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="text-lg font-semibold text-foreground">Edit Profile</h1>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleSave}
-            disabled={!hasChanges || saving}
-            className="text-primary font-semibold disabled:opacity-50"
-          >
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
-          </Button>
+          <div className="w-5" /> {/* Spacer for centering */}
         </div>
       </header>
 
-      <main className="px-4 py-6 max-w-lg mx-auto space-y-8">
+      <main className="px-4 py-6 pb-28 max-w-lg mx-auto space-y-8">
         {/* General Error */}
         {errors.general && (
           <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3">
@@ -290,6 +282,27 @@ export default function EditProfile() {
           </div>
         </section>
       </main>
+
+      {/* Sticky Save Button */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t border-border safe-bottom">
+        <div className="max-w-lg mx-auto">
+          <Button
+            onClick={handleSave}
+            disabled={!hasChanges || saving}
+            className="w-full"
+            size="lg"
+          >
+            {saving ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                Saving...
+              </>
+            ) : (
+              "Save"
+            )}
+          </Button>
+        </div>
+      </div>
 
       {/* Discard Changes Dialog */}
       <AlertDialog open={showDiscardDialog} onOpenChange={setShowDiscardDialog}>
