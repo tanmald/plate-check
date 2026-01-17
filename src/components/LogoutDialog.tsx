@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/use-auth";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,7 +13,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Loader2, WifiOff, LogOut } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 interface LogoutDialogProps {
   open: boolean;
@@ -23,41 +24,26 @@ type LogoutState = "confirm" | "loading" | "error" | "expired";
 
 export function LogoutDialog({ open, onOpenChange }: LogoutDialogProps) {
   const navigate = useNavigate();
+  const { signOut } = useAuth();
   const [state, setState] = useState<LogoutState>("confirm");
 
   const handleLogout = async () => {
     setState("loading");
 
     try {
-      // Simulate logout API call
-      await new Promise((resolve, reject) => {
-        setTimeout(() => {
-          // Simulate random network error (10% chance for demo)
-          if (Math.random() < 0.1) {
-            reject(new Error("Network error"));
-          }
-          resolve(true);
-        }, 1500);
-      });
-
-      // Clear local sensitive data
-      localStorage.removeItem("auth_token");
-      localStorage.removeItem("user_data");
-      sessionStorage.clear();
+      await signOut();
 
       // Close dialog
       onOpenChange(false);
       setState("confirm");
 
       // Show success toast
-      toast({
-        description: "Logged out",
-        duration: 2000,
-      });
+      toast.success("Logged out successfully");
 
       // Navigate to onboarding/login with replace to prevent back navigation
       navigate("/onboarding", { replace: true });
     } catch (error) {
+      console.error("Logout error:", error);
       setState("error");
     }
   };

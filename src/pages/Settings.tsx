@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -19,14 +20,10 @@ import {
 } from "lucide-react";
 
 export default function Settings() {
+  const { user } = useAuth();
   const [notifications, setNotifications] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
-
-  const user = {
-    name: "Sarah Johnson",
-    email: "sarah@example.com",
-  };
 
   type MenuItem = {
     icon: typeof User;
@@ -106,8 +103,8 @@ export default function Settings() {
                 <User className="w-8 h-8 text-primary" />
               </div>
               <div className="flex-1">
-                <h2 className="font-semibold text-lg">{user.name}</h2>
-                <p className="text-sm text-muted-foreground">{user.email}</p>
+                <h2 className="font-semibold text-lg">{user?.email?.split('@')[0] || 'User'}</h2>
+                <p className="text-sm text-muted-foreground">{user?.email || 'No email'}</p>
               </div>
             </div>
           </CardContent>

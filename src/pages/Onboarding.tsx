@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "sonner";
 import { 
   ChevronRight, 
   Upload, 
@@ -34,6 +36,7 @@ interface FormErrors {
 
 export default function Onboarding() {
   const navigate = useNavigate();
+  const { signUp, signIn, resetPassword } = useAuth();
   const [step, setStep] = useState<Step>("value1");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -82,10 +85,16 @@ export default function Onboarding() {
     if (emailError || passwordError || termsError) return;
 
     setIsLoading(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setIsLoading(false);
-    setStep("no-plan");
+    try {
+      await signUp(email, password);
+      toast.success("Check your email to confirm your account");
+      setStep("no-plan");
+    } catch (error: any) {
+      setErrors({ general: error.message || "Sign up failed. Please try again." });
+      toast.error("Sign up failed");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSignIn = async () => {
@@ -97,10 +106,16 @@ export default function Onboarding() {
     if (emailError || passwordError) return;
 
     setIsLoading(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setIsLoading(false);
-    navigate("/");
+    try {
+      await signIn(email, password);
+      toast.success("Signed in successfully");
+      navigate("/");
+    } catch (error: any) {
+      setErrors({ general: error.message || "Invalid email or password" });
+      toast.error("Sign in failed");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleForgotPassword = async () => {
@@ -110,10 +125,16 @@ export default function Onboarding() {
     if (emailError) return;
 
     setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setIsLoading(false);
-    // Show success state
-    setErrors({ general: "Check your email for reset instructions" });
+    try {
+      await resetPassword(email);
+      setErrors({ general: "Check your email for reset instructions" });
+      toast.success("Password reset email sent");
+    } catch (error: any) {
+      setErrors({ general: error.message || "Failed to send reset email" });
+      toast.error("Failed to send reset email");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSocialAuth = async (provider: string) => {
