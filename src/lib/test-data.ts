@@ -105,6 +105,23 @@ export const mockDailyStats = {
   totalMeals: 4,
 };
 
+// Mock data matching Edge Function response format (AnalyzeMealResponse)
+export const mockAnalysisResult = {
+  score: 78,
+  detectedFoods: [
+    { name: "Grilled chicken breast", matched: true, confidence: 0.95, category: "Protein" },
+    { name: "Brown rice", matched: true, confidence: 0.92, category: "Carbs" },
+    { name: "Steamed broccoli", matched: true, confidence: 0.88, category: "Vegetables" },
+    { name: "Caesar dressing", matched: false, confidence: 0.85, category: "Sauce" },
+  ],
+  feedback: "Great protein choice! The chicken and rice match your lunch template. Consider using olive oil instead of Caesar dressing for better plan adherence.",
+  confidence: "high" as const,
+  suggestedSwaps: [
+    { original: "Caesar dressing", suggested: "Olive oil & lemon", reason: "Lower sodium, fits plan" },
+  ],
+};
+
+// Legacy format for backward compatibility (deprecated - use mockAnalysisResult)
 export const mockMealResult = {
   score: 78,
   status: "On plan" as const,
@@ -119,6 +136,56 @@ export const mockMealResult = {
   suggestions: [
     { food: "Caesar dressing", replacement: "Olive oil & lemon", reason: "Lower sodium, fits plan" },
   ],
+};
+
+// Mock data matching Edge Function response format (ParsePlanResponse)
+export const mockParsePlanResponse = {
+  planId: "mock-plan-id",
+  planName: "Weight Management Plan",
+  mealTemplates: [
+    {
+      id: "1",
+      type: "breakfast",
+      icon: "🌅",
+      name: "Breakfast",
+      requiredFoods: ["Whole grains", "Protein source", "Fruit"],
+      allowedFoods: ["Oatmeal", "Eggs", "Greek yogurt", "Berries", "Whole wheat toast"],
+      calories: "350-450",
+      protein: "20-30g",
+    },
+    {
+      id: "2",
+      type: "lunch",
+      icon: "☀️",
+      name: "Lunch",
+      requiredFoods: ["Lean protein", "Vegetables", "Complex carbs"],
+      allowedFoods: ["Chicken", "Fish", "Salad greens", "Quinoa", "Brown rice"],
+      calories: "450-550",
+      protein: "30-40g",
+    },
+    {
+      id: "3",
+      type: "dinner",
+      icon: "🌙",
+      name: "Dinner",
+      requiredFoods: ["Lean protein", "Vegetables"],
+      allowedFoods: ["Salmon", "Chicken", "Tofu", "Broccoli", "Spinach"],
+      calories: "400-500",
+      protein: "25-35g",
+    },
+    {
+      id: "4",
+      type: "snack",
+      icon: "🍎",
+      name: "Snacks",
+      requiredFoods: ["Protein or fruit"],
+      allowedFoods: ["Greek yogurt", "Nuts", "Apple", "Protein bar"],
+      calories: "150-200",
+      protein: "10-15g",
+    },
+  ],
+  confidence: "high" as const,
+  warnings: [],
 };
 
 export const mockProfile = {

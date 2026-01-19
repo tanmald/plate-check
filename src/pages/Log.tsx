@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Camera, Image, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BottomNav } from "@/components/BottomNav";
 import { cn } from "@/lib/utils";
+import { useCreateMealLog } from "@/hooks/use-meals";
 
 type Step = "select" | "capture" | "analyzing";
 
@@ -19,33 +20,107 @@ export default function Log() {
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>("select");
   const [selectedMealType, setSelectedMealType] = useState<string | null>(null);
+  const [capturedPhoto, setCapturedPhoto] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const createMealLog = useCreateMealLog();
 
   const handleMealSelect = (mealId: string) => {
     setSelectedMealType(mealId);
     setStep("capture");
   };
 
-  const handleCapture = () => {
+  const handleFileSelect = (file: File) => {
+    if (!selectedMealType) return;
+
+    // Store file and create preview
+    setCapturedPhoto(file);
+    const preview = URL.createObjectURL(file);
+    setPhotoPreview(preview);
+
+    // Move to analyzing step
     setStep("analyzing");
-    // Simulate AI analysis
-    setTimeout(() => {
-      navigate("/meal-result", { state: { mealType: selectedMealType } });
-    }, 2500);
+
+    // Call the mutation to upload and analyze
+    createMealLog.mutate(
+      {
+        photoFile: file,
+        mealType: selectedMealType,
+      },
+      {
+        onSuccess: (analysisResult) => {
+          // Navigate to result page with real data
+          navigate("/meal-result", {
+            state: {
+              mealType: selectedMealType,
+              analysisResult,
+              photoPreview: preview,
+            },
+          });
+        },
+        onError: (error) => {
+          console.error("Error analyzing meal:", error);
+          toast.error("Failed to analyze meal. Please try again.");
+
+          // Reset to capture step
+          setStep("capture");
+          setCapturedPhoto(null);
+          if (photoPreview) {
+            URL.revokeObjectURL(photoPreview);
+          }
+          setPhotoPreview(null);
+        },
+      }
+    );
+  };
+
+  const handleCapture = () => {
+    cameraInputRef.current?.click();
+  };
+
+  const handleGallery = () => {
+    galleryInputRef.current?.click();
   };
 
   const handleBack = () => {
     if (step === "capture") {
       setStep("select");
       setSelectedMealType(null);
+      setCapturedPhoto(null);
+      if (photoPreview) {
+        URL.revokeObjectURL(photoPreview);
+      }
+      setPhotoPreview(null);
     }
-  };
-
-  const handleGallery = () => {
-    toast.info("Gallery selection coming soon");
   };
 
   return (
     <div className="min-h-screen bg-background pb-24">
+      {/* Hidden file inputs */}
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handleFileSelect(file);
+        }}
+      />
+      <input
+        ref={galleryInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handleFileSelect(file);
+        }}
+      />
+
       {/* Header */}
       <header className="bg-card border-b border-border safe-top">
         <div className="px-4 py-4">
@@ -144,15 +219,35 @@ export default function Log() {
 
         {step === "analyzing" && (
           <div className="flex flex-col items-center justify-center min-h-[400px] gap-6">
-            <div className="relative">
-              <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center">
-                <Loader2 className="w-12 h-12 text-primary animate-spin" />
+            {/* Photo preview */}
+            {photoPreview && (
+              <div className="w-full max-w-sm aspect-[4/3] rounded-2xl overflow-hidden relative">
+                <img
+                  src={photoPreview}
+                  alt="Meal preview"
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                  <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center">
+                    <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
+
+            {!photoPreview && (
+              <div className="relative">
+                <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Loader2 className="w-12 h-12 text-primary animate-spin" />
+                </div>
+              </div>
+            )}
+
             <div className="text-center">
               <h3 className="text-xl font-semibold mb-2">Analyzing your meal...</h3>
               <p className="text-muted-foreground">Detecting foods and checking against your plan</p>
             </div>
+
             <div className="flex gap-2">
               <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0ms" }} />
               <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: "150ms" }} />

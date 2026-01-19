@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { AdherenceScore } from "@/components/AdherenceScore";
 import { BottomNav } from "@/components/BottomNav";
 import { cn } from "@/lib/utils";
+import { AnalyzeMealResponse } from "@/lib/api";
 
 const mockResult = {
   score: 78,
@@ -26,8 +27,31 @@ export default function MealResult() {
   const navigate = useNavigate();
   const location = useLocation();
   const mealType = location.state?.mealType || "lunch";
+  const analysisResult = location.state?.analysisResult as AnalyzeMealResponse | undefined;
+  const photoPreview = location.state?.photoPreview as string | undefined;
+
+  // Use real data if available, otherwise fall back to mockResult
+  const result = analysisResult || mockResult;
+
+  // Transform analysisResult to component format if using real data
+  const detectedFoods = analysisResult
+    ? analysisResult.detectedFoods.map((food) => ({
+        name: food.name,
+        matched: food.matched,
+        category: food.category || "Unknown",
+      }))
+    : mockResult.detectedFoods;
+
+  const suggestions = analysisResult
+    ? analysisResult.suggestedSwaps.map((swap) => ({
+        food: swap.original,
+        replacement: swap.suggested,
+        reason: swap.reason,
+      }))
+    : mockResult.suggestions;
 
   const handleSave = () => {
+    // Note: Data is already saved by the mutation, this just navigates
     navigate("/");
   };
 
@@ -49,7 +73,7 @@ export default function MealResult() {
     }
   };
 
-  const confidenceInfo = getConfidenceLabel(mockResult.confidence);
+  const confidenceInfo = getConfidenceLabel(result.confidence);
 
   return (
     <div className="min-h-screen bg-background pb-32">
@@ -70,16 +94,27 @@ export default function MealResult() {
       </header>
 
       <main className="px-4 py-6 space-y-6 max-w-lg mx-auto">
+        {/* Photo Preview */}
+        {photoPreview && (
+          <div className="w-full aspect-[4/3] rounded-2xl overflow-hidden card-shadow">
+            <img
+              src={photoPreview}
+              alt="Meal photo"
+              className="w-full h-full object-cover"
+            />
+          </div>
+        )}
+
         {/* Score Section */}
         <div className="flex flex-col items-center pt-4">
-          <AdherenceScore score={mockResult.score} size="lg" />
+          <AdherenceScore score={result.score} size="lg" />
           <div className="mt-4 text-center">
             <p className={cn(
               "text-lg font-semibold",
-              mockResult.score >= 70 ? "text-success" : 
-              mockResult.score >= 40 ? "text-warning" : "text-destructive"
+              result.score >= 70 ? "text-success" :
+              result.score >= 40 ? "text-warning" : "text-destructive"
             )}>
-              {getStatusLabel(mockResult.score)}
+              {getStatusLabel(result.score)}
             </p>
             <p className={cn("text-sm", confidenceInfo.color)}>
               {confidenceInfo.label}
@@ -93,12 +128,12 @@ export default function MealResult() {
             <h3 className="font-semibold mb-3 flex items-center gap-2">
               <span>Detected Foods</span>
               <span className="text-xs text-muted-foreground font-normal">
-                ({mockResult.detectedFoods.length} items)
+                ({detectedFoods.length} items)
               </span>
             </h3>
             <div className="space-y-2">
-              {mockResult.detectedFoods.map((food, idx) => (
-                <div 
+              {detectedFoods.map((food, idx) => (
+                <div
                   key={idx}
                   className={cn(
                     "flex items-center justify-between p-3 rounded-xl",
@@ -136,20 +171,20 @@ export default function MealResult() {
               </div>
               <div>
                 <h3 className="font-semibold mb-1">AI Feedback</h3>
-                <p className="text-sm text-muted-foreground">{mockResult.feedback}</p>
+                <p className="text-sm text-muted-foreground">{result.feedback}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Fix Foods Suggestions */}
-        {mockResult.suggestions.length > 0 && (
+        {/* Suggested Swaps */}
+        {suggestions.length > 0 && (
           <Card className="card-shadow">
             <CardContent className="p-4">
               <h3 className="font-semibold mb-3">Suggested Swaps</h3>
               <div className="space-y-3">
-                {mockResult.suggestions.map((suggestion, idx) => (
-                  <div 
+                {suggestions.map((suggestion, idx) => (
+                  <div
                     key={idx}
                     className="flex items-center justify-between p-3 bg-secondary rounded-xl"
                   >
@@ -174,7 +209,7 @@ export default function MealResult() {
         <div className="flex items-center justify-center gap-2 p-3 bg-muted/50 rounded-xl">
           <Info className="w-4 h-4 text-muted-foreground" />
           <p className="text-xs text-muted-foreground text-center">
-            Analysis confidence: {mockResult.confidence}. Results may vary based on photo quality.
+            Analysis confidence: {result.confidence}. Results may vary based on photo quality.
           </p>
         </div>
 

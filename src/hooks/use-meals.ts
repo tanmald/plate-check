@@ -1,7 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/use-auth";
-import { isTestUser, mockMeals } from "@/lib/test-data";
+import { isTestUser, mockMeals, mockAnalysisResult } from "@/lib/test-data";
+import { uploadMealPhoto } from "@/lib/storage";
+import { analyzeMeal, AnalyzeMealResponse } from "@/lib/api";
 
 export interface Meal {
   id: string;
@@ -67,4 +69,81 @@ export function useMeals(date?: string) {
 export function useTodayMeals() {
   const today = new Date().toISOString().split("T")[0];
   return useMeals(today);
+}
+
+/**
+ * Hook for creating a new meal log
+ * Handles: photo upload → AI analysis → database insert
+ */
+export function useCreateMealLog() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      photoFile,
+      mealType,
+      planId,
+    }: {
+      photoFile: File;
+      mealType: string;
+      planId?: string;
+    }): Promise<AnalyzeMealResponse> => {
+      if (!user?.id) {
+        throw new Error("User not authenticated");
+      }
+
+      // Test user path: Return mock data with simulated delay
+      if (isTestUser(user.email)) {
+        await new Promise((resolve) => setTimeout(resolve, 2500));
+        return mockAnalysisResult;
+      }
+
+      // Real user path: Upload photo → call Edge Function → save to DB
+      try {
+        // Step 1: Upload photo to storage
+        const { path: photoPath, url: photoUrl } = await uploadMealPhoto(photoFile);
+
+        // Step 2: Call analyze-meal Edge Function
+        const analysisResult = await analyzeMeal({
+          imageUrl: photoUrl,
+          mealType,
+          userId: user.id,
+          planId,
+        });
+
+        // Step 3: Save to meal_logs table
+        const { error: dbError } = await supabase.from("meal_logs").insert({
+          user_id: user.id,
+          meal_type: mealType,
+          meal_name: `${mealType.charAt(0).toUpperCase() + mealType.slice(1)}`,
+          photo_path: photoPath,
+          photo_url: photoUrl,
+          adherence_score: analysisResult.score,
+          detected_foods: analysisResult.detectedFoods.map((f) => f.name),
+          detection_confidence: analysisResult.confidence,
+          scoring_result: {
+            detectedFoods: analysisResult.detectedFoods,
+            feedback: analysisResult.feedback,
+            suggestedSwaps: analysisResult.suggestedSwaps,
+          },
+          ai_feedback: analysisResult.feedback,
+          status: "completed",
+          logged_at: new Date().toISOString(),
+        });
+
+        if (dbError) throw dbError;
+
+        // Return the analysis result for immediate display
+        return analysisResult;
+      } catch (error) {
+        console.error("Error creating meal log:", error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      // Invalidate meal queries to refresh the UI
+      queryClient.invalidateQueries({ queryKey: ["meals"] });
+    },
+  });
 }

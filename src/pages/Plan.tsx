@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BottomNav } from "@/components/BottomNav";
-import { useNutritionPlan } from "@/hooks/use-nutrition-plan";
+import { useNutritionPlan, useImportNutritionPlan, useConfirmNutritionPlan } from "@/hooks/use-nutrition-plan";
+import { ParsePlanResponse } from "@/lib/api";
 import { toast } from "sonner";
-import { Upload, FileText, ChevronRight, Plus, Edit2, Image, File, Info, Loader2 } from "lucide-react";
+import { Upload, FileText, ChevronRight, Plus, Edit2, Image, File, Info, Loader2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type ViewState = "empty" | "importing" | "review" | "active";
@@ -13,20 +14,61 @@ export default function Plan() {
   const { data: planData, isLoading } = useNutritionPlan();
   const [viewState, setViewState] = useState<ViewState>("empty");
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const [parsedPlan, setParsedPlan] = useState<ParsePlanResponse | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const importPlan = useImportNutritionPlan();
+  const confirmPlan = useConfirmNutritionPlan();
 
   const hasPlan = planData?.hasPlan || false;
   const plan = planData?.plan;
 
   const handleImportStart = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelect = (file: File) => {
+    // Set importing state
     setViewState("importing");
-    // Simulate parsing
-    setTimeout(() => {
-      setViewState("review");
-    }, 2000);
+
+    // Call import mutation
+    importPlan.mutate(
+      { file },
+      {
+        onSuccess: (result) => {
+          // Store parsed plan
+          setParsedPlan(result);
+          // Move to review state
+          setViewState("review");
+        },
+        onError: (error) => {
+          console.error("Error importing plan:", error);
+          toast.error("Failed to parse plan. Please try again.");
+          // Reset to empty state
+          setViewState("empty");
+          setParsedPlan(null);
+        },
+      }
+    );
   };
 
   const handleConfirmPlan = () => {
-    setViewState("active");
+    if (!parsedPlan) {
+      toast.error("No plan to confirm");
+      return;
+    }
+
+    confirmPlan.mutate(parsedPlan, {
+      onSuccess: () => {
+        toast.success("Plan confirmed successfully!");
+        setViewState("active");
+        setParsedPlan(null);
+      },
+      onError: (error) => {
+        console.error("Error confirming plan:", error);
+        toast.error("Failed to save plan. Please try again.");
+      },
+    });
   };
 
   const handleEditPlan = () => {
@@ -43,6 +85,18 @@ export default function Plan() {
 
   return (
     <div className="min-h-screen bg-background pb-24">
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".pdf,.doc,.docx,image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handleFileSelect(file);
+        }}
+      />
+
       {/* Header */}
       <header className="bg-card border-b border-border safe-top">
         <div className="px-4 py-4">
@@ -101,7 +155,7 @@ export default function Plan() {
               <p className="text-muted-foreground">Extracting meal templates and guidelines</p>
             </div>
           </div>
-        ) : viewState === "review" ? (
+        ) : viewState === "review" && parsedPlan ? (
           /* Review State */
           <>
             <Card className="card-shadow border-2 border-primary/20 bg-primary/5">
@@ -115,20 +169,49 @@ export default function Plan() {
                     <p className="text-sm text-muted-foreground">Review and confirm below</p>
                   </div>
                 </div>
-                
-                <div className="p-3 bg-card rounded-lg">
-                  <p className="text-sm font-medium">{plan?.name || "Nutrition Plan"}</p>
-                  <p className="text-xs text-muted-foreground">{plan?.source || "Uploaded Plan"}</p>
+
+                <div className="p-3 bg-card rounded-lg space-y-2">
+                  <div>
+                    <p className="text-sm font-medium">{parsedPlan.planName}</p>
+                    <p className="text-xs text-muted-foreground">Uploaded Plan</p>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className={cn(
+                      "px-2 py-1 rounded-full",
+                      parsedPlan.confidence === "high" ? "bg-success/20 text-success" :
+                      parsedPlan.confidence === "medium" ? "bg-warning/20 text-warning" :
+                      "bg-muted text-muted-foreground"
+                    )}>
+                      {parsedPlan.confidence} confidence
+                    </span>
+                    <span className="text-muted-foreground">
+                      {parsedPlan.mealTemplates.length} templates
+                    </span>
+                  </div>
                 </div>
+
+                {/* Warnings */}
+                {parsedPlan.warnings.length > 0 && (
+                  <div className="mt-3 p-3 bg-warning/10 border border-warning/20 rounded-lg">
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="w-4 h-4 text-warning mt-0.5" />
+                      <div className="space-y-1">
+                        {parsedPlan.warnings.map((warning, idx) => (
+                          <p key={idx} className="text-xs text-warning">{warning}</p>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
             {/* Templates to confirm */}
             <div className="space-y-3">
-              {(plan?.templates || []).map((template) => (
+              {parsedPlan.mealTemplates.map((template) => (
                 <Card key={template.id} className="card-shadow">
                   <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 mb-3">
                       <span className="text-2xl">{template.icon}</span>
                       <div className="flex-1">
                         <h3 className="font-semibold">{template.name}</h3>
@@ -136,17 +219,53 @@ export default function Plan() {
                           {template.calories} cal • {template.protein} protein
                         </p>
                       </div>
-                      <Button variant="ghost" size="icon" onClick={handleEditTemplate}>
-                        <Edit2 className="w-4 h-4" />
-                      </Button>
+                    </div>
+                    <div className="space-y-2 text-xs">
+                      <div>
+                        <p className="text-muted-foreground mb-1">Required:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {template.requiredFoods.map((food, idx) => (
+                            <span key={idx} className="px-2 py-1 bg-primary/10 text-primary rounded">
+                              {food}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground mb-1">Allowed:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {template.allowedFoods.slice(0, 5).map((food, idx) => (
+                            <span key={idx} className="px-2 py-1 bg-secondary rounded">
+                              {food}
+                            </span>
+                          ))}
+                          {template.allowedFoods.length > 5 && (
+                            <span className="px-2 py-1 text-muted-foreground">
+                              +{template.allowedFoods.length - 5} more
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
               ))}
             </div>
 
-            <Button size="xl" className="w-full" onClick={handleConfirmPlan}>
-              Confirm Plan
+            <Button
+              size="xl"
+              className="w-full"
+              onClick={handleConfirmPlan}
+              disabled={confirmPlan.isPending}
+            >
+              {confirmPlan.isPending ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Confirm Plan"
+              )}
             </Button>
           </>
         ) : hasPlan && plan ? (
