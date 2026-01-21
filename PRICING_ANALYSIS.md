@@ -114,16 +114,37 @@ Successful apps that use single-tier pricing:
 
 **Key Pattern:** Users want simplicity, not choice anxiety. Multiple tiers work for B2B SaaS, not consumer apps.
 
-### Free Tier
+### 7-Day Premium Trial → Limited Free Tier (Hybrid Model)
+
+**Why Hybrid?**
+- Users experience full value immediately (trial)
+- Creates urgency to convert (deadline)
+- Safety net for those not ready (limited free tier)
+- Lower ongoing costs than generous freemium
+- Can re-engage lapsed trial users over time
+
+#### Phase 1: Premium Trial (Days 0-7)
+- **Price:** $0 (no credit card required)
+- **Features:** Full Premium access
+  - Unlimited meal logs
+  - Full AI analysis with detailed feedback
+  - Unlimited progress history
+  - Weekly/monthly trends
+  - Export data
+- **Cost to you:** ~$0.56/user (assuming 10 meals during trial week)
+- **Purpose:** Experience full value, create "aha moment"
+- **Conversion goal:** 20-25% convert before trial ends
+
+#### Phase 2: Limited Free Tier (Day 8+ if not converted)
 - **Price:** $0/month
-- **Limits:** 30 meal logs/month (~1 per day)
+- **Limits:** 10 meal logs/month (~2-3 per week)
 - **Features:**
   - Basic meal analysis
   - Daily adherence score
-  - 7-day progress history
-- **Cost to you:** ~$0.24/user/month
-- **Purpose:** Try before buy, build trust
-- **Conversion goal:** 15-20% to paid
+  - 7-day progress history only
+- **Cost to you:** ~$0.08/user/month
+- **Purpose:** Keep users engaged, re-convert later
+- **Re-conversion goal:** 10-15% of free users convert within 90 days to paid
 
 ### PlateCheck Premium (Single Paid Tier)
 - **Price:** $3.99/month or $39/year (save $9 = 19% off)
@@ -213,15 +234,17 @@ These are where you build recurring value on top of the simple base tier:
    - Focus on product-market fit, not optimization
    - Cost: ~$720/month for AI only
 
-2. **Launch at:**
-   - Free: 30 meals/month
+2. **Launch with hybrid model:**
+   - 7-day Premium trial (full features, no credit card)
+   - Limited free tier after trial: 10 meals/month
    - Premium: $3.99/month or $39/year
 
-3. **Target 15-20% conversion** to paid
+3. **Target 20-25% trial conversion** to paid
+   - Plus 10-15% of free tier users convert within 90 days
    - 100 paid users × $3.99 = $399/month
    - With 30% annual mix: ~$450/month average
 
-4. **Break-even** at ~100 paid users (~700 total users)
+4. **Break-even** at ~100 paid users (~500-700 total users with lower free costs)
 
 ### Medium-term (1K-10K users)
 
@@ -257,28 +280,31 @@ These are where you build recurring value on top of the simple base tier:
 
 ## Profitability Timeline
 
-Based on single-tier pricing at $3.99/month and realistic conversion rates:
+Based on hybrid trial model at $3.99/month and realistic conversion rates:
 
 ### Month 1-3 (Launch & Validation)
 - Total users: 100-500
-- Paid users: 10-50 (10-15% early conversion)
-- Costs: $50-$500/month (AI only)
-- Revenue: $40-$200/month (mostly monthly subscribers)
-- **Loss: $300/month** (acceptable for launch)
+- Trial users: 80-400 (80% of signups start trial)
+- Paid users: 20-100 (20-25% trial conversion)
+- Free tier users: 50-250 (post-trial, not converted yet)
+- Costs: $30-$150/month (lower due to 10 meals/month free tier)
+- Revenue: $80-$400/month (mostly monthly subscribers)
+- **Loss: $50-$100/month** (much better than before!)
 
 ### Month 4-6 (Growth)
 - Total users: 500-2,000
-- Paid users: 100-400 (20% conversion improving)
-- Costs: $600-$1,600/month
-- Revenue: $400-$1,600/month (25% annual mix)
-- **Breaking even to small profit**
+- Paid users: 125-500 (25% effective conversion with re-conversions)
+- Free tier users: 300-1,200
+- Costs: $150-$500/month
+- Revenue: $500-$2,000/month (25% annual mix)
+- **Profitable from Month 4-5**
 
 ### Month 7-12 (Scale)
 - Total users: 2,000-5,000
-- Paid users: 400-1,000 (20% conversion)
-- Costs: $1,600-$4,000/month
-- Revenue: $1,600-$4,000/month (30% annual mix)
-- **Profit: $0-$500/month** (still investing in growth)
+- Paid users: 500-1,250 (25% effective conversion)
+- Costs: $400-$800/month (free users at $0.08/month each)
+- Revenue: $2,000-$5,000/month (30% annual mix)
+- **Profit: $1,200-$4,000/month**
 
 ### Year 2 (Optimization + Add-ons)
 - Total users: 5,000-15,000
@@ -290,7 +316,10 @@ Based on single-tier pricing at $3.99/month and realistic conversion rates:
 - **Profit: $500-$5,500/month**
 
 ### Key Metrics to Track
-- **Conversion rate:** Target 15-20%
+- **Trial start rate:** Target 80% of signups
+- **Trial-to-paid conversion:** Target 20-25%
+- **Free-to-paid re-conversion:** Target 10-15% within 90 days
+- **Effective conversion rate:** Target 25-30% (trial + re-conversions)
 - **Churn:** Keep below 5%/month
 - **Annual plan adoption:** Target 30%+
 - **Family plan take rate:** 10% of paid users
@@ -302,14 +331,14 @@ Based on single-tier pricing at $3.99/month and realistic conversion rates:
 
 ### Immediate Action
 - Launch with Supabase (don't optimize prematurely)
-- **Single tier pricing:** $3.99/month or $39/year
+- **Hybrid trial model:** 7-day Premium trial → 10 meals/month free tier → $3.99/month Premium
 - Target 82% gross margins (industry-leading)
-- Break-even at ~180 paid users (~900-1,200 total users)
-- Simple messaging: "Try free, upgrade when ready"
+- Break-even at ~180 paid users (~700-900 total users with lower free tier costs)
+- Simple messaging: "Try Premium free for 7 days"
 
 ### Revenue Growth Strategy
-1. **Start simple:** Free + Premium only
-2. **Month 3-6:** Add Family Plan ($11.99/mo)
+1. **Start simple:** 7-day trial + Limited free + Premium only
+2. **Month 3-6:** Add Family Plan ($9.99/mo)
 3. **Month 6-12:** Launch add-ons (analytics, meal plans)
 4. **Year 2:** Professional tier for dietitians ($49-99/mo)
 

@@ -37,14 +37,15 @@ export function useNutritionPlan() {
       // Fetch real data from database
       if (!user?.id) return { plan: null, hasPlan: false };
 
-      // Get the most recent nutrition plan
+      // Get the most recent confirmed and active nutrition plan
       const { data: planData, error: planError } = await supabase
         .from("nutrition_plans")
         .select("*")
         .eq("user_id", user.id)
+        .eq("is_active", true)
         .order("created_at", { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (planError && planError.code !== "PGRST116") throw planError;
       if (!planData) return { plan: null, hasPlan: false };
@@ -54,39 +55,44 @@ export function useNutritionPlan() {
         .from("meal_templates")
         .select(`
           id,
-          meal_type,
-          template_name,
+          type,
           required_foods,
           allowed_foods,
-          target_calories_min,
-          target_calories_max,
-          target_protein_min,
-          target_protein_max
+          calories_min,
+          calories_max,
+          macros
         `)
         .eq("plan_id", planData.id);
 
       if (templatesError) throw templatesError;
 
       // Transform to app format
-      const templates: MealTemplate[] = (templatesData || []).map((t) => ({
-        id: t.id,
-        type: t.meal_type,
-        icon: getMealIcon(t.meal_type),
-        name: t.template_name,
-        requiredFoods: t.required_foods || [],
-        allowedFoods: t.allowed_foods || [],
-        calories: `${t.target_calories_min || 0}-${t.target_calories_max || 0}`,
-        protein: `${t.target_protein_min || 0}-${t.target_protein_max || 0}g`,
-      }));
+      const templates: MealTemplate[] = (templatesData || []).map((t) => {
+        const mealType = t.type || "meal";
+        const proteinFromMacros = t.macros?.protein || "";
+
+        return {
+          id: t.id,
+          type: mealType,
+          icon: getMealIcon(mealType),
+          name: getMealName(mealType),
+          requiredFoods: t.required_foods || [],
+          allowedFoods: t.allowed_foods || [],
+          calories: t.calories_min && t.calories_max
+            ? `${t.calories_min}-${t.calories_max}`
+            : t.calories_min || t.calories_max || "",
+          protein: proteinFromMacros,
+        };
+      });
 
       const plan: NutritionPlan = {
-        name: planData.plan_name,
+        name: planData.name,
         uploadedAt: new Date(planData.created_at).toLocaleDateString("en-US", {
           month: "short",
           day: "numeric",
           year: "numeric",
         }),
-        source: planData.plan_source || "Uploaded Plan",
+        source: planData.source || "Uploaded Plan",
         templates,
       };
 
@@ -98,12 +104,22 @@ export function useNutritionPlan() {
 
 function getMealIcon(mealType: string): string {
   const icons: Record<string, string> = {
-    breakfast: "🌅",
-    lunch: "☀️",
+    breakfast: "☀️",
+    lunch: "🌤️",
     dinner: "🌙",
     snack: "🍎",
   };
   return icons[mealType] || "🍽️";
+}
+
+function getMealName(mealType: string): string {
+  const names: Record<string, string> = {
+    breakfast: "Breakfast",
+    lunch: "Lunch",
+    dinner: "Dinner",
+    snack: "Snack",
+  };
+  return names[mealType] || "Meal";
 }
 
 export function useCreateNutritionPlan() {
@@ -119,8 +135,8 @@ export function useCreateNutritionPlan() {
         .from("nutrition_plans")
         .insert({
           user_id: user.id,
-          plan_name: planData.name,
-          plan_source: planData.source,
+          name: planData.name,
+          source: planData.source,
         })
         .select()
         .single();
@@ -128,17 +144,21 @@ export function useCreateNutritionPlan() {
       if (planError) throw planError;
 
       // Create templates
-      const templates = planData.templates.map((t) => ({
-        plan_id: plan.id,
-        meal_type: t.type,
-        template_name: t.name,
-        required_foods: t.requiredFoods,
-        allowed_foods: t.allowedFoods,
-        target_calories_min: parseInt(t.calories.split("-")[0]) || 0,
-        target_calories_max: parseInt(t.calories.split("-")[1]) || 0,
-        target_protein_min: parseInt(t.protein.split("-")[0]) || 0,
-        target_protein_max: parseInt(t.protein.split("-")[1]) || 0,
-      }));
+      const templates = planData.templates.map((t) => {
+        const caloriesParts = t.calories.split("-").map((s) => parseInt(s.trim()) || null);
+        const proteinValue = t.protein.replace(/[^\d.-]/g, "");
+
+        return {
+          user_id: user.id,
+          plan_id: plan.id,
+          type: t.type,
+          required_foods: t.requiredFoods,
+          allowed_foods: t.allowedFoods,
+          calories_min: caloriesParts[0] || null,
+          calories_max: caloriesParts[1] || caloriesParts[0] || null,
+          macros: proteinValue ? { protein: proteinValue } : null,
+        };
+      });
 
       const { error: templatesError } = await supabase
         .from("meal_templates")
@@ -176,15 +196,22 @@ export function useImportNutritionPlan() {
 
       // Real user path: Upload file → call Edge Function
       try {
-        // Step 1: Detect file type
-        const fileType = file.type || getFileTypeFromName(file.name);
+        // Step 1: Upload file to storage
+        const { path: filePath } = await uploadNutritionPlan(file);
 
-        // Step 2: Upload file to storage
-        const { path: filePath, url: fileUrl } = await uploadNutritionPlan(file);
+        // Step 2: Get a signed URL for the Edge Function to access
+        const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+          .from("nutrition-plans")
+          .createSignedUrl(filePath, 3600); // 1 hour
 
-        // Step 3: Call parse-nutrition-plan Edge Function
+        if (signedUrlError) throw signedUrlError;
+
+        // Step 3: Determine file type for Edge Function
+        const fileType = getSimpleFileType(file.type || file.name);
+
+        // Step 4: Call parse-nutrition-plan Edge Function
         const parsedPlan = await parseNutritionPlan({
-          fileUrl,
+          fileUrl: signedUrlData.signedUrl,
           userId: user.id,
           fileType,
         });
@@ -200,7 +227,8 @@ export function useImportNutritionPlan() {
 
 /**
  * Hook for confirming a parsed nutrition plan
- * Saves the ParsePlanResponse to the database after user review
+ * The Edge Function already created the plan and templates in the database.
+ * This hook just marks the plan as confirmed after user review.
  */
 export function useConfirmNutritionPlan() {
   const { user } = useAuth();
@@ -213,39 +241,19 @@ export function useConfirmNutritionPlan() {
       }
 
       try {
-        // Step 1: Insert nutrition plan
+        // Update the nutrition plan to mark it as confirmed
         const { data: plan, error: planError } = await supabase
           .from("nutrition_plans")
-          .insert({
-            user_id: user.id,
-            plan_name: parsedPlan.planName,
-            plan_source: "Uploaded Plan",
+          .update({
             is_active: true,
             confirmed_at: new Date().toISOString(),
           })
+          .eq("id", parsedPlan.planId)
+          .eq("user_id", user.id)
           .select()
           .single();
 
         if (planError) throw planError;
-
-        // Step 2: Insert meal templates
-        const templates = parsedPlan.mealTemplates.map((t) => ({
-          plan_id: plan.id,
-          meal_type: t.type,
-          template_name: t.name,
-          required_foods: t.requiredFoods,
-          allowed_foods: t.allowedFoods,
-          target_calories_min: parseInt(t.calories.split("-")[0]) || 0,
-          target_calories_max: parseInt(t.calories.split("-")[1]) || 0,
-          target_protein_min: parseInt(t.protein.split("-")[0]) || 0,
-          target_protein_max: parseInt(t.protein.split("-")[1]) || 0,
-        }));
-
-        const { error: templatesError } = await supabase
-          .from("meal_templates")
-          .insert(templates);
-
-        if (templatesError) throw templatesError;
 
         return plan;
       } catch (error) {
@@ -261,17 +269,26 @@ export function useConfirmNutritionPlan() {
 }
 
 /**
- * Helper to detect file type from filename
+ * Helper to detect simple file type for Edge Function
+ * Returns "pdf", "image", or "text"
  */
-function getFileTypeFromName(filename: string): string {
-  const ext = filename.split(".").pop()?.toLowerCase();
-  const typeMap: Record<string, string> = {
-    pdf: "application/pdf",
-    doc: "application/msword",
-    docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    jpg: "image/jpeg",
-    jpeg: "image/jpeg",
-    png: "image/png",
-  };
-  return typeMap[ext || ""] || "application/octet-stream";
+function getSimpleFileType(mimeTypeOrFilename: string): "pdf" | "image" | "text" {
+  const str = mimeTypeOrFilename.toLowerCase();
+
+  if (str.includes("pdf") || str.endsWith(".pdf")) {
+    return "pdf";
+  }
+
+  if (
+    str.includes("image") ||
+    str.endsWith(".jpg") ||
+    str.endsWith(".jpeg") ||
+    str.endsWith(".png") ||
+    str.endsWith(".gif") ||
+    str.endsWith(".webp")
+  ) {
+    return "image";
+  }
+
+  return "text";
 }
