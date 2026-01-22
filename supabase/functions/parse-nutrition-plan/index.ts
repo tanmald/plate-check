@@ -13,15 +13,28 @@ interface ParsePlanRequest {
   fileType: "pdf" | "image" | "text";
 }
 
+interface MealOption {
+  number: number;
+  description: string;
+  foods: string[];
+}
+
 interface MealTemplate {
   id: string;
   type: string;
   icon: string;
   name: string;
+  options: MealOption[];
   requiredFoods: string[];
   allowedFoods: string[];
+  optionalAddons: string[];
   calories: string;
   protein: string;
+  isOptional: boolean;
+  isPreWorkout: boolean;
+  scheduledTime: string | null;
+  referencesMeal: string | null;
+  snackTimeCategory: string | null;
 }
 
 interface ParsePlanResponse {
@@ -35,12 +48,23 @@ interface ParsePlanResponse {
 interface OpenAIParsedPlan {
   planName: string;
   meals: Array<{
-    mealType: "breakfast" | "lunch" | "dinner" | "snack";
+    mealType: "breakfast" | "lunch" | "dinner" | "snack" | "fasting";
     name: string;
+    options: Array<{
+      number: number;
+      description: string;
+      foods: string[];
+    }>;
     requiredFoods: string[];
     allowedFoods: string[];
+    optionalAddons: string[];
     caloriesRange?: string;
     proteinRange?: string;
+    isOptional: boolean;
+    isPreWorkout: boolean;
+    scheduledTime?: string;
+    referencesMeal?: string;
+    snackTimeCategory?: string;
   }>;
   confidence: "high" | "medium" | "low";
   warnings: string[];
@@ -208,29 +232,54 @@ async function parseImageWithVision(
         {
           role: "system",
           content: `You are a nutrition plan parser. Extract meal information from nutrition plan images.
-Return a JSON object with this exact structure:
+
+CRITICAL PARSING RULES:
+
+1. **Meal Options vs Ingredients**:
+   - "options" = Complete numbered meal choices (e.g., "Option 1: Eggs with toast", "1 - Oatmeal with fruit")
+   - "allowedFoods" = General ingredient pool / allowed foods across options
+   - "optionalAddons" = Items explicitly marked as optional, "if desired", "if hungry"
+   - "requiredFoods" = Keep for backward compatibility (foods that must appear)
+
+2. **Numbered Options**: Parse "1 - ", "Option 1:", "Opção 1:", "1.", "1)" as separate options
+
+3. **Optional Meals**: Detect "Optional", "If hungry", "Se tiver fome", "Opcional" → isOptional: true
+
+4. **Meal References**: Detect "same as lunch", "follow rules of [meal]", "igual ao almoço", "manter regras do" → referencesMeal: "[meal name]"
+
+5. **Fasting/Wake-up**: Detect "upon waking", "em jejum", "ao acordar", "fasting" → mealType: "fasting"
+
+6. **Pre-workout**: Detect "Pré Treino", "Pre-workout", "Pré-Treino", "Before workout" → isPreWorkout: true
+
+7. **Meal Times**: Extract HH:MM or "H:MM AM/PM" patterns → scheduledTime
+
+8. **Snack Categories**: Based on time or order → snackTimeCategory: "morning" | "afternoon" | "evening"
+
+Return JSON:
 {
-  "planName": "string (name of the plan or 'Nutrition Plan' if not found)",
+  "planName": "string",
   "meals": [
     {
-      "mealType": "breakfast" | "lunch" | "dinner" | "snack",
-      "name": "string (descriptive name for this meal)",
-      "requiredFoods": ["array of required/must-have foods"],
-      "allowedFoods": ["array of allowed/optional foods"],
-      "caloriesRange": "string (e.g., '400-500' or '450' or null)",
-      "proteinRange": "string (e.g., '25-30g' or '28g' or null)"
+      "mealType": "breakfast" | "lunch" | "dinner" | "snack" | "fasting",
+      "name": "string (descriptive name)",
+      "options": [
+        { "number": 1, "description": "Full option text", "foods": ["food1", "food2"] }
+      ],
+      "requiredFoods": ["backward compat: key foods that must appear"],
+      "allowedFoods": ["ingredient pool / general allowed items"],
+      "optionalAddons": ["items marked optional or 'if desired'"],
+      "caloriesRange": "string or null",
+      "proteinRange": "string or null",
+      "isOptional": boolean,
+      "isPreWorkout": boolean,
+      "scheduledTime": "HH:MM or null",
+      "referencesMeal": "meal name or null",
+      "snackTimeCategory": "morning" | "afternoon" | "evening" | null
     }
   ],
-  "confidence": "high" | "medium" | "low" (your confidence in the parsing accuracy),
-  "warnings": ["array of warnings if plan is unclear, missing info, etc."]
-}
-
-Important:
-- Extract ALL meal types mentioned (breakfast, lunch, dinner, snacks)
-- Distinguish between required foods (must have) vs allowed/optional foods
-- If a meal lists food options, put them in allowedFoods
-- If specific foods are required, put them in requiredFoods
-- Be conservative with confidence - use "medium" or "low" if plan is handwritten, unclear, or missing info`,
+  "confidence": "high" | "medium" | "low",
+  "warnings": ["array of warnings"]
+}`,
         },
         {
           role: "user",
@@ -287,29 +336,54 @@ async function parseTextWithGPT4(
         {
           role: "system",
           content: `You are a nutrition plan parser. Extract meal information from nutrition plan text.
-Return a JSON object with this exact structure:
+
+CRITICAL PARSING RULES:
+
+1. **Meal Options vs Ingredients**:
+   - "options" = Complete numbered meal choices (e.g., "Option 1: Eggs with toast", "1 - Oatmeal with fruit")
+   - "allowedFoods" = General ingredient pool / allowed foods across options
+   - "optionalAddons" = Items explicitly marked as optional, "if desired", "if hungry"
+   - "requiredFoods" = Keep for backward compatibility (foods that must appear)
+
+2. **Numbered Options**: Parse "1 - ", "Option 1:", "Opção 1:", "1.", "1)" as separate options
+
+3. **Optional Meals**: Detect "Optional", "If hungry", "Se tiver fome", "Opcional" → isOptional: true
+
+4. **Meal References**: Detect "same as lunch", "follow rules of [meal]", "igual ao almoço", "manter regras do" → referencesMeal: "[meal name]"
+
+5. **Fasting/Wake-up**: Detect "upon waking", "em jejum", "ao acordar", "fasting" → mealType: "fasting"
+
+6. **Pre-workout**: Detect "Pré Treino", "Pre-workout", "Pré-Treino", "Before workout" → isPreWorkout: true
+
+7. **Meal Times**: Extract HH:MM or "H:MM AM/PM" patterns → scheduledTime
+
+8. **Snack Categories**: Based on time or order → snackTimeCategory: "morning" | "afternoon" | "evening"
+
+Return JSON:
 {
-  "planName": "string (name of the plan or 'Nutrition Plan' if not found)",
+  "planName": "string",
   "meals": [
     {
-      "mealType": "breakfast" | "lunch" | "dinner" | "snack",
-      "name": "string (descriptive name for this meal)",
-      "requiredFoods": ["array of required/must-have foods"],
-      "allowedFoods": ["array of allowed/optional foods"],
-      "caloriesRange": "string (e.g., '400-500' or '450' or null)",
-      "proteinRange": "string (e.g., '25-30g' or '28g' or null)"
+      "mealType": "breakfast" | "lunch" | "dinner" | "snack" | "fasting",
+      "name": "string (descriptive name)",
+      "options": [
+        { "number": 1, "description": "Full option text", "foods": ["food1", "food2"] }
+      ],
+      "requiredFoods": ["backward compat: key foods that must appear"],
+      "allowedFoods": ["ingredient pool / general allowed items"],
+      "optionalAddons": ["items marked optional or 'if desired'"],
+      "caloriesRange": "string or null",
+      "proteinRange": "string or null",
+      "isOptional": boolean,
+      "isPreWorkout": boolean,
+      "scheduledTime": "HH:MM or null",
+      "referencesMeal": "meal name or null",
+      "snackTimeCategory": "morning" | "afternoon" | "evening" | null
     }
   ],
-  "confidence": "high" | "medium" | "low" (your confidence in the parsing accuracy),
-  "warnings": ["array of warnings if plan is unclear, missing info, etc."]
-}
-
-Important:
-- Extract ALL meal types mentioned (breakfast, lunch, dinner, snacks)
-- Distinguish between required foods (must have) vs allowed/optional foods
-- If a meal lists food options, put them in allowedFoods
-- If specific foods are required, put them in requiredFoods
-- Be conservative with confidence - use "medium" or "low" if plan structure is unclear or missing info`,
+  "confidence": "high" | "medium" | "low",
+  "warnings": ["array of warnings"]
+}`,
         },
         {
           role: "user",
@@ -416,17 +490,25 @@ Deno.serve(async (req: Request) => {
       lunch: "🌤️",
       dinner: "🌙",
       snack: "🍎",
+      fasting: "💧",
     };
 
     const mealTemplates: MealTemplate[] = parsedPlan.meals.map((meal) => ({
       id: crypto.randomUUID(),
       type: meal.mealType,
-      icon: mealIcons[meal.mealType] || "🍽️",
+      icon: meal.isPreWorkout ? "💪" : mealIcons[meal.mealType] || "🍽️",
       name: meal.name,
-      requiredFoods: meal.requiredFoods,
-      allowedFoods: meal.allowedFoods,
+      options: meal.options || [],
+      requiredFoods: meal.requiredFoods || [],
+      allowedFoods: meal.allowedFoods || [],
+      optionalAddons: meal.optionalAddons || [],
       calories: meal.caloriesRange || "",
       protein: meal.proteinRange || "",
+      isOptional: meal.isOptional || false,
+      isPreWorkout: meal.isPreWorkout || false,
+      scheduledTime: meal.scheduledTime || null,
+      referencesMeal: meal.referencesMeal || null,
+      snackTimeCategory: meal.snackTimeCategory || null,
     }));
 
     // Store in database
@@ -466,8 +548,16 @@ Deno.serve(async (req: Request) => {
       user_id: userId,
       plan_id: planId,
       type: template.type,
+      name: template.name,
+      options: template.options,
       required_foods: template.requiredFoods,
       allowed_foods: template.allowedFoods,
+      optional_addons: template.optionalAddons,
+      is_optional: template.isOptional,
+      is_pre_workout: template.isPreWorkout,
+      scheduled_time: template.scheduledTime,
+      references_meal: template.referencesMeal,
+      snack_time_category: template.snackTimeCategory,
       calories_min: template.calories ? parseInt(template.calories.split("-")[0]) : null,
       calories_max: template.calories
         ? parseInt(template.calories.split("-")[1] || template.calories.split("-")[0])

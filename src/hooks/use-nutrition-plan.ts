@@ -5,15 +5,28 @@ import { isTestUser, mockPlan, mockParsePlanResponse } from "@/lib/test-data";
 import { uploadNutritionPlan } from "@/lib/storage";
 import { parseNutritionPlan, ParsePlanResponse } from "@/lib/api";
 
+export interface MealOption {
+  number: number;
+  description: string;
+  foods: string[];
+}
+
 export interface MealTemplate {
   id: string;
   type: string;
   icon: string;
   name: string;
+  options: MealOption[];
   requiredFoods: string[];
   allowedFoods: string[];
+  optionalAddons: string[];
   calories: string;
   protein: string;
+  isOptional: boolean;
+  isPreWorkout: boolean;
+  scheduledTime: string | null;
+  referencesMeal: string | null;
+  snackTimeCategory: string | null;
 }
 
 export interface NutritionPlan {
@@ -56,11 +69,19 @@ export function useNutritionPlan() {
         .select(`
           id,
           type,
+          name,
+          options,
           required_foods,
           allowed_foods,
+          optional_addons,
           calories_min,
           calories_max,
-          macros
+          macros,
+          is_optional,
+          is_pre_workout,
+          scheduled_time,
+          references_meal,
+          snack_time_category
         `)
         .eq("plan_id", planData.id);
 
@@ -70,18 +91,26 @@ export function useNutritionPlan() {
       const templates: MealTemplate[] = (templatesData || []).map((t) => {
         const mealType = t.type || "meal";
         const proteinFromMacros = t.macros?.protein || "";
+        const isPreWorkout = t.is_pre_workout || false;
 
         return {
           id: t.id,
           type: mealType,
-          icon: getMealIcon(mealType),
-          name: getMealName(mealType),
+          icon: isPreWorkout ? "💪" : getMealIcon(mealType),
+          name: t.name || getMealName(mealType),
+          options: (t.options as MealOption[]) || [],
           requiredFoods: t.required_foods || [],
           allowedFoods: t.allowed_foods || [],
+          optionalAddons: t.optional_addons || [],
           calories: t.calories_min && t.calories_max
             ? `${t.calories_min}-${t.calories_max}`
             : t.calories_min || t.calories_max || "",
           protein: proteinFromMacros,
+          isOptional: t.is_optional || false,
+          isPreWorkout: isPreWorkout,
+          scheduledTime: t.scheduled_time || null,
+          referencesMeal: t.references_meal || null,
+          snackTimeCategory: t.snack_time_category || null,
         };
       });
 
@@ -108,6 +137,7 @@ function getMealIcon(mealType: string): string {
     lunch: "🌤️",
     dinner: "🌙",
     snack: "🍎",
+    fasting: "💧",
   };
   return icons[mealType] || "🍽️";
 }
@@ -118,6 +148,7 @@ function getMealName(mealType: string): string {
     lunch: "Lunch",
     dinner: "Dinner",
     snack: "Snack",
+    fasting: "Fasting / Wake-up",
   };
   return names[mealType] || "Meal";
 }
@@ -260,6 +291,57 @@ export function useConfirmNutritionPlan() {
         console.error("Error confirming nutrition plan:", error);
         throw error;
       }
+    },
+    onSuccess: () => {
+      // Invalidate nutrition plan queries to refresh UI
+      queryClient.invalidateQueries({ queryKey: ["nutrition-plan"] });
+    },
+  });
+}
+
+/**
+ * Hook for deleting (soft delete) a nutrition plan
+ * Sets is_active = false rather than hard deleting to preserve data
+ */
+export function useDeleteNutritionPlan() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      if (!user?.id) {
+        throw new Error("User not authenticated");
+      }
+
+      // Test user path: Simulate deletion with delay
+      if (isTestUser(user.email)) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        return { success: true };
+      }
+
+      // Get the active plan first
+      const { data: activePlan, error: fetchError } = await supabase
+        .from("nutrition_plans")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      if (fetchError) throw fetchError;
+      if (!activePlan) {
+        throw new Error("No active plan found");
+      }
+
+      // Soft delete: Set is_active = false
+      const { error: updateError } = await supabase
+        .from("nutrition_plans")
+        .update({ is_active: false })
+        .eq("id", activePlan.id)
+        .eq("user_id", user.id);
+
+      if (updateError) throw updateError;
+
+      return { success: true };
     },
     onSuccess: () => {
       // Invalidate nutrition plan queries to refresh UI

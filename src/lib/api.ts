@@ -32,15 +32,28 @@ export interface AnalyzeMealResponse {
   suggestedSwaps: SuggestedSwap[];
 }
 
+export interface MealOption {
+  number: number;
+  description: string;
+  foods: string[];
+}
+
 export interface MealTemplate {
   id: string;
   type: string;
   icon: string;
   name: string;
+  options: MealOption[];
   requiredFoods: string[];
   allowedFoods: string[];
+  optionalAddons: string[];
   calories: string;
   protein: string;
+  isOptional: boolean;
+  isPreWorkout: boolean;
+  scheduledTime: string | null;
+  referencesMeal: string | null;
+  snackTimeCategory: string | null;
 }
 
 export interface ParsePlanRequest {

@@ -5,7 +5,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { useNutritionPlan, useImportNutritionPlan, useConfirmNutritionPlan } from "@/hooks/use-nutrition-plan";
 import { ParsePlanResponse } from "@/lib/api";
 import { toast } from "sonner";
-import { Upload, FileText, ChevronRight, Plus, Edit2, Image, File, Info, Loader2, AlertCircle } from "lucide-react";
+import { Upload, FileText, ChevronRight, Plus, Edit2, Image, File, Info, Loader2, AlertCircle, Clock, Zap, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type ViewState = "empty" | "importing" | "review" | "active";
@@ -211,41 +211,121 @@ export default function Plan() {
               {parsedPlan.mealTemplates.map((template) => (
                 <Card key={template.id} className="card-shadow">
                   <CardContent className="p-4">
-                    <div className="flex items-center gap-3 mb-3">
+                    {/* Header with badges */}
+                    <div className="flex items-start gap-3 mb-3">
                       <span className="text-2xl">{template.icon}</span>
                       <div className="flex-1">
-                        <h3 className="font-semibold">{template.name}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {template.calories} cal • {template.protein} protein
-                        </p>
-                      </div>
-                    </div>
-                    <div className="space-y-2 text-xs">
-                      <div>
-                        <p className="text-muted-foreground mb-1">Required:</p>
-                        <div className="flex flex-wrap gap-1">
-                          {template.requiredFoods.map((food, idx) => (
-                            <span key={idx} className="px-2 py-1 bg-primary/10 text-primary rounded">
-                              {food}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="font-semibold">{template.name}</h3>
+                          {template.isOptional && (
+                            <span className="px-2 py-0.5 bg-warning/20 text-warning text-xs rounded-full font-medium">
+                              OPTIONAL
                             </span>
-                          ))}
-                        </div>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground mb-1">Allowed:</p>
-                        <div className="flex flex-wrap gap-1">
-                          {template.allowedFoods.slice(0, 5).map((food, idx) => (
-                            <span key={idx} className="px-2 py-1 bg-secondary rounded">
-                              {food}
-                            </span>
-                          ))}
-                          {template.allowedFoods.length > 5 && (
-                            <span className="px-2 py-1 text-muted-foreground">
-                              +{template.allowedFoods.length - 5} more
+                          )}
+                          {template.isPreWorkout && (
+                            <span className="px-2 py-0.5 bg-orange-500/20 text-orange-600 text-xs rounded-full font-medium flex items-center gap-1">
+                              <Zap className="w-3 h-3" />
+                              PRE-WORKOUT
                             </span>
                           )}
                         </div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          {template.scheduledTime && (
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {template.scheduledTime}
+                            </span>
+                          )}
+                          {template.calories && <span>{template.calories} cal</span>}
+                          {template.protein && <span>• {template.protein} protein</span>}
+                        </div>
                       </div>
+                    </div>
+
+                    {/* Reference to another meal */}
+                    {template.referencesMeal && (
+                      <div className="mb-3 p-2 bg-muted/50 rounded-lg flex items-center gap-2 text-sm">
+                        <ArrowRight className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">Same rules as</span>
+                        <span className="font-medium">{template.referencesMeal}</span>
+                      </div>
+                    )}
+
+                    <div className="space-y-3 text-xs">
+                      {/* Options section */}
+                      {template.options && template.options.length > 0 && (
+                        <div>
+                          <p className="text-muted-foreground mb-2 uppercase tracking-wide font-medium">
+                            Choose 1 Option:
+                          </p>
+                          <div className="space-y-2">
+                            {template.options.map((option) => (
+                              <div key={option.number} className="p-3 border border-border rounded-lg bg-card">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="w-5 h-5 bg-primary/10 text-primary rounded-full flex items-center justify-center text-xs font-medium">
+                                    {option.number}
+                                  </span>
+                                  <span className="font-medium text-sm">{option.description}</span>
+                                </div>
+                                <div className="flex flex-wrap gap-1 ml-7">
+                                  {option.foods.map((food, idx) => (
+                                    <span key={idx} className="px-2 py-0.5 bg-primary/10 text-primary rounded text-xs">
+                                      {food}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Required foods */}
+                      {template.requiredFoods.length > 0 && (
+                        <div>
+                          <p className="text-muted-foreground mb-1">Required:</p>
+                          <div className="flex flex-wrap gap-1">
+                            {template.requiredFoods.map((food, idx) => (
+                              <span key={idx} className="px-2 py-1 bg-primary/10 text-primary rounded">
+                                {food}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Allowed foods */}
+                      {template.allowedFoods.length > 0 && (
+                        <div>
+                          <p className="text-muted-foreground mb-1">Allowed:</p>
+                          <div className="flex flex-wrap gap-1">
+                            {template.allowedFoods.slice(0, 5).map((food, idx) => (
+                              <span key={idx} className="px-2 py-1 bg-secondary rounded">
+                                {food}
+                              </span>
+                            ))}
+                            {template.allowedFoods.length > 5 && (
+                              <span className="px-2 py-1 text-muted-foreground">
+                                +{template.allowedFoods.length - 5} more
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Optional add-ons */}
+                      {template.optionalAddons && template.optionalAddons.length > 0 && (
+                        <div>
+                          <p className="text-muted-foreground mb-1">Optional add-ons:</p>
+                          <div className="flex flex-wrap gap-1">
+                            {template.optionalAddons.map((food, idx) => (
+                              <span key={idx} className="px-2 py-1 bg-muted text-muted-foreground rounded border border-dashed border-muted-foreground/30">
+                                {food}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -304,8 +384,8 @@ export default function Plan() {
 
               <div className="space-y-3">
                 {plan.templates.map((template) => (
-                  <Card 
-                    key={template.id} 
+                  <Card
+                    key={template.id}
                     className={cn(
                       "card-shadow cursor-pointer transition-all",
                       selectedTemplate === template.id && "ring-2 ring-primary"
@@ -316,13 +396,33 @@ export default function Plan() {
                   >
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-start gap-3 flex-1">
                           <span className="text-2xl">{template.icon}</span>
-                          <div>
-                            <h3 className="font-semibold">{template.name}</h3>
-                            <p className="text-sm text-muted-foreground">
-                              {template.calories} cal • {template.protein} protein
-                            </p>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h3 className="font-semibold">{template.name}</h3>
+                              {template.isOptional && (
+                                <span className="px-2 py-0.5 bg-warning/20 text-warning text-xs rounded-full font-medium">
+                                  OPTIONAL
+                                </span>
+                              )}
+                              {template.isPreWorkout && (
+                                <span className="px-2 py-0.5 bg-orange-500/20 text-orange-600 text-xs rounded-full font-medium flex items-center gap-1">
+                                  <Zap className="w-3 h-3" />
+                                  PRE-WORKOUT
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              {template.scheduledTime && (
+                                <span className="flex items-center gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  {template.scheduledTime}
+                                </span>
+                              )}
+                              {template.calories && <span>{template.calories} cal</span>}
+                              {template.protein && <span>• {template.protein} protein</span>}
+                            </div>
                           </div>
                         </div>
                         <ChevronRight className={cn(
@@ -333,36 +433,99 @@ export default function Plan() {
 
                       {selectedTemplate === template.id && (
                         <div className="mt-4 pt-4 border-t border-border space-y-3">
-                          <div>
-                            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
-                              Required
-                            </p>
-                            <div className="flex flex-wrap gap-2">
-                              {template.requiredFoods.map((food) => (
-                                <span 
-                                  key={food}
-                                  className="px-3 py-1 bg-primary/10 text-primary text-sm rounded-full"
-                                >
-                                  {food}
-                                </span>
-                              ))}
+                          {/* Reference to another meal */}
+                          {template.referencesMeal && (
+                            <div className="p-2 bg-muted/50 rounded-lg flex items-center gap-2 text-sm">
+                              <ArrowRight className="w-4 h-4 text-muted-foreground" />
+                              <span className="text-muted-foreground">Same rules as</span>
+                              <span className="font-medium">{template.referencesMeal}</span>
                             </div>
-                          </div>
-                          <div>
-                            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
-                              Allowed Foods
-                            </p>
-                            <div className="flex flex-wrap gap-2">
-                              {template.allowedFoods.map((food) => (
-                                <span 
-                                  key={food}
-                                  className="px-3 py-1 bg-secondary text-secondary-foreground text-sm rounded-full"
-                                >
-                                  {food}
-                                </span>
-                              ))}
+                          )}
+
+                          {/* Options section */}
+                          {template.options && template.options.length > 0 && (
+                            <div>
+                              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+                                Choose 1 Option
+                              </p>
+                              <div className="space-y-2">
+                                {template.options.map((option) => (
+                                  <div key={option.number} className="p-3 border border-border rounded-lg bg-card/50">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <span className="w-5 h-5 bg-primary/10 text-primary rounded-full flex items-center justify-center text-xs font-medium">
+                                        {option.number}
+                                      </span>
+                                      <span className="font-medium text-sm">{option.description}</span>
+                                    </div>
+                                    <div className="flex flex-wrap gap-1 ml-7">
+                                      {option.foods.map((food, idx) => (
+                                        <span key={idx} className="px-2 py-0.5 bg-primary/10 text-primary rounded text-xs">
+                                          {food}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
-                          </div>
+                          )}
+
+                          {/* Required foods */}
+                          {template.requiredFoods.length > 0 && (
+                            <div>
+                              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+                                Required
+                              </p>
+                              <div className="flex flex-wrap gap-2">
+                                {template.requiredFoods.map((food) => (
+                                  <span
+                                    key={food}
+                                    className="px-3 py-1 bg-primary/10 text-primary text-sm rounded-full"
+                                  >
+                                    {food}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Allowed foods */}
+                          {template.allowedFoods.length > 0 && (
+                            <div>
+                              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+                                Allowed Foods
+                              </p>
+                              <div className="flex flex-wrap gap-2">
+                                {template.allowedFoods.map((food) => (
+                                  <span
+                                    key={food}
+                                    className="px-3 py-1 bg-secondary text-secondary-foreground text-sm rounded-full"
+                                  >
+                                    {food}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Optional add-ons */}
+                          {template.optionalAddons && template.optionalAddons.length > 0 && (
+                            <div>
+                              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+                                Optional Add-ons
+                              </p>
+                              <div className="flex flex-wrap gap-2">
+                                {template.optionalAddons.map((food) => (
+                                  <span
+                                    key={food}
+                                    className="px-3 py-1 bg-muted text-muted-foreground text-sm rounded-full border border-dashed border-muted-foreground/30"
+                                  >
+                                    {food}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
                     </CardContent>

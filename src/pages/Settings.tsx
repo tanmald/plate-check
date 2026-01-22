@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { BottomNav } from "@/components/BottomNav";
 import { LogoutDialog } from "@/components/LogoutDialog";
+import { DeletePlanDialog } from "@/components/DeletePlanDialog";
 import { toast } from "sonner";
 import {
   User,
@@ -28,6 +29,7 @@ export default function Settings() {
   const [notifications, setNotifications] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const [deletePlanDialogOpen, setDeletePlanDialogOpen] = useState(false);
 
   type MenuItem = {
     icon: typeof User;
@@ -53,7 +55,7 @@ export default function Settings() {
   };
 
   const handleReplacePlan = () => {
-    navigate("/plan");
+    setDeletePlanDialogOpen(true);
   };
 
   const handlePrivacySettings = () => {
@@ -188,9 +190,14 @@ export default function Settings() {
         </Button>
       </main>
 
-      <LogoutDialog 
-        open={logoutDialogOpen} 
-        onOpenChange={setLogoutDialogOpen} 
+      <LogoutDialog
+        open={logoutDialogOpen}
+        onOpenChange={setLogoutDialogOpen}
+      />
+
+      <DeletePlanDialog
+        open={deletePlanDialogOpen}
+        onOpenChange={setDeletePlanDialogOpen}
       />
 
       <BottomNav />
