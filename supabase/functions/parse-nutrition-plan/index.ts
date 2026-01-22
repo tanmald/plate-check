@@ -1,7 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { extractText } from "unpdf";
-import { TextractClient, DetectDocumentTextCommand } from "@aws-sdk/client-textract";
 
 // ============================================================================
 // Type Definitions
@@ -75,7 +74,7 @@ interface OpenAIParsedPlan {
 // ============================================================================
 
 /**
- * Extract text from PDF with fallback to AWS Textract
+ * Extract text from PDF using local extraction
  */
 async function extractPDFText(fileUrl: string): Promise<string> {
   console.log("Extracting text from PDF...");
@@ -88,36 +87,35 @@ async function extractPDFText(fileUrl: string): Promise<string> {
     }
     const arrayBuffer = await response.arrayBuffer();
 
-    // Try local extraction first
-    try {
-      console.log("Attempting local PDF extraction with unpdf...");
-      const text = await extractText(new Uint8Array(arrayBuffer), {
-        mergePages: true,
-      });
+    // Extract text locally with unpdf
+    console.log("Attempting local PDF extraction with unpdf...");
+    const text = await extractText(new Uint8Array(arrayBuffer), {
+      mergePages: true,
+    });
 
-      if (text && text.trim().length > 50) {
-        console.log(`PDF extracted locally (${text.length} characters)`);
-        return text;
-      } else {
-        console.log("Local extraction returned insufficient text, falling back to Textract");
-        throw new Error("Insufficient text extracted");
-      }
-    } catch (localError) {
-      console.error("Local PDF extraction failed:", localError.message);
-
-      // Fallback to AWS Textract
-      console.log("Falling back to AWS Textract...");
-      const textractText = await extractWithTextract(arrayBuffer);
-      console.log(`PDF extracted with Textract (${textractText.length} characters)`);
-      return textractText;
+    if (text && text.trim().length > 50) {
+      console.log(`PDF extracted successfully (${text.length} characters)`);
+      return text;
+    } else {
+      console.log("Local extraction returned insufficient text");
+      throw new Error(
+        "Could not extract text from PDF. This may be a scanned PDF or image-based PDF. " +
+        "Please try uploading your nutrition plan as an image (JPG or PNG) instead."
+      );
     }
   } catch (error) {
-    throw new Error(`Failed to extract PDF text: ${error.message}`);
+    if (error.message.includes("Could not extract text from PDF")) {
+      throw error;
+    }
+    throw new Error(
+      `Failed to extract PDF text: ${error.message}. ` +
+      "Please try uploading your nutrition plan as an image (JPG or PNG) instead."
+    );
   }
 }
 
 /**
- * Extract text from DOCX with fallback to AWS Textract
+ * Extract text from DOCX using local extraction
  */
 async function extractDOCXText(fileUrl: string): Promise<string> {
   console.log("Extracting text from DOCX...");
@@ -130,81 +128,32 @@ async function extractDOCXText(fileUrl: string): Promise<string> {
     }
     const arrayBuffer = await response.arrayBuffer();
 
-    // Try local extraction first (using docxml or mammoth)
-    try {
-      console.log("Attempting local DOCX extraction...");
+    // Extract text locally with docxml
+    console.log("Attempting local DOCX extraction with docxml...");
 
-      // Try importing docxml from deno.land/x
-      try {
-        const { Document } = await import("https://deno.land/x/docxml@v1.0.3/mod.ts");
-        const doc = await Document.fromArchive(new Uint8Array(arrayBuffer));
-        const text = doc.toString(); // Extract raw text
+    const { Document } = await import("https://deno.land/x/docxml@v1.0.3/mod.ts");
+    const doc = await Document.fromArchive(new Uint8Array(arrayBuffer));
+    const text = doc.toString(); // Extract raw text
 
-        if (text && text.trim().length > 50) {
-          console.log(`DOCX extracted locally (${text.length} characters)`);
-          return text;
-        } else {
-          throw new Error("Insufficient text extracted");
-        }
-      } catch (docxmlError) {
-        console.error("docxml extraction failed:", docxmlError.message);
-        throw docxmlError;
-      }
-    } catch (localError) {
-      console.error("Local DOCX extraction failed:", localError.message);
-
-      // Fallback to AWS Textract
-      console.log("Falling back to AWS Textract...");
-      const textractText = await extractWithTextract(arrayBuffer);
-      console.log(`DOCX extracted with Textract (${textractText.length} characters)`);
-      return textractText;
+    if (text && text.trim().length > 50) {
+      console.log(`DOCX extracted successfully (${text.length} characters)`);
+      return text;
+    } else {
+      console.log("Local extraction returned insufficient text");
+      throw new Error(
+        "Could not extract text from DOCX file. " +
+        "Please try uploading your nutrition plan as a PDF or image (JPG or PNG) instead."
+      );
     }
   } catch (error) {
-    throw new Error(`Failed to extract DOCX text: ${error.message}`);
-  }
-}
-
-/**
- * AWS Textract fallback for document text extraction
- */
-async function extractWithTextract(documentBuffer: ArrayBuffer): Promise<string> {
-  const awsAccessKeyId = Deno.env.get("AWS_ACCESS_KEY_ID");
-  const awsSecretAccessKey = Deno.env.get("AWS_SECRET_ACCESS_KEY");
-  const awsRegion = Deno.env.get("AWS_REGION") || "us-east-1";
-
-  if (!awsAccessKeyId || !awsSecretAccessKey) {
+    if (error.message.includes("Could not extract text from DOCX")) {
+      throw error;
+    }
     throw new Error(
-      "PDF/DOCX extraction failed and AWS Textract fallback is not configured. Please either: (1) Upload an image (.jpg or .png) of your nutrition plan instead, or (2) Set up AWS Textract credentials for PDF/DOCX support."
+      `Failed to extract DOCX text: ${error.message}. ` +
+      "Please try uploading your nutrition plan as a PDF or image (JPG or PNG) instead."
     );
   }
-
-  const client = new TextractClient({
-    region: awsRegion,
-    credentials: {
-      accessKeyId: awsAccessKeyId,
-      secretAccessKey: awsSecretAccessKey,
-    },
-  });
-
-  const command = new DetectDocumentTextCommand({
-    Document: {
-      Bytes: new Uint8Array(documentBuffer),
-    },
-  });
-
-  const response = await client.send(command);
-
-  // Combine all detected text blocks
-  const text =
-    response.Blocks?.filter((block) => block.BlockType === "LINE")
-      .map((block) => block.Text)
-      .join("\n") || "";
-
-  if (!text || text.trim().length < 50) {
-    throw new Error("Textract returned insufficient text");
-  }
-
-  return text;
 }
 
 // ============================================================================
