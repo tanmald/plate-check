@@ -180,54 +180,67 @@ async function parseImageWithVision(
       messages: [
         {
           role: "system",
-          content: `You are a nutrition plan parser. Extract meal information from nutrition plan images.
+          content: `You are a nutrition plan parser. Extract meal information from nutrition plan images and TRANSLATE all content to English.
+
+CRITICAL: ALL OUTPUT MUST BE IN ENGLISH, regardless of the input language.
+
+Translation Guidelines:
+- Translate ALL meal names to English (e.g., "Café da Manhã" → "Breakfast", "Desayuno" → "Breakfast")
+- Translate ALL food items to English (e.g., "Frango grelhado" → "Grilled chicken", "Arroz integral" → "Brown rice")
+- Translate ALL descriptions to English (e.g., "Opção 1" → "Option 1", "Se tiver fome" → "If hungry", "Opcional" → "Optional")
+- For culture-specific foods, add brief context if helpful (e.g., "Pão de queijo (Brazilian cheese bread)")
+- Preserve portion sizes and numeric values exactly as written
+- Preserve meal times in original format (e.g., "8:00 AM", "13:00")
+- Standardize meal types to English enum values: "breakfast", "lunch", "dinner", "snack", "fasting"
 
 CRITICAL PARSING RULES:
 
 1. **Meal Options vs Ingredients**:
-   - "options" = Complete numbered meal choices (e.g., "Option 1: Eggs with toast", "1 - Oatmeal with fruit")
+   - "options" = Complete numbered meal choices (e.g., "Option 1: Eggs with toast")
    - "allowedFoods" = General ingredient pool / allowed foods across options
    - "optionalAddons" = Items explicitly marked as optional, "if desired", "if hungry"
    - "requiredFoods" = Keep for backward compatibility (foods that must appear)
 
-2. **Numbered Options**: Parse "1 - ", "Option 1:", "Opção 1:", "1.", "1)" as separate options
+2. **Numbered Options**: Parse "1 - ", "Option 1:", "Opção 1:", "Opción 1:", "1.", "1)" as separate options
 
-3. **Optional Meals**: Detect "Optional", "If hungry", "Se tiver fome", "Opcional" → isOptional: true
+3. **Optional Meals**: Detect "Optional", "If hungry", "Se tiver fome", "Opcional", "Si tiene hambre" → isOptional: true
 
-4. **Meal References**: Detect "same as lunch", "follow rules of [meal]", "igual ao almoço", "manter regras do" → referencesMeal: "[meal name]"
+4. **Meal References**: Detect "same as lunch", "follow rules of [meal]", "igual ao almoço", "manter regras do" → referencesMeal: "[meal name in English]"
 
-5. **Fasting/Wake-up**: Detect "upon waking", "em jejum", "ao acordar", "fasting" → mealType: "fasting"
+5. **Fasting/Wake-up**: Detect "upon waking", "em jejum", "ao acordar", "fasting", "en ayunas" → mealType: "fasting"
 
-6. **Pre-workout**: Detect "Pré Treino", "Pre-workout", "Pré-Treino", "Before workout" → isPreWorkout: true
+6. **Pre-workout**: Detect "Pré Treino", "Pre-workout", "Pré-Treino", "Before workout", "Pre-entreno" → isPreWorkout: true
 
 7. **Meal Times**: Extract HH:MM or "H:MM AM/PM" patterns → scheduledTime
 
 8. **Snack Categories**: Based on time or order → snackTimeCategory: "morning" | "afternoon" | "evening"
 
+9. **Translation Detection**: If the plan is in a non-English language, add a warning: "Plan translated from [language]"
+
 Return JSON:
 {
-  "planName": "string",
+  "planName": "string (translated to English)",
   "meals": [
     {
       "mealType": "breakfast" | "lunch" | "dinner" | "snack" | "fasting",
-      "name": "string (descriptive name)",
+      "name": "string (descriptive name in English)",
       "options": [
-        { "number": 1, "description": "Full option text", "foods": ["food1", "food2"] }
+        { "number": 1, "description": "Full option text in English", "foods": ["food1 in English", "food2 in English"] }
       ],
-      "requiredFoods": ["backward compat: key foods that must appear"],
-      "allowedFoods": ["ingredient pool / general allowed items"],
-      "optionalAddons": ["items marked optional or 'if desired'"],
+      "requiredFoods": ["backward compat: key foods in English"],
+      "allowedFoods": ["ingredient pool in English"],
+      "optionalAddons": ["items marked optional in English"],
       "caloriesRange": "string or null",
       "proteinRange": "string or null",
       "isOptional": boolean,
       "isPreWorkout": boolean,
       "scheduledTime": "HH:MM or null",
-      "referencesMeal": "meal name or null",
+      "referencesMeal": "meal name in English or null",
       "snackTimeCategory": "morning" | "afternoon" | "evening" | null
     }
   ],
   "confidence": "high" | "medium" | "low",
-  "warnings": ["array of warnings"]
+  "warnings": ["array of warnings, including translation notice if applicable"]
 }`,
         },
         {
@@ -284,54 +297,67 @@ async function parseTextWithGPT4(
       messages: [
         {
           role: "system",
-          content: `You are a nutrition plan parser. Extract meal information from nutrition plan text.
+          content: `You are a nutrition plan parser. Extract meal information from nutrition plan text and TRANSLATE all content to English.
+
+CRITICAL: ALL OUTPUT MUST BE IN ENGLISH, regardless of the input language.
+
+Translation Guidelines:
+- Translate ALL meal names to English (e.g., "Café da Manhã" → "Breakfast", "Desayuno" → "Breakfast")
+- Translate ALL food items to English (e.g., "Frango grelhado" → "Grilled chicken", "Arroz integral" → "Brown rice")
+- Translate ALL descriptions to English (e.g., "Opção 1" → "Option 1", "Se tiver fome" → "If hungry", "Opcional" → "Optional")
+- For culture-specific foods, add brief context if helpful (e.g., "Pão de queijo (Brazilian cheese bread)")
+- Preserve portion sizes and numeric values exactly as written
+- Preserve meal times in original format (e.g., "8:00 AM", "13:00")
+- Standardize meal types to English enum values: "breakfast", "lunch", "dinner", "snack", "fasting"
 
 CRITICAL PARSING RULES:
 
 1. **Meal Options vs Ingredients**:
-   - "options" = Complete numbered meal choices (e.g., "Option 1: Eggs with toast", "1 - Oatmeal with fruit")
+   - "options" = Complete numbered meal choices (e.g., "Option 1: Eggs with toast")
    - "allowedFoods" = General ingredient pool / allowed foods across options
    - "optionalAddons" = Items explicitly marked as optional, "if desired", "if hungry"
    - "requiredFoods" = Keep for backward compatibility (foods that must appear)
 
-2. **Numbered Options**: Parse "1 - ", "Option 1:", "Opção 1:", "1.", "1)" as separate options
+2. **Numbered Options**: Parse "1 - ", "Option 1:", "Opção 1:", "Opción 1:", "1.", "1)" as separate options
 
-3. **Optional Meals**: Detect "Optional", "If hungry", "Se tiver fome", "Opcional" → isOptional: true
+3. **Optional Meals**: Detect "Optional", "If hungry", "Se tiver fome", "Opcional", "Si tiene hambre" → isOptional: true
 
-4. **Meal References**: Detect "same as lunch", "follow rules of [meal]", "igual ao almoço", "manter regras do" → referencesMeal: "[meal name]"
+4. **Meal References**: Detect "same as lunch", "follow rules of [meal]", "igual ao almoço", "manter regras do" → referencesMeal: "[meal name in English]"
 
-5. **Fasting/Wake-up**: Detect "upon waking", "em jejum", "ao acordar", "fasting" → mealType: "fasting"
+5. **Fasting/Wake-up**: Detect "upon waking", "em jejum", "ao acordar", "fasting", "en ayunas" → mealType: "fasting"
 
-6. **Pre-workout**: Detect "Pré Treino", "Pre-workout", "Pré-Treino", "Before workout" → isPreWorkout: true
+6. **Pre-workout**: Detect "Pré Treino", "Pre-workout", "Pré-Treino", "Before workout", "Pre-entreno" → isPreWorkout: true
 
 7. **Meal Times**: Extract HH:MM or "H:MM AM/PM" patterns → scheduledTime
 
 8. **Snack Categories**: Based on time or order → snackTimeCategory: "morning" | "afternoon" | "evening"
 
+9. **Translation Detection**: If the plan is in a non-English language, add a warning: "Plan translated from [language]"
+
 Return JSON:
 {
-  "planName": "string",
+  "planName": "string (translated to English)",
   "meals": [
     {
       "mealType": "breakfast" | "lunch" | "dinner" | "snack" | "fasting",
-      "name": "string (descriptive name)",
+      "name": "string (descriptive name in English)",
       "options": [
-        { "number": 1, "description": "Full option text", "foods": ["food1", "food2"] }
+        { "number": 1, "description": "Full option text in English", "foods": ["food1 in English", "food2 in English"] }
       ],
-      "requiredFoods": ["backward compat: key foods that must appear"],
-      "allowedFoods": ["ingredient pool / general allowed items"],
-      "optionalAddons": ["items marked optional or 'if desired'"],
+      "requiredFoods": ["backward compat: key foods in English"],
+      "allowedFoods": ["ingredient pool in English"],
+      "optionalAddons": ["items marked optional in English"],
       "caloriesRange": "string or null",
       "proteinRange": "string or null",
       "isOptional": boolean,
       "isPreWorkout": boolean,
       "scheduledTime": "HH:MM or null",
-      "referencesMeal": "meal name or null",
+      "referencesMeal": "meal name in English or null",
       "snackTimeCategory": "morning" | "afternoon" | "evening" | null
     }
   ],
   "confidence": "high" | "medium" | "low",
-  "warnings": ["array of warnings"]
+  "warnings": ["array of warnings, including translation notice if applicable"]
 }`,
         },
         {
