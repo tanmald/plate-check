@@ -1,0 +1,26 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "notion": {
+      "type": "local",
+      "command": "notion-mcp-server",
+      "env": {
+        "NOTION_TOKEN": "env(NOTION_TOKEN)"
+      },
+      "enabled": true
+    },
+    "supabase": {
+      "type": "remote",
+      "url": "https://mcp.supabase.com/mcp?project_ref=phnygsbbvcixnxwrbdhx",
+      "enabled": true,
+      "timeout": 5000,
+      "oauth": {
+        "client_id": "4cff486a-6bd5-4ed8-a349-0758e2f556ae",
+        "client_secret": "env(MCP_CLIENT_SECRET)",
+        "authorization_url": "https://phnygsbbvcixnxwrbdhx.supabase.co/oauth/consent",
+        "token_url": "https://phnygsbbvcixnxwrbdhx.supabase.co/oauth/token",
+        "scopes": ["read", "write"]
+      }
+    }
+  }
+}
