@@ -1,218 +1,284 @@
 
 
-# PlateCheck UI Improvement Plan
+# Meal Corrections Feature Implementation Plan
 
 ## Overview
-This plan addresses the two main concerns: **improving the /plan page** (meal templates, recipes, allowed foods display) and making the app feel more **"live" and engaging** rather than plain. All improvements will align with the PRD's design principles: supportive tone, non-judgmental language, and iOS-first patterns.
+Add a "tap-to-fix" interface to the MealResult page that allows users to correct AI detection errors, add/remove foods, update portions, and see the adherence score recalculate in real-time.
 
 ---
 
-## Part 1: Plan Page Improvements
+## Current State Analysis
 
-### Current Issues
-- Meal templates use a basic click-to-expand pattern with flat styling
-- Food tags (required, allowed, optional) all look similar and lack visual hierarchy
-- No visual distinction between food categories
-- The expanded state feels cramped and text-heavy
-- Missing micro-interactions that make the content feel dynamic
+### Existing Data Flow
+1. User captures photo → `useCreateMealLog` mutation
+2. Photo uploaded → `analyze-meal` Edge Function called
+3. Analysis result passed to `MealResult` via `location.state`
+4. Meal data already saved to `meal_logs` table (with `user_corrections` JSONB field available but unused)
 
-### Proposed Changes
-
-#### 1.1 Redesigned Meal Template Cards
-**Current**: Simple cards with chevron expand/collapse
-**New**: Visually richer cards with:
-- Gradient header background per meal type (soft, wellness-themed)
-- Larger emoji icon with subtle background circle
-- Time, calories, and protein as horizontal pills (not plain text)
-- Animated chevron rotation on expand
-- Smooth accordion animation for expand/collapse
-- Visual "active" indicator when card is expanded
-
-#### 1.2 Food Display Overhaul
-**Current**: All food tags look similar with basic colored backgrounds
-**New**: Differentiated food display:
-
-| Food Type | Visual Treatment |
-|-----------|------------------|
-| **Required** | Solid primary color pill with checkmark icon |
-| **Allowed** | Soft secondary fill with subtle border |
-| **Optional Add-ons** | Dashed border, lighter fill, "+" prefix |
-| **Category Rules** | Icon-based (e.g., "Any protein" with meat icon) |
-
-**New Feature**: Collapsible food sections
-- Show first 5-6 foods by default
-- "Show all X foods" expandable link
-- Grouped by category when available (Proteins, Carbs, Vegetables, etc.)
-
-#### 1.3 Options Display Enhancement
-**Current**: Numbered boxes with basic styling
-**New**:
-- Visual "radio button" style indicator (one choice)
-- Card-within-card design with hover state
-- Larger food tag display within each option
-- Subtle divider between options
-
-#### 1.4 Daily Targets Card Enhancement
-**Current**: Basic 3-column grid with numbers
-**New**:
-- Circular progress rings (empty, as targets)
-- Animated number count-up on page load
-- Icon above each metric (flame for calories, dumbbell for protein, utensils for meals)
+### Key Data Structures
+- `DetectedFood`: `{ name, matched, confidence, category }`
+- `AnalyzeMealResponse`: `{ score, detectedFoods, feedback, confidence, suggestedSwaps }`
+- Database supports `user_corrections` JSONB field for storing edits
 
 ---
 
-## Part 2: Making the App More "Live"
+## Feature Design
 
-### Current Issues
-- Static content with no motion
-- Loading states are basic spinners
-- No staggered animations when content appears
-- Transitions between states feel abrupt
+### User Experience Flow
+1. **View detected foods** - Current behavior (unchanged)
+2. **Tap a food** → Opens edit modal with options:
+   - Edit food name (text input)
+   - Toggle matched/unmatched status
+   - Delete the food item
+3. **Add new food** - "Add food" button at bottom of list
+4. **Real-time score update** - Score recalculates as changes are made
+5. **Save changes** - Updates `meal_logs.user_corrections` in database
 
-### Proposed Improvements
+### Score Recalculation Logic
+Since the Edge Function scoring isn't available client-side, implement a simplified local scoring algorithm:
+- Each matched food contributes positively
+- Each unmatched food detracts from score
+- Formula: `score = (matchedCount / totalCount) * 100`, with adjustments for category weights
 
-#### 2.1 Add Staggered Entry Animations
-Apply `animate-fade-in` with staggered delays to:
-- Meal template cards (100ms delay between each)
-- Food tag pills (50ms delay, wave effect)
-- Stats cards on Progress page
-- Menu sections on Settings page
+---
 
-Implementation: Add animation delay utilities to Tailwind config:
-```css
-.animate-delay-100 { animation-delay: 100ms; }
-.animate-delay-200 { animation-delay: 200ms; }
-/* etc. */
+## Technical Implementation
+
+### Part 1: State Management in MealResult
+
+Convert the page from read-only to editable state:
+
+```typescript
+// New state for editable foods
+const [editableFoods, setEditableFoods] = useState<EditableFood[]>([]);
+const [hasChanges, setHasChanges] = useState(false);
+const [currentScore, setCurrentScore] = useState(result.score);
 ```
 
-#### 2.2 Enhanced Loading States
-**Current**: Simple spinner
-**New**: Skeleton loading with shimmer animation
-
-For Plan page:
-- Skeleton meal template cards with shimmer effect
-- Pulsing placeholder for food tags
-- Animated progress indicators
-
-For Home page:
-- Skeleton daily score card
-- Pulsing meal progress bar
-- Shimmer effect on "Today's Meals" placeholders
-
-#### 2.3 Micro-Interactions
-Add subtle motion to interactive elements:
-- Card hover: `hover:scale-[1.02]` with `transition-transform`
-- Button press: `active:scale-[0.98]` for tactile feel
-- Toggle animations for switches
-- Success checkmark animation when meal is saved
-- Ripple effect on primary CTA buttons
-
-#### 2.4 Page Transition Feel
-- Tab switching (Progress page): fade + slight slide between Daily/Weekly views
-- Card expansion: smooth height animation using `grid-rows` technique
-- State changes: cross-fade rather than instant swap
-
----
-
-## Part 3: Specific Component Updates
-
-### 3.1 New `<MealTemplateCard>` Component
-Extract and enhance the meal template display into a dedicated component with:
-- Props: template data, isExpanded, onToggle, animationDelay
-- Built-in accordion animation
-- Semantic HTML structure for accessibility
-- Configurable color themes per meal type
-
-### 3.2 New `<FoodTagGroup>` Component
-Reusable component for displaying categorized food tags:
-- Props: foods[], type (required/allowed/optional), maxVisible, showCategories
-- Built-in expand/collapse for long lists
-- Category icons when enabled
-- Animation on mount
-
-### 3.3 Enhanced `<Skeleton>` Components
-Create page-specific skeleton layouts:
-- `<PlanPageSkeleton>` - meal template placeholders
-- `<HomePageSkeleton>` - score card + meals placeholders
-- `<ProgressPageSkeleton>` - chart + stats placeholders
-
-### 3.4 New `<AnimatedNumber>` Component
-For stats display with count-up animation:
-- Props: value, duration, suffix
-- Uses requestAnimationFrame for smooth counting
-- Easing function for natural feel
-
----
-
-## Part 4: CSS/Design System Additions
-
-### 4.1 New Animation Utilities (in index.css)
-```css
-/* Staggered animation delays */
-.animate-delay-[100ms] through .animate-delay-[500ms]
-
-/* Food tag entrance animation */
-@keyframes pop-in {
-  0% { transform: scale(0.8); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
-}
-
-/* Accordion height animation */
-@keyframes accordion-open {
-  from { max-height: 0; opacity: 0; }
-  to { max-height: var(--content-height); opacity: 1; }
+**EditableFood interface:**
+```typescript
+interface EditableFood {
+  id: string;           // UUID for tracking
+  name: string;
+  matched: boolean;
+  category: string;
+  isNew?: boolean;      // For foods added by user
+  isDeleted?: boolean;  // Soft delete for UI
+  originalName?: string; // Track if edited
 }
 ```
 
-### 4.2 Meal Type Color Themes
-Add subtle gradient backgrounds per meal:
-- Breakfast: warm sunrise gradient (amber tones)
-- Lunch: bright daylight gradient (soft yellow)
-- Dinner: evening gradient (soft purple/blue)
-- Snack: neutral gradient (soft green)
+### Part 2: New Components
+
+#### 2.1 FoodItemEditor Component
+**File:** `src/components/FoodItemEditor.tsx`
+
+A tappable food row that transforms into an inline editor:
+- Tap to expand edit controls
+- Inline text input for name
+- Toggle switch for matched/unmatched
+- Category selector (dropdown with common categories)
+- Delete button with confirmation
+
+Visual states:
+- Default: Current food pill appearance
+- Editing: Expanded with input field and action buttons
+- Deleted: Strikethrough with "Undo" option
+
+#### 2.2 AddFoodSheet Component
+**File:** `src/components/AddFoodSheet.tsx`
+
+Bottom sheet (using existing Drawer/Sheet component) for adding new foods:
+- Food name input (required)
+- Category selector
+- Matched toggle (default: true if category matches plan)
+- "Add" button
+
+#### 2.3 ScoreRecalculator Utility
+**File:** `src/lib/scoring.ts`
+
+Client-side scoring function for real-time updates:
+```typescript
+export function calculateAdherenceScore(
+  foods: EditableFood[],
+  planAllowedFoods?: string[]
+): number {
+  const activeFoods = foods.filter(f => !f.isDeleted);
+  if (activeFoods.length === 0) return 0;
+  
+  const matchedCount = activeFoods.filter(f => f.matched).length;
+  const baseScore = (matchedCount / activeFoods.length) * 100;
+  
+  return Math.round(Math.min(100, Math.max(0, baseScore)));
+}
+```
+
+### Part 3: MealResult Page Updates
+
+**File modifications:** `src/pages/MealResult.tsx`
+
+#### 3.1 Add Edit Mode
+- Initialize `editableFoods` from `detectedFoods` on mount
+- Track changes with `hasChanges` state
+- Show/hide "Unsaved changes" indicator
+
+#### 3.2 Replace Static Foods List
+Replace the static food display with interactive `FoodItemEditor` components:
+```tsx
+{editableFoods.map((food) => (
+  <FoodItemEditor
+    key={food.id}
+    food={food}
+    onUpdate={(updated) => handleFoodUpdate(food.id, updated)}
+    onDelete={() => handleFoodDelete(food.id)}
+  />
+))}
+```
+
+#### 3.3 Add "Add Food" Button
+At the bottom of the detected foods card:
+```tsx
+<Button variant="outline" onClick={() => setShowAddSheet(true)}>
+  <Plus className="w-4 h-4 mr-2" />
+  Add Food
+</Button>
+```
+
+#### 3.4 Real-Time Score Update
+Use `useEffect` to recalculate score when foods change:
+```tsx
+useEffect(() => {
+  const newScore = calculateAdherenceScore(editableFoods);
+  setCurrentScore(newScore);
+}, [editableFoods]);
+```
+
+#### 3.5 Save Handler Update
+Modify `handleSave` to update database with corrections:
+```typescript
+const handleSave = async () => {
+  if (hasChanges && mealLogId) {
+    await updateMealLog({
+      id: mealLogId,
+      userCorrections: editableFoods,
+      correctedScore: currentScore,
+    });
+  }
+  navigate("/");
+};
+```
+
+### Part 4: New Hook for Updating Meal Logs
+
+**File:** `src/hooks/use-update-meal-log.ts`
+
+```typescript
+export function useUpdateMealLog() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ id, userCorrections, correctedScore }) => {
+      const { error } = await supabase
+        .from("meal_logs")
+        .update({
+          user_corrections: userCorrections,
+          adherence_score: correctedScore,
+          detected_foods: userCorrections
+            .filter(f => !f.isDeleted)
+            .map(f => f.name),
+        })
+        .eq("id", id);
+        
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["meals"] });
+    },
+  });
+}
+```
+
+### Part 5: Visual Feedback & Animations
+
+#### Score Animation
+When score changes, animate the transition:
+- Add CSS transition to AdherenceScore component
+- Show score change indicator (+5, -10, etc.) briefly
+
+#### Food Edit Animations
+- Slide-in animation for newly added foods
+- Fade-out animation for deleted foods
+- Subtle highlight when food is modified
 
 ---
 
-## Technical Notes
+## Files to Create
 
-### Files to Modify
-1. **src/pages/Plan.tsx** - Main template redesign
-2. **src/index.css** - New animation utilities and gradients
-3. **src/components/ui/skeleton.tsx** - Enhanced skeleton patterns
-4. **src/pages/Home.tsx** - Add skeleton loading states
-5. **src/pages/Progress.tsx** - Add staggered animations
+| File | Purpose |
+|------|---------|
+| `src/components/FoodItemEditor.tsx` | Tappable/editable food row component |
+| `src/components/AddFoodSheet.tsx` | Bottom sheet for adding new foods |
+| `src/lib/scoring.ts` | Client-side score calculation utility |
+| `src/hooks/use-update-meal-log.ts` | Mutation hook for saving corrections |
 
-### Files to Create
-1. **src/components/MealTemplateCard.tsx** - Extracted meal template component
-2. **src/components/FoodTagGroup.tsx** - Reusable food tag display
-3. **src/components/AnimatedNumber.tsx** - Count-up number animation
-4. **src/components/PageSkeletons.tsx** - Page-specific loading states
+## Files to Modify
 
-### Dependencies
-No new dependencies required - all improvements use existing Tailwind, Radix UI, and CSS animations.
+| File | Changes |
+|------|---------|
+| `src/pages/MealResult.tsx` | Add edit mode, state management, new components |
+| `src/hooks/use-meals.ts` | Pass meal log ID to result page for updates |
+| `src/pages/Log.tsx` | Pass meal log ID in navigation state |
+| `src/components/AdherenceScore.tsx` | Add transition animation for score changes |
+| `src/index.css` | Add animations for food edits |
+
+---
+
+## Technical Considerations
+
+### Meal Log ID Flow
+Currently, the meal is saved before navigating to MealResult, but the ID isn't passed. Update flow:
+1. `useCreateMealLog` returns the saved meal ID
+2. Pass ID via `location.state` to MealResult
+3. MealResult uses ID for update operations
+
+### Test User Handling
+For test users (mock data), skip database updates but still allow UI interactions for demo purposes.
+
+### Database Schema
+The existing `user_corrections` JSONB field is perfect for storing edit history. Structure:
+```json
+{
+  "corrections": [
+    { "id": "...", "name": "Grilled Chicken", "matched": true, "category": "Protein", "isNew": false }
+  ],
+  "correctedAt": "2026-01-27T..."
+}
+```
 
 ---
 
 ## Alignment with PRD
 
-| PRD Requirement | How This Plan Addresses It |
-|-----------------|---------------------------|
-| "Soft friendly wellness vibe" | Gradient backgrounds, rounded elements, warm colors |
-| "Clean typography" | Maintained; enhanced with better visual hierarchy |
-| "Thoughtful loading states" | Skeleton loaders with shimmer animations |
-| "Non-judgmental language" | No language changes needed; visuals reinforce positivity |
-| "iOS-first patterns" | Accordion animations, native-feeling micro-interactions |
-| "Large tap targets" | Food tags remain large; expanded click areas |
-| "WCAG-friendly contrast" | All colors will maintain proper contrast ratios |
+| PRD Requirement | Implementation |
+|-----------------|----------------|
+| "K2: Tap-to-fix misidentified items" | FoodItemEditor with inline editing |
+| "K2: Add/remove detected foods" | AddFoodSheet + delete functionality |
+| "K2: Real-time score recalculation" | calculateAdherenceScore utility with useEffect |
+| "K2: Update portions" | Future enhancement (portion field in editor) |
+| "Non-judgmental language" | No negative language in UI feedback |
+| "Large tap targets" | Minimum 44px touch targets on all interactive elements |
 
 ---
 
-## Priority Order for Implementation
+## Implementation Order
 
-1. **High Priority** - Plan page meal template redesign (most impact)
-2. **High Priority** - Food tag visual overhaul
-3. **Medium Priority** - Skeleton loading states
-4. **Medium Priority** - Staggered entry animations
-5. **Lower Priority** - AnimatedNumber component
-6. **Lower Priority** - Page transition effects
+1. Create `src/lib/scoring.ts` (scoring utility)
+2. Create `src/hooks/use-update-meal-log.ts` (database mutation)
+3. Create `src/components/FoodItemEditor.tsx` (editable food row)
+4. Create `src/components/AddFoodSheet.tsx` (add food sheet)
+5. Update `src/hooks/use-meals.ts` to return meal log ID
+6. Update `src/pages/Log.tsx` to pass meal log ID
+7. Update `src/pages/MealResult.tsx` with full edit mode
+8. Update `src/components/AdherenceScore.tsx` for animations
+9. Add CSS animations to `src/index.css`
 
