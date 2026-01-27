@@ -1,214 +1,180 @@
 
 
-# Meal Corrections Feature Implementation Plan
+# Plan Editing Flow Implementation
 
 ## Overview
-Add a "tap-to-fix" interface to the MealResult page that allows users to correct AI detection errors, add/remove foods, update portions, and see the adherence score recalculate in real-time.
+Wire up the "Plan Editing" capabilities on the /plan page to allow users to:
+1. **Rename the plan** (edit plan name via a sheet/dialog)
+2. **Delete the plan** (using the existing DeletePlanDialog)
+3. **Add new meal templates** from scratch
+
+Currently, the `handleEditPlan` and `handleAddTemplate` functions just show "coming soon" toasts. This plan will implement the full functionality.
 
 ---
 
-## Current State Analysis
+## Current State
 
-### Existing Data Flow
-1. User captures photo → `useCreateMealLog` mutation
-2. Photo uploaded → `analyze-meal` Edge Function called
-3. Analysis result passed to `MealResult` via `location.state`
-4. Meal data already saved to `meal_logs` table (with `user_corrections` JSONB field available but unused)
+### What's Already Built
+- **Edit individual template**: Works via `/plan/template/:templateId` route
+- **Delete plan**: `DeletePlanDialog` component exists and is fully functional
+- **Replace plan**: "Replace Plan" button works (returns to empty state for re-upload)
+- **Import/confirm flow**: Complete for uploading new plans
 
-### Key Data Structures
-- `DetectedFood`: `{ name, matched, confidence, category }`
-- `AnalyzeMealResponse`: `{ score, detectedFoods, feedback, confidence, suggestedSwaps }`
-- Database supports `user_corrections` JSONB field for storing edits
+### What's Missing
+- **Plan name editing**: The edit button (pencil icon) on the plan info card just shows a toast
+- **Add template**: The "Add" button in the templates header just shows a toast
 
 ---
 
 ## Feature Design
 
-### User Experience Flow
-1. **View detected foods** - Current behavior (unchanged)
-2. **Tap a food** → Opens edit modal with options:
-   - Edit food name (text input)
-   - Toggle matched/unmatched status
-   - Delete the food item
-3. **Add new food** - "Add food" button at bottom of list
-4. **Real-time score update** - Score recalculates as changes are made
-5. **Save changes** - Updates `meal_logs.user_corrections` in database
+### 1. Edit Plan Sheet
+When user taps the edit icon on the plan info card, open a bottom sheet with:
+- **Plan Name** input field (editable)
+- **Danger Zone** section with "Delete Plan" button
+- **Save** button (only enabled if name changed)
 
-### Score Recalculation Logic
-Since the Edge Function scoring isn't available client-side, implement a simplified local scoring algorithm:
-- Each matched food contributes positively
-- Each unmatched food detracts from score
-- Formula: `score = (matchedCount / totalCount) * 100`, with adjustments for category weights
+### 2. Add Template Flow
+When user taps "Add" button, navigate to a new template creation page:
+- Pre-populated with sensible defaults (empty name, no foods)
+- Same UI as EditMealTemplate but for creating new templates
+- Save creates a new template linked to the active plan
 
 ---
 
 ## Technical Implementation
 
-### Part 1: State Management in MealResult
+### Part 1: Edit Plan Sheet Component
 
-Convert the page from read-only to editable state:
+**New file:** `src/components/EditPlanSheet.tsx`
 
-```typescript
-// New state for editable foods
-const [editableFoods, setEditableFoods] = useState<EditableFood[]>([]);
-const [hasChanges, setHasChanges] = useState(false);
-const [currentScore, setCurrentScore] = useState(result.score);
-```
+A bottom sheet (using the existing Sheet component) that allows:
+- Editing the plan name
+- Quick access to delete the plan
 
-**EditableFood interface:**
-```typescript
-interface EditableFood {
-  id: string;           // UUID for tracking
-  name: string;
-  matched: boolean;
-  category: string;
-  isNew?: boolean;      // For foods added by user
-  isDeleted?: boolean;  // Soft delete for UI
-  originalName?: string; // Track if edited
+```tsx
+interface EditPlanSheetProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  planName: string;
+  onDeleteClick: () => void;
 }
 ```
 
-### Part 2: New Components
+Features:
+- Text input for plan name
+- Save button (calls mutation to update plan name)
+- Delete button that opens the existing DeletePlanDialog
+- Cancel/close functionality
 
-#### 2.1 FoodItemEditor Component
-**File:** `src/components/FoodItemEditor.tsx`
+### Part 2: Update Plan Name Hook
 
-A tappable food row that transforms into an inline editor:
-- Tap to expand edit controls
-- Inline text input for name
-- Toggle switch for matched/unmatched
-- Category selector (dropdown with common categories)
-- Delete button with confirmation
-
-Visual states:
-- Default: Current food pill appearance
-- Editing: Expanded with input field and action buttons
-- Deleted: Strikethrough with "Undo" option
-
-#### 2.2 AddFoodSheet Component
-**File:** `src/components/AddFoodSheet.tsx`
-
-Bottom sheet (using existing Drawer/Sheet component) for adding new foods:
-- Food name input (required)
-- Category selector
-- Matched toggle (default: true if category matches plan)
-- "Add" button
-
-#### 2.3 ScoreRecalculator Utility
-**File:** `src/lib/scoring.ts`
-
-Client-side scoring function for real-time updates:
-```typescript
-export function calculateAdherenceScore(
-  foods: EditableFood[],
-  planAllowedFoods?: string[]
-): number {
-  const activeFoods = foods.filter(f => !f.isDeleted);
-  if (activeFoods.length === 0) return 0;
-  
-  const matchedCount = activeFoods.filter(f => f.matched).length;
-  const baseScore = (matchedCount / activeFoods.length) * 100;
-  
-  return Math.round(Math.min(100, Math.max(0, baseScore)));
-}
-```
-
-### Part 3: MealResult Page Updates
-
-**File modifications:** `src/pages/MealResult.tsx`
-
-#### 3.1 Add Edit Mode
-- Initialize `editableFoods` from `detectedFoods` on mount
-- Track changes with `hasChanges` state
-- Show/hide "Unsaved changes" indicator
-
-#### 3.2 Replace Static Foods List
-Replace the static food display with interactive `FoodItemEditor` components:
-```tsx
-{editableFoods.map((food) => (
-  <FoodItemEditor
-    key={food.id}
-    food={food}
-    onUpdate={(updated) => handleFoodUpdate(food.id, updated)}
-    onDelete={() => handleFoodDelete(food.id)}
-  />
-))}
-```
-
-#### 3.3 Add "Add Food" Button
-At the bottom of the detected foods card:
-```tsx
-<Button variant="outline" onClick={() => setShowAddSheet(true)}>
-  <Plus className="w-4 h-4 mr-2" />
-  Add Food
-</Button>
-```
-
-#### 3.4 Real-Time Score Update
-Use `useEffect` to recalculate score when foods change:
-```tsx
-useEffect(() => {
-  const newScore = calculateAdherenceScore(editableFoods);
-  setCurrentScore(newScore);
-}, [editableFoods]);
-```
-
-#### 3.5 Save Handler Update
-Modify `handleSave` to update database with corrections:
-```typescript
-const handleSave = async () => {
-  if (hasChanges && mealLogId) {
-    await updateMealLog({
-      id: mealLogId,
-      userCorrections: editableFoods,
-      correctedScore: currentScore,
-    });
-  }
-  navigate("/");
-};
-```
-
-### Part 4: New Hook for Updating Meal Logs
-
-**File:** `src/hooks/use-update-meal-log.ts`
+**New hook:** `useUpdateNutritionPlan` in `src/hooks/use-nutrition-plan.ts`
 
 ```typescript
-export function useUpdateMealLog() {
-  const queryClient = useQueryClient();
-  
+export function useUpdateNutritionPlan() {
   return useMutation({
-    mutationFn: async ({ id, userCorrections, correctedScore }) => {
+    mutationFn: async ({ planId, name }: { planId: string; name: string }) => {
       const { error } = await supabase
-        .from("meal_logs")
-        .update({
-          user_corrections: userCorrections,
-          adherence_score: correctedScore,
-          detected_foods: userCorrections
-            .filter(f => !f.isDeleted)
-            .map(f => f.name),
-        })
-        .eq("id", id);
+        .from("nutrition_plans")
+        .update({ name })
+        .eq("id", planId)
+        .eq("user_id", user.id);
         
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["meals"] });
+      queryClient.invalidateQueries({ queryKey: ["nutrition-plan"] });
     },
   });
 }
 ```
 
-### Part 5: Visual Feedback & Animations
+Note: This requires the plan ID, which is not currently exposed. Will need to update `useNutritionPlan` to return the plan ID.
 
-#### Score Animation
-When score changes, animate the transition:
-- Add CSS transition to AdherenceScore component
-- Show score change indicator (+5, -10, etc.) briefly
+### Part 3: Add Template Page
 
-#### Food Edit Animations
-- Slide-in animation for newly added foods
-- Fade-out animation for deleted foods
-- Subtle highlight when food is modified
+**Modified approach:** Reuse the existing `EditMealTemplate` page with a "create mode"
+
+Update `src/pages/EditMealTemplate.tsx` to handle both:
+- **Edit mode**: When `templateId` param exists (current behavior)
+- **Create mode**: When `templateId` is `new` or absent
+
+Changes needed:
+- Check for `templateId === "new"` or no template found
+- Initialize with empty defaults in create mode
+- Call `useCreateMealTemplate` instead of `useUpdateMealTemplate`
+- Navigate back to /plan on success
+
+### Part 4: Create Template Hook
+
+**New hook:** `useCreateMealTemplate` in a new file or added to existing hooks
+
+```typescript
+export function useCreateMealTemplate() {
+  return useMutation({
+    mutationFn: async ({ planId, template }: CreateTemplateParams) => {
+      const { data, error } = await supabase
+        .from("meal_templates")
+        .insert({
+          user_id: user.id,
+          plan_id: planId,
+          type: template.type,
+          name: template.name,
+          required_foods: template.requiredFoods,
+          allowed_foods: template.allowedFoods,
+          optional_addons: template.optionalAddons,
+          // ... other fields
+        })
+        .select()
+        .single();
+        
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["nutrition-plan"] });
+    },
+  });
+}
+```
+
+### Part 5: Plan.tsx Updates
+
+Update the Plan page to:
+
+1. **Wire up `handleEditPlan`**:
+   - Open the EditPlanSheet instead of showing toast
+   
+2. **Wire up `handleAddTemplate`**:
+   - Navigate to `/plan/template/new`
+
+3. **Add state for EditPlanSheet**:
+   ```tsx
+   const [editPlanOpen, setEditPlanOpen] = useState(false);
+   ```
+
+4. **Integrate DeletePlanDialog**:
+   - Already exists in Settings, but add it to Plan page too
+   - Triggered from EditPlanSheet's delete button
+
+### Part 6: Data Flow Updates
+
+**Update `useNutritionPlan` to return plan ID:**
+
+```typescript
+const plan: NutritionPlan = {
+  id: planData.id,  // Add this
+  name: planData.name,
+  uploadedAt: ...,
+  source: ...,
+  templates,
+};
+```
+
+This is needed for:
+- Updating plan name (requires plan ID)
+- Creating new templates (requires plan ID to link them)
 
 ---
 
@@ -216,69 +182,61 @@ When score changes, animate the transition:
 
 | File | Purpose |
 |------|---------|
-| `src/components/FoodItemEditor.tsx` | Tappable/editable food row component |
-| `src/components/AddFoodSheet.tsx` | Bottom sheet for adding new foods |
-| `src/lib/scoring.ts` | Client-side score calculation utility |
-| `src/hooks/use-update-meal-log.ts` | Mutation hook for saving corrections |
+| `src/components/EditPlanSheet.tsx` | Bottom sheet for editing plan name and accessing delete |
 
 ## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/pages/MealResult.tsx` | Add edit mode, state management, new components |
-| `src/hooks/use-meals.ts` | Pass meal log ID to result page for updates |
-| `src/pages/Log.tsx` | Pass meal log ID in navigation state |
-| `src/components/AdherenceScore.tsx` | Add transition animation for score changes |
-| `src/index.css` | Add animations for food edits |
+| `src/pages/Plan.tsx` | Wire up handleEditPlan to open sheet, handleAddTemplate to navigate |
+| `src/pages/EditMealTemplate.tsx` | Support "create mode" when templateId is "new" |
+| `src/hooks/use-nutrition-plan.ts` | Add plan ID to return data, add useUpdateNutritionPlan hook |
+| `src/hooks/use-update-meal-template.ts` | Add useCreateMealTemplate hook |
+| `src/App.tsx` | Optionally add `/plan/template/new` route (or reuse existing) |
 
 ---
 
-## Technical Considerations
+## User Experience Flow
 
-### Meal Log ID Flow
-Currently, the meal is saved before navigating to MealResult, but the ID isn't passed. Update flow:
-1. `useCreateMealLog` returns the saved meal ID
-2. Pass ID via `location.state` to MealResult
-3. MealResult uses ID for update operations
+### Edit Plan Flow
+1. User is on /plan page with active plan
+2. Taps pencil icon on plan info card
+3. EditPlanSheet opens from bottom
+4. User can:
+   - Edit plan name → Save → Toast success → Sheet closes
+   - Tap "Delete Plan" → DeletePlanDialog opens → Confirm → Returns to empty state
+   - Cancel → Sheet closes
 
-### Test User Handling
-For test users (mock data), skip database updates but still allow UI interactions for demo purposes.
-
-### Database Schema
-The existing `user_corrections` JSONB field is perfect for storing edit history. Structure:
-```json
-{
-  "corrections": [
-    { "id": "...", "name": "Grilled Chicken", "matched": true, "category": "Protein", "isNew": false }
-  ],
-  "correctedAt": "2026-01-27T..."
-}
-```
+### Add Template Flow
+1. User is on /plan page with active plan
+2. Taps "+ Add" button in templates header
+3. Navigates to `/plan/template/new`
+4. Sees empty template form with defaults:
+   - Name: empty (placeholder "e.g., Morning Snack")
+   - Icon: 🍽️ (default)
+   - Time, calories, protein: empty
+   - No foods
+5. User fills in details and taps "Create Template"
+6. Template is saved and user returns to /plan page
 
 ---
 
-## Alignment with PRD
+## Test User Handling
 
-| PRD Requirement | Implementation |
-|-----------------|----------------|
-| "K2: Tap-to-fix misidentified items" | FoodItemEditor with inline editing |
-| "K2: Add/remove detected foods" | AddFoodSheet + delete functionality |
-| "K2: Real-time score recalculation" | calculateAdherenceScore utility with useEffect |
-| "K2: Update portions" | Future enhancement (portion field in editor) |
-| "Non-judgmental language" | No negative language in UI feedback |
-| "Large tap targets" | Minimum 44px touch targets on all interactive elements |
+For test users (mock data):
+- Edit plan name: Show toast success but don't persist (simulated)
+- Add template: Show toast success, navigate back (UI-only demo)
+- Delete plan: Simulate success with delay (already implemented)
 
 ---
 
 ## Implementation Order
 
-1. Create `src/lib/scoring.ts` (scoring utility)
-2. Create `src/hooks/use-update-meal-log.ts` (database mutation)
-3. Create `src/components/FoodItemEditor.tsx` (editable food row)
-4. Create `src/components/AddFoodSheet.tsx` (add food sheet)
-5. Update `src/hooks/use-meals.ts` to return meal log ID
-6. Update `src/pages/Log.tsx` to pass meal log ID
-7. Update `src/pages/MealResult.tsx` with full edit mode
-8. Update `src/components/AdherenceScore.tsx` for animations
-9. Add CSS animations to `src/index.css`
+1. Update `useNutritionPlan` to return plan ID
+2. Add `useUpdateNutritionPlan` hook
+3. Create `EditPlanSheet` component
+4. Update `Plan.tsx` to use EditPlanSheet
+5. Add `useCreateMealTemplate` hook
+6. Update `EditMealTemplate.tsx` for create mode
+7. Update `Plan.tsx` handleAddTemplate to navigate
 
