@@ -1,7 +1,31 @@
 {
-  "name": "vite_react_shadcn_ts",
+  "name": "platecheck",
+  "version": "1.0.0",
+  "description": "AI-powered mobile wellness app for nutrition plan adherence tracking with photo-based meal analysis",
+  "author": {
+    "name": "tanmald",
+    "url": "https://github.com/tanmald"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tanmald/plate-check"
+  },
+  "homepage": "https://github.com/tanmald/plate-check#readme",
+  "bugs": {
+    "url": "https://github.com/tanmald/plate-check/issues"
+  },
+  "keywords": [
+    "nutrition",
+    "wellness",
+    "ai",
+    "react",
+    "typescript",
+    "mobile-app",
+    "health-tech",
+    "meal-tracking"
+  ],
+  "license": "MIT",
   "private": true,
-  "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
