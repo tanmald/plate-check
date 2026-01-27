@@ -5,11 +5,12 @@ import { Progress } from "@/components/ui/progress";
 import { AdherenceScore, getScoreStatus } from "@/components/AdherenceScore";
 import { MealCard } from "@/components/MealCard";
 import { BottomNav } from "@/components/BottomNav";
+import { HomePageSkeleton } from "@/components/PageSkeletons";
 import { useAuth, useUserProfile } from "@/hooks/use-auth";
 import { useTodayMeals } from "@/hooks/use-meals";
 import { useNutritionPlan } from "@/hooks/use-nutrition-plan";
 import { useDailyProgress } from "@/hooks/use-progress";
-import { Flame, TrendingUp, Calendar, Camera, Info, Loader2 } from "lucide-react";
+import { Flame, TrendingUp, Calendar, Camera, Info } from "lucide-react";
 
 // Get time-based greeting
 function getGreeting(): string {
@@ -56,12 +57,10 @@ export default function Home() {
 
       <main className="px-4 py-6 space-y-6 max-w-lg mx-auto">
         {isLoading ? (
-          <div className="flex items-center justify-center min-h-[400px]">
-            <Loader2 className="w-8 h-8 text-primary animate-spin" />
-          </div>
+          <HomePageSkeleton />
         ) : !hasPlan ? (
           /* Empty State - No plan */
-          <Card className="card-shadow">
+          <Card className="card-shadow animate-fade-up">
             <CardContent className="p-8 text-center">
               <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
                 <span className="text-4xl">📋</span>
@@ -78,7 +77,7 @@ export default function Home() {
         ) : (
           <>
             {/* Daily Score Card */}
-            <Card className="card-shadow overflow-hidden">
+            <Card className="card-shadow overflow-hidden animate-fade-up">
               <CardContent className="p-0">
                 <div className="bg-gradient-to-br from-primary/5 to-secondary p-6">
                   <div className="flex items-center justify-between">
@@ -119,7 +118,7 @@ export default function Home() {
             </Card>
 
             {/* Primary CTA */}
-            <Button asChild size="xl" className="w-full">
+            <Button asChild size="xl" className="w-full animate-fade-up animate-delay-100">
               <Link to="/log" className="flex items-center gap-2">
                 <Camera className="w-5 h-5" />
                 Log Meal
@@ -128,14 +127,20 @@ export default function Home() {
 
             {/* Today's Meals */}
             {meals.length > 0 && (
-              <div>
+              <div className="animate-fade-up animate-delay-200">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-semibold">Today's Meals</h2>
                   <Link to="/progress" className="text-sm text-primary font-medium">View all</Link>
                 </div>
                 <div className="space-y-3">
-                  {meals.map((meal) => (
-                    <Link key={meal.id} to="/meal-result" state={{ mealType: meal.type }}>
+                  {meals.map((meal, idx) => (
+                    <Link 
+                      key={meal.id} 
+                      to="/meal-result" 
+                      state={{ mealType: meal.type }}
+                      className="block animate-fade-up"
+                      style={{ animationDelay: `${(idx + 3) * 100}ms` }}
+                    >
                       <MealCard meal={meal} />
                     </Link>
                   ))}
@@ -144,7 +149,7 @@ export default function Home() {
             )}
 
             {/* Next meal suggestion */}
-            <Card className="card-shadow border-l-4 border-l-accent">
+            <Card className="card-shadow border-l-4 border-l-accent animate-fade-up animate-delay-300 hover-lift">
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
                   <div className="text-2xl">🍽️</div>

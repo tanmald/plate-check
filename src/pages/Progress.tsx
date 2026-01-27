@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button";
 import { BottomNav } from "@/components/BottomNav";
 import { WeeklyChart } from "@/components/WeeklyChart";
 import { MealCard } from "@/components/MealCard";
+import { ProgressPageSkeleton } from "@/components/PageSkeletons";
 import { useTodayMeals } from "@/hooks/use-meals";
 import { useDailyProgress, useWeeklyProgress } from "@/hooks/use-progress";
 import { toast } from "sonner";
-import { TrendingUp, TrendingDown, Target, AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, Info, Loader2 } from "lucide-react";
+import { TrendingUp, TrendingDown, Target, AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function Progress() {
@@ -74,13 +75,11 @@ export default function Progress() {
 
       <main className="px-4 py-6 space-y-6 max-w-lg mx-auto">
         {isLoading ? (
-          <div className="flex items-center justify-center min-h-[400px]">
-            <Loader2 className="w-8 h-8 text-primary animate-spin" />
-          </div>
+          <ProgressPageSkeleton />
         ) : activeTab === "daily" ? (
-          <>
+          <div className="animate-fade-in-slide">
             {/* Date Navigator */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-6">
               <Button variant="ghost" size="icon" onClick={handlePreviousDay}>
                 <ChevronLeft className="w-5 h-5" />
               </Button>
@@ -94,7 +93,7 @@ export default function Progress() {
             </div>
 
             {/* Daily Score */}
-            <Card className="card-shadow">
+            <Card className="card-shadow animate-fade-up">
               <CardContent className="p-6 text-center">
                 <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
                   <span className="text-3xl font-bold text-primary">{dailyStats?.dailyScore || 0}%</span>
@@ -114,17 +113,23 @@ export default function Progress() {
             </Card>
 
             {/* Today's Meals */}
-            <div>
+            <div className="animate-fade-up animate-delay-100">
               <h2 className="text-lg font-semibold mb-4">Today's Meals</h2>
               <div className="space-y-3">
-                {todayMeals.map((meal) => (
-                  <Link key={meal.id} to="/meal-result" state={{ mealType: meal.type }}>
+                {todayMeals.map((meal, idx) => (
+                  <Link 
+                    key={meal.id} 
+                    to="/meal-result" 
+                    state={{ mealType: meal.type }}
+                    className="block animate-fade-up"
+                    style={{ animationDelay: `${(idx + 2) * 100}ms` }}
+                  >
                     <MealCard meal={meal} />
                   </Link>
                 ))}
 
                 {/* Pending meal */}
-                <Card className="card-shadow border-dashed border-2">
+                <Card className="card-shadow border-dashed border-2 animate-fade-up animate-delay-300">
                   <CardContent className="p-4">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center">
@@ -141,7 +146,7 @@ export default function Progress() {
             </div>
 
             {/* Daily Insights */}
-            <Card className="card-shadow">
+            <Card className="card-shadow animate-fade-up animate-delay-400">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base">Today's Insights</CardTitle>
               </CardHeader>
@@ -162,9 +167,9 @@ export default function Progress() {
                 </div>
               </CardContent>
             </Card>
-          </>
+          </div>
         ) : activeTab === "weekly" ? (
-          <>
+          <div className="animate-fade-in-slide space-y-6">
             {/* Week Navigator */}
             <div className="flex items-center justify-between">
               <Button variant="ghost" size="icon" onClick={handlePreviousWeek}>
@@ -180,7 +185,7 @@ export default function Progress() {
             </div>
 
             {/* Weekly Chart */}
-            <Card className="card-shadow">
+            <Card className="card-shadow animate-fade-up">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base">Daily Adherence</CardTitle>
@@ -200,7 +205,7 @@ export default function Progress() {
 
             {/* Stats Grid */}
             <div className="grid grid-cols-2 gap-4">
-              <Card className="card-shadow">
+              <Card className="card-shadow animate-fade-up animate-delay-100 hover-lift">
                 <CardContent className="p-4 text-center">
                   <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-2">
                     <Target className="w-6 h-6 text-primary" />
@@ -210,7 +215,7 @@ export default function Progress() {
                 </CardContent>
               </Card>
               
-              <Card className="card-shadow">
+              <Card className="card-shadow animate-fade-up animate-delay-200 hover-lift">
                 <CardContent className="p-4 text-center">
                   <div className="w-12 h-12 rounded-full bg-warning/10 flex items-center justify-center mx-auto mb-2">
                     <AlertCircle className="w-6 h-6 text-warning" />
@@ -222,7 +227,7 @@ export default function Progress() {
             </div>
 
             {/* Plan Adherence Breakdown */}
-            <Card className="card-shadow">
+            <Card className="card-shadow animate-fade-up animate-delay-300">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base">Adherence by Meal</CardTitle>
               </CardHeader>
@@ -232,8 +237,12 @@ export default function Progress() {
                   { meal: "Lunch", adherence: 78, icon: "☀️" },
                   { meal: "Dinner", adherence: 71, icon: "🌙" },
                   { meal: "Snacks", adherence: 85, icon: "🍎" },
-                ].map((item) => (
-                  <div key={item.meal} className="space-y-2">
+                ].map((item, idx) => (
+                  <div 
+                    key={item.meal} 
+                    className="space-y-2 animate-fade-up"
+                    style={{ animationDelay: `${(idx + 4) * 100}ms` }}
+                  >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span>{item.icon}</span>
@@ -256,7 +265,7 @@ export default function Progress() {
             </Card>
 
             {/* Weekly Insights */}
-            <Card className="card-shadow">
+            <Card className="card-shadow animate-fade-up animate-delay-400">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base">Weekly Insights</CardTitle>
               </CardHeader>
@@ -277,7 +286,7 @@ export default function Progress() {
                 </div>
               </CardContent>
             </Card>
-          </>
+          </div>
         ) : null}
 
         {/* Trust note */}
