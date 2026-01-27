@@ -5,7 +5,7 @@ import { Camera, Image, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BottomNav } from "@/components/BottomNav";
 import { cn } from "@/lib/utils";
-import { useCreateMealLog } from "@/hooks/use-meals";
+import { useCreateMealLog, MealLogResult } from "@/hooks/use-meals";
 
 type Step = "select" | "capture" | "analyzing";
 
@@ -51,12 +51,13 @@ export default function Log() {
       },
       {
         onSuccess: (analysisResult) => {
-          // Navigate to result page with real data
+          // Navigate to result page with real data and meal log ID
           navigate("/meal-result", {
             state: {
               mealType: selectedMealType,
               analysisResult,
               photoPreview: preview,
+              mealLogId: analysisResult.mealLogId,
             },
           });
         },

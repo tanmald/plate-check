@@ -78,11 +78,12 @@ export function AdherenceScore({
             strokeLinecap="round"
             className={cn(
               getScoreStroke(score),
-              animated && "animate-score-fill"
+              animated && "animate-score-fill",
+              "transition-all duration-500 ease-out"
             )}
             style={{
               strokeDasharray: circumference,
-              strokeDashoffset: animated ? undefined : strokeDashoffset,
+              strokeDashoffset: strokeDashoffset,
               "--score-offset": strokeDashoffset,
             } as React.CSSProperties}
           />

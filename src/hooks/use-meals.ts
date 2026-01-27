@@ -5,6 +5,11 @@ import { isTestUser, mockMeals, mockAnalysisResult } from "@/lib/test-data";
 import { uploadMealPhoto } from "@/lib/storage";
 import { analyzeMeal, AnalyzeMealResponse } from "@/lib/api";
 
+// Extended response type that includes the meal log ID for corrections
+export interface MealLogResult extends AnalyzeMealResponse {
+  mealLogId?: string;
+}
+
 export interface Meal {
   id: string;
   type: "breakfast" | "lunch" | "dinner" | "snack";
@@ -88,7 +93,7 @@ export function useCreateMealLog() {
       photoFile: File;
       mealType: string;
       planId?: string;
-    }): Promise<AnalyzeMealResponse> => {
+    }): Promise<MealLogResult> => {
       if (!user?.id) {
         throw new Error("User not authenticated");
       }
@@ -96,7 +101,7 @@ export function useCreateMealLog() {
       // Test user path: Return mock data with simulated delay
       if (isTestUser(user.email)) {
         await new Promise((resolve) => setTimeout(resolve, 2500));
-        return mockAnalysisResult;
+        return { ...mockAnalysisResult, mealLogId: "mock-meal-id" };
       }
 
       // Real user path: Upload photo → call Edge Function → save to DB
@@ -113,29 +118,36 @@ export function useCreateMealLog() {
         });
 
         // Step 3: Save to meal_logs table
-        const { error: dbError } = await supabase.from("meal_logs").insert({
-          user_id: user.id,
-          meal_type: mealType,
-          meal_name: `${mealType.charAt(0).toUpperCase() + mealType.slice(1)}`,
-          photo_path: photoPath,
-          photo_url: photoUrl,
-          adherence_score: analysisResult.score,
-          detected_foods: analysisResult.detectedFoods.map((f) => f.name),
-          detection_confidence: analysisResult.confidence,
-          scoring_result: {
-            detectedFoods: analysisResult.detectedFoods,
-            feedback: analysisResult.feedback,
-            suggestedSwaps: analysisResult.suggestedSwaps,
-          },
-          ai_feedback: analysisResult.feedback,
-          status: "completed",
-          logged_at: new Date().toISOString(),
-        });
+        const { data: insertedMeal, error: dbError } = await supabase
+          .from("meal_logs")
+          .insert({
+            user_id: user.id,
+            meal_type: mealType,
+            meal_name: `${mealType.charAt(0).toUpperCase() + mealType.slice(1)}`,
+            photo_path: photoPath,
+            photo_url: photoUrl,
+            adherence_score: analysisResult.score,
+            detected_foods: analysisResult.detectedFoods.map((f) => f.name),
+            detection_confidence: analysisResult.confidence,
+            scoring_result: {
+              detectedFoods: analysisResult.detectedFoods,
+              feedback: analysisResult.feedback,
+              suggestedSwaps: analysisResult.suggestedSwaps,
+            },
+            ai_feedback: analysisResult.feedback,
+            status: "completed",
+            logged_at: new Date().toISOString(),
+          })
+          .select("id")
+          .single();
 
         if (dbError) throw dbError;
 
-        // Return the analysis result for immediate display
-        return analysisResult;
+        // Return the analysis result with meal log ID for corrections
+        return {
+          ...analysisResult,
+          mealLogId: insertedMeal?.id,
+        };
       } catch (error) {
         console.error("Error creating meal log:", error);
         throw error;
