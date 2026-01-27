@@ -11,12 +11,12 @@ import Home from "./pages/Home";
 import Log from "./pages/Log";
 import MealResult from "./pages/MealResult";
 import Plan from "./pages/Plan";
+import EditMealTemplate from "./pages/EditMealTemplate";
 import Progress from "./pages/Progress";
 import Settings from "./pages/Settings";
 import EditProfile from "./pages/EditProfile";
 import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
-
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -57,6 +57,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Plan />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/plan/template/:templateId"
+              element={
+                <ProtectedRoute>
+                  <EditMealTemplate />
                 </ProtectedRoute>
               }
             />

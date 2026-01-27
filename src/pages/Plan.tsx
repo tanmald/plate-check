@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BottomNav } from "@/components/BottomNav";
@@ -15,6 +16,7 @@ import { cn } from "@/lib/utils";
 type ViewState = "empty" | "importing" | "review" | "active";
 
 export default function Plan() {
+  const navigate = useNavigate();
   const { data: planData, isLoading } = useNutritionPlan();
   const [viewState, setViewState] = useState<ViewState>("empty");
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
@@ -74,8 +76,8 @@ export default function Plan() {
     toast.info("Plan editing coming soon");
   };
 
-  const handleEditTemplate = () => {
-    toast.info("Template editing coming soon");
+  const handleEditTemplate = (templateId: string) => {
+    navigate(`/plan/template/${templateId}`);
   };
 
   const handleAddTemplate = () => {
@@ -392,7 +394,7 @@ export default function Plan() {
                     onToggle={() => setSelectedTemplate(
                       selectedTemplate === template.id ? null : template.id
                     )}
-                    onEdit={handleEditTemplate}
+                    onEdit={() => handleEditTemplate(template.id)}
                     animationDelay={idx * 100}
                   />
                 ))}
