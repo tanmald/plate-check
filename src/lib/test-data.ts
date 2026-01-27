@@ -40,6 +40,7 @@ export const mockMeals = [
 ];
 
 export const mockPlan = {
+  id: "mock-plan-id",
   name: "Weight Management Plan",
   uploadedAt: "Dec 28, 2025",
   source: "Dr. Smith Nutrition Clinic",

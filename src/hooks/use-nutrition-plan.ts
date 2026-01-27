@@ -30,6 +30,7 @@ export interface MealTemplate {
 }
 
 export interface NutritionPlan {
+  id: string;
   name: string;
   uploadedAt: string;
   source: string;
@@ -115,6 +116,7 @@ export function useNutritionPlan() {
       });
 
       const plan: NutritionPlan = {
+        id: planData.id,
         name: planData.name,
         uploadedAt: new Date(planData.created_at).toLocaleDateString("en-US", {
           month: "short",
@@ -345,6 +347,41 @@ export function useDeleteNutritionPlan() {
     },
     onSuccess: () => {
       // Invalidate nutrition plan queries to refresh UI
+      queryClient.invalidateQueries({ queryKey: ["nutrition-plan"] });
+    },
+  });
+}
+
+/**
+ * Hook for updating a nutrition plan's name
+ */
+export function useUpdateNutritionPlan() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ planId, name }: { planId: string; name: string }) => {
+      if (!user?.id) {
+        throw new Error("User not authenticated");
+      }
+
+      // Test user path: Simulate update with delay
+      if (isTestUser(user.email)) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        return { success: true };
+      }
+
+      const { error } = await supabase
+        .from("nutrition_plans")
+        .update({ name })
+        .eq("id", planId)
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+
+      return { success: true };
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["nutrition-plan"] });
     },
   });
