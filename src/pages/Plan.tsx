@@ -7,6 +7,8 @@ import { MealTemplateCard } from "@/components/MealTemplateCard";
 import { FoodTagGroup } from "@/components/FoodTagGroup";
 import { DailyTargetsCard } from "@/components/DailyTargetsCard";
 import { PlanPageSkeleton } from "@/components/PageSkeletons";
+import { EditPlanSheet } from "@/components/EditPlanSheet";
+import { DeletePlanDialog } from "@/components/DeletePlanDialog";
 import { useNutritionPlan, useImportNutritionPlan, useConfirmNutritionPlan } from "@/hooks/use-nutrition-plan";
 import { ParsePlanResponse } from "@/lib/api";
 import { toast } from "sonner";
@@ -21,6 +23,8 @@ export default function Plan() {
   const [viewState, setViewState] = useState<ViewState>("empty");
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [parsedPlan, setParsedPlan] = useState<ParsePlanResponse | null>(null);
+  const [editPlanOpen, setEditPlanOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importPlan = useImportNutritionPlan();
@@ -73,7 +77,7 @@ export default function Plan() {
   };
 
   const handleEditPlan = () => {
-    toast.info("Plan editing coming soon");
+    setEditPlanOpen(true);
   };
 
   const handleEditTemplate = (templateId: string) => {
@@ -81,7 +85,7 @@ export default function Plan() {
   };
 
   const handleAddTemplate = () => {
-    toast.info("Add template coming soon");
+    navigate("/plan/template/new");
   };
 
   return (
@@ -430,6 +434,23 @@ export default function Plan() {
       </main>
 
       <BottomNav />
+
+      {/* Edit Plan Sheet */}
+      {plan && (
+        <EditPlanSheet
+          open={editPlanOpen}
+          onOpenChange={setEditPlanOpen}
+          planId={plan.id}
+          planName={plan.name}
+          onDeleteClick={() => setDeleteDialogOpen(true)}
+        />
+      )}
+
+      {/* Delete Plan Dialog */}
+      <DeletePlanDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+      />
     </div>
   );
 }

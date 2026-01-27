@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useNutritionPlan } from "@/hooks/use-nutrition-plan";
-import { useUpdateMealTemplate } from "@/hooks/use-update-meal-template";
+import { useUpdateMealTemplate, useCreateMealTemplate } from "@/hooks/use-update-meal-template";
 import { toast } from "sonner";
 import { ArrowLeft, Plus, X, Check, Loader2, Clock, Flame, Dumbbell, Zap, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -24,6 +24,10 @@ export default function EditMealTemplate() {
   const { templateId } = useParams<{ templateId: string }>();
   const { data: planData, isLoading: planLoading } = useNutritionPlan();
   const updateTemplate = useUpdateMealTemplate();
+  const createTemplate = useCreateMealTemplate();
+
+  const isCreateMode = templateId === "new";
+  const planId = planData?.plan?.id;
 
   // Form state
   const [name, setName] = useState("");
@@ -37,10 +41,12 @@ export default function EditMealTemplate() {
   const [newFoodCategory, setNewFoodCategory] = useState<FoodCategory>("allowed");
   const [hasChanges, setHasChanges] = useState(false);
 
-  // Find the template
-  const template = planData?.plan?.templates.find(t => t.id === templateId);
+  // Find the template (only in edit mode)
+  const template = !isCreateMode
+    ? planData?.plan?.templates.find((t) => t.id === templateId)
+    : null;
 
-  // Initialize form with template data
+  // Initialize form with template data (edit mode only)
   useEffect(() => {
     if (template) {
       setName(template.name);
@@ -52,9 +58,21 @@ export default function EditMealTemplate() {
 
       // Combine all foods into a single list with categories
       const allFoods: FoodItem[] = [
-        ...template.requiredFoods.map((f, i) => ({ id: `req-${i}`, name: f, category: "required" as const })),
-        ...template.allowedFoods.map((f, i) => ({ id: `all-${i}`, name: f, category: "allowed" as const })),
-        ...(template.optionalAddons || []).map((f, i) => ({ id: `opt-${i}`, name: f, category: "optional" as const })),
+        ...template.requiredFoods.map((f, i) => ({
+          id: `req-${i}`,
+          name: f,
+          category: "required" as const,
+        })),
+        ...template.allowedFoods.map((f, i) => ({
+          id: `all-${i}`,
+          name: f,
+          category: "allowed" as const,
+        })),
+        ...(template.optionalAddons || []).map((f, i) => ({
+          id: `opt-${i}`,
+          name: f,
+          category: "optional" as const,
+        })),
       ];
       setFoods(allFoods);
     }
@@ -62,15 +80,32 @@ export default function EditMealTemplate() {
 
   // Track changes
   useEffect(() => {
+    if (isCreateMode) {
+      // In create mode, any input counts as a change
+      const hasAnyInput =
+        name.trim() !== "" ||
+        scheduledTime !== "" ||
+        calories !== "" ||
+        protein !== "" ||
+        isOptional ||
+        isPreWorkout ||
+        foods.length > 0;
+      setHasChanges(hasAnyInput);
+      return;
+    }
+
     if (!template) return;
 
     const originalFoods = [
-      ...template.requiredFoods.map(f => ({ name: f, category: "required" })),
-      ...template.allowedFoods.map(f => ({ name: f, category: "allowed" })),
-      ...(template.optionalAddons || []).map(f => ({ name: f, category: "optional" })),
+      ...template.requiredFoods.map((f) => ({ name: f, category: "required" })),
+      ...template.allowedFoods.map((f) => ({ name: f, category: "allowed" })),
+      ...(template.optionalAddons || []).map((f) => ({
+        name: f,
+        category: "optional",
+      })),
     ];
 
-    const currentFoods = foods.map(f => ({ name: f.name, category: f.category }));
+    const currentFoods = foods.map((f) => ({ name: f.name, category: f.category }));
 
     const changed =
       name !== template.name ||
@@ -82,7 +117,17 @@ export default function EditMealTemplate() {
       JSON.stringify(originalFoods) !== JSON.stringify(currentFoods);
 
     setHasChanges(changed);
-  }, [name, scheduledTime, calories, protein, isOptional, isPreWorkout, foods, template]);
+  }, [
+    name,
+    scheduledTime,
+    calories,
+    protein,
+    isOptional,
+    isPreWorkout,
+    foods,
+    template,
+    isCreateMode,
+  ]);
 
   const handleAddFood = () => {
     if (!newFoodName.trim()) return;
@@ -99,46 +144,88 @@ export default function EditMealTemplate() {
   };
 
   const handleRemoveFood = (id: string) => {
-    setFoods(foods.filter(f => f.id !== id));
+    setFoods(foods.filter((f) => f.id !== id));
   };
 
   const handleChangeFoodCategory = (id: string, category: FoodCategory) => {
-    setFoods(foods.map(f => f.id === id ? { ...f, category } : f));
+    setFoods(foods.map((f) => (f.id === id ? { ...f, category } : f)));
   };
 
   const handleSave = () => {
-    if (!templateId) return;
+    const requiredFoods = foods.filter((f) => f.category === "required").map((f) => f.name);
+    const allowedFoods = foods.filter((f) => f.category === "allowed").map((f) => f.name);
+    const optionalAddons = foods.filter((f) => f.category === "optional").map((f) => f.name);
 
-    const requiredFoods = foods.filter(f => f.category === "required").map(f => f.name);
-    const allowedFoods = foods.filter(f => f.category === "allowed").map(f => f.name);
-    const optionalAddons = foods.filter(f => f.category === "optional").map(f => f.name);
-
-    updateTemplate.mutate(
-      {
-        templateId,
-        updates: {
-          name,
-          scheduledTime: scheduledTime || null,
-          calories,
-          protein,
-          isOptional,
-          isPreWorkout,
-          requiredFoods,
-          allowedFoods,
-          optionalAddons,
-        },
-      },
-      {
-        onSuccess: () => {
-          toast.success("Template updated successfully");
-          navigate("/plan");
-        },
-        onError: (error) => {
-          console.error("Error updating template:", error);
-          toast.error("Failed to update template");
-        },
+    if (isCreateMode) {
+      // Create new template
+      if (!planId) {
+        toast.error("No active plan found");
+        return;
       }
-    );
+
+      if (!name.trim()) {
+        toast.error("Please enter a template name");
+        return;
+      }
+
+      createTemplate.mutate(
+        {
+          planId,
+          template: {
+            type: "meal",
+            name: name.trim(),
+            scheduledTime: scheduledTime || null,
+            calories,
+            protein,
+            isOptional,
+            isPreWorkout,
+            requiredFoods,
+            allowedFoods,
+            optionalAddons,
+          },
+        },
+        {
+          onSuccess: () => {
+            toast.success("Template created successfully");
+            navigate("/plan");
+          },
+          onError: (error) => {
+            console.error("Error creating template:", error);
+            toast.error("Failed to create template");
+          },
+        }
+      );
+    } else {
+      // Update existing template
+      if (!templateId) return;
+
+      updateTemplate.mutate(
+        {
+          templateId,
+          updates: {
+            name,
+            scheduledTime: scheduledTime || null,
+            calories,
+            protein,
+            isOptional,
+            isPreWorkout,
+            requiredFoods,
+            allowedFoods,
+            optionalAddons,
+          },
+        },
+        {
+          onSuccess: () => {
+            toast.success("Template updated successfully");
+            navigate("/plan");
+          },
+          onError: (error) => {
+            console.error("Error updating template:", error);
+            toast.error("Failed to update template");
+          },
+        }
+      );
+    }
   };
 
   const handleBack = () => {
@@ -151,6 +238,8 @@ export default function EditMealTemplate() {
     }
   };
 
+  const isPending = updateTemplate.isPending || createTemplate.isPending;
+
   if (planLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -159,7 +248,8 @@ export default function EditMealTemplate() {
     );
   }
 
-  if (!template) {
+  // In edit mode, show not found if template doesn't exist
+  if (!isCreateMode && !template) {
     return (
       <div className="min-h-screen bg-background">
         <header className="bg-card border-b border-border safe-top">
@@ -171,7 +261,33 @@ export default function EditMealTemplate() {
           </div>
         </header>
         <main className="px-4 py-6 text-center">
-          <p className="text-muted-foreground">This template doesn't exist or has been deleted.</p>
+          <p className="text-muted-foreground">
+            This template doesn't exist or has been deleted.
+          </p>
+          <Button className="mt-4" onClick={() => navigate("/plan")}>
+            Back to Plan
+          </Button>
+        </main>
+      </div>
+    );
+  }
+
+  // In create mode, show error if no active plan
+  if (isCreateMode && !planId) {
+    return (
+      <div className="min-h-screen bg-background">
+        <header className="bg-card border-b border-border safe-top">
+          <div className="px-4 py-4 flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => navigate("/plan")}>
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <h1 className="text-lg font-semibold">No Active Plan</h1>
+          </div>
+        </header>
+        <main className="px-4 py-6 text-center">
+          <p className="text-muted-foreground">
+            You need an active nutrition plan to create a new template.
+          </p>
           <Button className="mt-4" onClick={() => navigate("/plan")}>
             Back to Plan
           </Button>
@@ -189,18 +305,16 @@ export default function EditMealTemplate() {
             <Button variant="ghost" size="icon" onClick={handleBack}>
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <h1 className="text-lg font-semibold">Edit Template</h1>
+            <h1 className="text-lg font-semibold">
+              {isCreateMode ? "New Template" : "Edit Template"}
+            </h1>
           </div>
           <Button
             size="sm"
             onClick={handleSave}
-            disabled={!hasChanges || updateTemplate.isPending}
+            disabled={!hasChanges || isPending || (isCreateMode && !name.trim())}
           >
-            {updateTemplate.isPending ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              "Save"
-            )}
+            {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
           </Button>
         </div>
       </header>
@@ -211,7 +325,9 @@ export default function EditMealTemplate() {
           <CardContent className="p-4 space-y-4">
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-2xl bg-secondary flex items-center justify-center">
-                <span className="text-3xl">{template.icon}</span>
+                <span className="text-3xl">
+                  {isCreateMode ? "🍽️" : template?.icon || "🍽️"}
+                </span>
               </div>
               <div className="flex-1">
                 <Label htmlFor="name">Template Name</Label>
@@ -219,7 +335,7 @@ export default function EditMealTemplate() {
                   id="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g., Breakfast"
+                  placeholder="e.g., Morning Snack"
                   className="mt-1"
                 />
               </div>
@@ -391,7 +507,9 @@ export default function EditMealTemplate() {
 
             {/* Add New Food */}
             <div className="pt-2 border-t border-border space-y-2">
-              <Label className="text-xs text-muted-foreground uppercase tracking-wide">Add Food</Label>
+              <Label className="text-xs text-muted-foreground uppercase tracking-wide">
+                Add Food
+              </Label>
               <div className="flex gap-2">
                 <Input
                   value={newFoodName}
@@ -428,13 +546,15 @@ export default function EditMealTemplate() {
             size="lg"
             className="w-full"
             onClick={handleSave}
-            disabled={!hasChanges || updateTemplate.isPending}
+            disabled={!hasChanges || isPending || (isCreateMode && !name.trim())}
           >
-            {updateTemplate.isPending ? (
+            {isPending ? (
               <>
                 <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                Saving...
+                {isCreateMode ? "Creating..." : "Saving..."}
               </>
+            ) : isCreateMode ? (
+              "Create Template"
             ) : (
               "Save Changes"
             )}
