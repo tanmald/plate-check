@@ -31,3 +31,12 @@ dist-ssr
 # Sensitive business documents
 docs/COMPETITIVE_ANALYSIS.md
 docs/PRICING_ANALYSIS.md
+
+# Legacy lock files
+bun.lockb
+
+# Deployment
+.vercel
+
+# Claude/AI working directory
+.claude/
