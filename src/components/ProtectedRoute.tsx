@@ -21,8 +21,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
 
   if (!user) {
-    // Redirect to onboarding if not authenticated
-    return <Navigate to="/onboarding" replace />;
+    return <Navigate to="/landing" replace />;
   }
 
   return <>{children}</>;

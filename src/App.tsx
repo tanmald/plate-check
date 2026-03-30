@@ -16,6 +16,8 @@ import Progress from "./pages/Progress";
 import Settings from "./pages/Settings";
 import EditProfile from "./pages/EditProfile";
 import Onboarding from "./pages/Onboarding";
+import Landing from "./pages/Landing";
+import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
@@ -27,6 +29,8 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <Routes>
+            <Route path="/landing" element={<Landing />} />
+            <Route path="/auth" element={<Auth />} />
             <Route path="/onboarding" element={<Onboarding />} />
             <Route
               path="/"
