@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,10 +12,14 @@ import { DeletePlanDialog } from "@/components/DeletePlanDialog";
 import { useNutritionPlan, useImportNutritionPlan, useConfirmNutritionPlan } from "@/hooks/use-nutrition-plan";
 import { ParsePlanResponse } from "@/lib/api";
 import { toast } from "sonner";
-import { Upload, FileText, Plus, Edit2, Image, File, Info, Loader2, AlertCircle, Clock, Zap, ArrowRight, Check } from "lucide-react";
+import { Upload, FileText, ChevronRight, Plus, Edit2, Image, File, Info, Loader2, AlertCircle, Clock, Zap, ArrowRight, Check, CalendarDays, ShoppingCart } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { WeeklyPlanner } from "@/components/WeeklyPlanner";
+import { ShoppingListView } from "@/components/ShoppingListView";
+import { getWeekStartDate } from "@/hooks/use-weekly-plan";
 
 type ViewState = "empty" | "importing" | "review" | "active";
+type PlanTab = "plan" | "week" | "shopping";
 
 export default function Plan() {
   const navigate = useNavigate();
@@ -25,10 +29,12 @@ export default function Plan() {
   const [parsedPlan, setParsedPlan] = useState<ParsePlanResponse | null>(null);
   const [editPlanOpen, setEditPlanOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<PlanTab>("plan");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importPlan = useImportNutritionPlan();
   const confirmPlan = useConfirmNutritionPlan();
+  const weekStartDate = getWeekStartDate();
 
   const hasPlan = planData?.hasPlan || false;
   const plan = planData?.plan;
@@ -104,18 +110,77 @@ export default function Plan() {
 
       {/* Header */}
       <header className="bg-card border-b border-border safe-top">
-        <div className="px-4 py-4">
-          <h1 className="text-2xl font-bold text-foreground">My Plan</h1>
-          <p className="text-sm text-muted-foreground">
-            {hasPlan ? "Your personalized nutrition plan" : "Import your nutrition plan"}
-          </p>
+        <div className="px-4 pt-4 pb-0">
+          <h1 className="text-2xl font-bold text-foreground">Plano</h1>
+
+          {/* Tab bar */}
+          <div className="flex gap-1 mt-3">
+            {([
+              { key: "plan",     label: "Meu Plano",    icon: FileText },
+              { key: "week",     label: "Esta Semana",  icon: CalendarDays },
+              { key: "shopping", label: "Compras",       icon: ShoppingCart },
+            ] as { key: PlanTab; label: string; icon: React.ElementType }[]).map(({ key, label, icon: Icon }) => (
+              <button
+                key={key}
+                onClick={() => setActiveTab(key)}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-2 text-sm font-medium border-b-2 transition-colors",
+                  activeTab === key
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
       </header>
 
       <main className="px-4 py-6 space-y-6 max-w-lg mx-auto">
-        {isLoading ? (
-          <PlanPageSkeleton />
-        ) : !hasPlan && viewState === "empty" ? (
+        {/* ── This Week tab ── */}
+        {activeTab === "week" && (
+          hasPlan ? (
+            <WeeklyPlanner onShoppingListGenerated={() => setActiveTab("shopping")} />
+          ) : (
+            <div className="text-center py-12 space-y-3">
+              <CalendarDays className="w-12 h-12 text-muted-foreground mx-auto" />
+              <p className="font-medium">Importa primeiro o teu plano nutricional</p>
+              <p className="text-sm text-muted-foreground">
+                Para planear a ementa semanal precisas de um plano activo.
+              </p>
+              <Button variant="outline" size="sm" onClick={() => setActiveTab("plan")}>
+                Ir para Meu Plano
+              </Button>
+            </div>
+          )
+        )}
+
+        {/* ── Shopping tab ── */}
+        {activeTab === "shopping" && (
+          hasPlan ? (
+            <ShoppingListView weekStartDate={weekStartDate} />
+          ) : (
+            <div className="text-center py-12 space-y-3">
+              <ShoppingCart className="w-12 h-12 text-muted-foreground mx-auto" />
+              <p className="font-medium">Importa primeiro o teu plano nutricional</p>
+              <p className="text-sm text-muted-foreground">
+                Precisas de um plano activo para gerar listas de compras.
+              </p>
+              <Button variant="outline" size="sm" onClick={() => setActiveTab("plan")}>
+                Ir para Meu Plano
+              </Button>
+            </div>
+          )
+        )}
+
+        {/* ── My Plan tab ── */}
+        {activeTab === "plan" && isLoading ? (
+          <div className="flex items-center justify-center min-h-[400px]">
+            <Loader2 className="w-8 h-8 text-primary animate-spin" />
+          </div>
+        ) : activeTab === "plan" && !hasPlan && viewState === "empty" ? (
           /* Empty State */
           <Card className="card-shadow animate-fade-up">
             <CardContent className="p-8 text-center">
@@ -147,7 +212,7 @@ export default function Plan() {
               </div>
             </CardContent>
           </Card>
-        ) : viewState === "importing" ? (
+        ) : activeTab === "plan" && viewState === "importing" ? (
           /* Importing State */
           <div className="flex flex-col items-center justify-center min-h-[400px] gap-6 animate-fade-up">
             <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center">
@@ -158,7 +223,7 @@ export default function Plan() {
               <p className="text-muted-foreground">Extracting meal templates and guidelines</p>
             </div>
           </div>
-        ) : viewState === "review" && parsedPlan ? (
+        ) : activeTab === "plan" && viewState === "review" && parsedPlan ? (
           /* Review State */
           <>
             <Card className="card-shadow border-2 border-primary/20 bg-primary/5 animate-fade-up">
@@ -355,7 +420,7 @@ export default function Plan() {
               )}
             </Button>
           </>
-        ) : hasPlan && plan ? (
+        ) : activeTab === "plan" && hasPlan && plan ? (
           /* Active Plan State */
           <>
             {/* Current Plan Info */}

@@ -342,6 +342,59 @@ export const mockParsePlanResponse = {
   warnings: [],
 };
 
+// ─── Weekly Meal Plan mock data ───────────────────────────────────────────────
+
+export const mockWeeklyPlan = {
+  id: "mock-weekly-plan-id",
+  weekStartDate: "2026-03-30",
+  entries: [
+    { id: "we1", dayOfWeek: 0, mealType: "dinner", mealName: "Salmão grelhado com quinoa e brócolos", ingredients: ["salmão 200g", "quinoa 80g", "brócolos 150g", "azeite", "limão"] },
+    { id: "we2", dayOfWeek: 1, mealType: "dinner", mealName: "Frango com batata-doce e espinafres", ingredients: ["peito de frango 200g", "batata-doce 200g", "espinafres", "alho", "azeite"] },
+    { id: "we3", dayOfWeek: 2, mealType: "lunch", mealName: "Burrata com tomate e manjericão", ingredients: ["burrata 125g", "tomate 200g", "manjericão", "azeite", "flor de sal"] },
+    { id: "we4", dayOfWeek: 2, mealType: "dinner", mealName: "Tofu grelhado com legumes salteados", ingredients: ["tofu firme 200g", "courgette", "pimentos vermelhos", "molho de soja", "gengibre"] },
+    { id: "we5", dayOfWeek: 3, mealType: "dinner", mealName: "Bacalhau assado com grão", ingredients: ["bacalhau 200g", "grão de bico 150g", "cebola", "alho", "azeite", "coentros"] },
+    { id: "we6", dayOfWeek: 4, mealType: "dinner", mealName: "Hambúrguer de peru na air fryer", ingredients: ["hambúrguer de peru 150g", "alface", "tomate", "pão integral"] },
+    { id: "we7", dayOfWeek: 5, mealType: "lunch", mealName: "Salada de atum com ovo", ingredients: ["atum ao natural 120g", "ovo 2 un", "alface", "pepino", "tomate cherry", "azeite"] },
+    { id: "we8", dayOfWeek: 5, mealType: "dinner", mealName: "Esparguete de courgette com pesto", ingredients: ["courgette 2 un", "pesto verde 50g", "parmesão", "tomate cherry"] },
+  ],
+};
+
+// ─── Shopping List mock data ───────────────────────────────────────────────────
+
+export const mockShoppingList = {
+  id: "mock-shopping-list-id",
+  weekStartDate: "2026-03-30",
+  name: "Lista da semana",
+  shareCode: "AB12CD",
+  collaboratorIds: [],
+};
+
+export const mockShoppingItems = [
+  // Peixe & Marisco
+  { id: "si1", listId: "mock-shopping-list-id", name: "Salmão", category: "Peixe & Marisco", quantity: "200g", checked: false, sourceDays: ["Segunda"], sortOrder: 0 },
+  { id: "si2", listId: "mock-shopping-list-id", name: "Bacalhau", category: "Peixe & Marisco", quantity: "200g", checked: false, sourceDays: ["Quinta"], sortOrder: 1 },
+  { id: "si3", listId: "mock-shopping-list-id", name: "Atum ao natural", category: "Peixe & Marisco", quantity: "120g", checked: false, sourceDays: ["Sábado"], sortOrder: 2 },
+  // Carnes
+  { id: "si4", listId: "mock-shopping-list-id", name: "Peito de frango", category: "Carnes", quantity: "200g", checked: false, sourceDays: ["Terça"], sortOrder: 3 },
+  { id: "si5", listId: "mock-shopping-list-id", name: "Hambúrguer de peru", category: "Carnes", quantity: "150g", checked: false, sourceDays: ["Sexta"], sortOrder: 4 },
+  // Legumes
+  { id: "si6", listId: "mock-shopping-list-id", name: "Brócolos", category: "Legumes", quantity: "150g", checked: false, sourceDays: ["Segunda"], sortOrder: 5 },
+  { id: "si7", listId: "mock-shopping-list-id", name: "Batata-doce", category: "Legumes", quantity: "200g", checked: false, sourceDays: ["Terça"], sortOrder: 6 },
+  { id: "si8", listId: "mock-shopping-list-id", name: "Espinafres", category: "Legumes", quantity: null, checked: false, sourceDays: ["Terça"], sortOrder: 7 },
+  { id: "si9", listId: "mock-shopping-list-id", name: "Courgette", category: "Legumes", quantity: "3 un", checked: true, sourceDays: ["Quarta", "Sábado"], sortOrder: 8 },
+  { id: "si10", listId: "mock-shopping-list-id", name: "Tomate", category: "Legumes", quantity: "500g", checked: false, sourceDays: ["Quarta", "Sexta", "Sábado"], sortOrder: 9 },
+  // Leguminosas & Cereais
+  { id: "si11", listId: "mock-shopping-list-id", name: "Quinoa", category: "Cereais & Leguminosas", quantity: "80g", checked: false, sourceDays: ["Segunda"], sortOrder: 10 },
+  { id: "si12", listId: "mock-shopping-list-id", name: "Grão de bico", category: "Cereais & Leguminosas", quantity: "150g", checked: false, sourceDays: ["Quinta"], sortOrder: 11 },
+  // Lacticínios
+  { id: "si13", listId: "mock-shopping-list-id", name: "Burrata", category: "Lacticínios", quantity: "125g", checked: false, sourceDays: ["Quarta"], sortOrder: 12 },
+  // Outros
+  { id: "si14", listId: "mock-shopping-list-id", name: "Tofu firme", category: "Outros", quantity: "200g", checked: false, sourceDays: ["Quarta"], sortOrder: 13 },
+  { id: "si15", listId: "mock-shopping-list-id", name: "Pão integral", category: "Outros", quantity: "1 un", checked: true, sourceDays: ["Sexta"], sortOrder: 14 },
+];
+
+// ─── Profile ───────────────────────────────────────────────────────────────────
+
 export const mockProfile = {
   id: "test-user-id",
   email: TEST_USER_EMAIL,
