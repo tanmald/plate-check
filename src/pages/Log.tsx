@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Camera, Image, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BottomNav } from "@/components/BottomNav";
+import { CameraView } from "@/components/CameraView";
 import { cn } from "@/lib/utils";
 import { useCreateMealLog, MealLogResult } from "@/hooks/use-meals";
 
@@ -22,8 +23,8 @@ export default function Log() {
   const [selectedMealType, setSelectedMealType] = useState<string | null>(null);
   const [capturedPhoto, setCapturedPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [showCamera, setShowCamera] = useState(false);
 
-  const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const createMealLog = useCreateMealLog();
 
@@ -78,7 +79,7 @@ export default function Log() {
   };
 
   const handleCapture = () => {
-    cameraInputRef.current?.click();
+    setShowCamera(true);
   };
 
   const handleGallery = () => {
@@ -99,18 +100,18 @@ export default function Log() {
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      {/* Hidden file inputs */}
-      <input
-        ref={cameraInputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) handleFileSelect(file);
-        }}
-      />
+      {/* Live camera view */}
+      {showCamera && (
+        <CameraView
+          onCapture={(file) => {
+            setShowCamera(false);
+            handleFileSelect(file);
+          }}
+          onClose={() => setShowCamera(false)}
+        />
+      )}
+
+      {/* Hidden gallery file input */}
       <input
         ref={galleryInputRef}
         type="file"
