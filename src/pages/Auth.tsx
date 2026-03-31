@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type AuthStep = "welcome" | "signup" | "signin" | "forgot-password";
+type AuthStep = "welcome" | "signup" | "signin" | "forgot-password" | "check-email";
 
 interface FormErrors {
   email?: string;
@@ -71,8 +71,7 @@ export default function Auth() {
     setIsLoading(true);
     try {
       await signUp(email, password);
-      toast.success("Account created! Check your email to confirm.");
-      navigate("/onboarding", { replace: true });
+      setStep("check-email");
     } catch (error: any) {
       setErrors({ general: error.message || "Sign up failed. Please try again." });
       toast.error("Sign up failed");
@@ -130,6 +129,8 @@ export default function Auth() {
       setStep("welcome");
     } else if (step === "forgot-password") {
       setStep("signin");
+    } else if (step === "check-email") {
+      setStep("signup");
     } else {
       navigate("/landing");
     }
@@ -460,6 +461,52 @@ export default function Auth() {
                 onClick={() => setStep("signup")}
               >
                 Don't have an account? Sign up
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Check Email ──────────────────────────────────── */}
+        {step === "check-email" && (
+          <div className="space-y-6 animate-fade-up text-center">
+            <div className="w-16 h-16 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto">
+              <Check className="w-8 h-8 text-primary" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-2xl font-bold text-foreground">Check your email</h2>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                We sent a confirmation link to
+              </p>
+              <p className="text-sm font-semibold text-foreground">{email}</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Click the link to confirm your account and get started.
+              </p>
+            </div>
+            <div className="space-y-3">
+              <Button
+                size="xl"
+                variant="outline"
+                className="w-full"
+                onClick={async () => {
+                  setIsLoading(true);
+                  try {
+                    await signUp(email, password);
+                    toast.success("Confirmation email resent");
+                  } catch {
+                    toast.error("Failed to resend email");
+                  } finally {
+                    setIsLoading(false);
+                  }
+                }}
+                disabled={isLoading}
+              >
+                {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Resend email"}
+              </Button>
+              <button
+                className="text-sm text-primary font-semibold"
+                onClick={() => setStep("signin")}
+              >
+                Already confirmed? Sign in
               </button>
             </div>
           </div>
