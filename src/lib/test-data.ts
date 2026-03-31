@@ -193,17 +193,18 @@ export const mockDailyStats = {
 
 // Mock data matching Edge Function response format (AnalyzeMealResponse)
 export const mockAnalysisResult = {
-  score: 78,
+  score: 80,
   detectedFoods: [
-    { name: "Grilled chicken breast", matched: true, confidence: 0.95, category: "Protein" },
-    { name: "Brown rice", matched: true, confidence: 0.92, category: "Carbs" },
-    { name: "Steamed broccoli", matched: true, confidence: 0.88, category: "Vegetables" },
-    { name: "Caesar dressing", matched: false, confidence: 0.85, category: "Sauce" },
+    { name: "Grilled chicken breast", matched: true, matchType: "required" as const, confidence: 0.95, category: "Protein" },
+    { name: "Brown rice", matched: true, matchType: "allowed" as const, confidence: 0.92, category: "Carbs" },
+    { name: "Steamed broccoli", matched: true, matchType: "required" as const, confidence: 0.88, category: "Vegetables" },
+    { name: "Caesar dressing", matched: false, matchType: "off_plan" as const, confidence: 0.85, category: "Sauce" },
   ],
+  missingRequired: ["Lean protein"],
   feedback: "Great protein choice! The chicken and rice match your lunch template. Consider using olive oil instead of Caesar dressing for better plan adherence.",
   confidence: "high" as const,
   suggestedSwaps: [
-    { original: "Caesar dressing", suggested: "Olive oil & lemon", reason: "Lower sodium, fits plan" },
+    { original: "Caesar dressing", suggested: ["Olive oil & lemon", "Balsamic vinegar"], reason: "Lower sodium, fits plan" },
   ],
 };
 
