@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Check, AlertCircle, Sparkles, Info, RefreshCw, Plus } from "lucide-react";
+import { Check, AlertCircle, Sparkles, Info, RefreshCw, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { AdherenceScore } from "@/components/AdherenceScore";
@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { MealLogResult } from "@/hooks/use-meals";
 
 import {
-  calculateAdherenceScore,
+  getScoreBreakdown,
   generateFoodId,
   type EditableFood,
 } from "@/lib/scoring";
@@ -56,9 +56,11 @@ export default function MealResult() {
   // Use real data if available, otherwise fall back to mockResult
   const result = analysisResult || mockResult;
 
+  // missingRequired comes from the API and stays static (plan context)
+  const missingRequired: string[] = analysisResult?.missingRequired ?? [];
+
   // Initialize editable foods state
   const [editableFoods, setEditableFoods] = useState<EditableFood[]>([]);
-  const [currentScore, setCurrentScore] = useState(result.score);
   const [hasChanges, setHasChanges] = useState(false);
   const [showAddSheet, setShowAddSheet] = useState(false);
 
@@ -66,27 +68,35 @@ export default function MealResult() {
   useEffect(() => {
     const initialFoods: EditableFood[] = (
       analysisResult?.detectedFoods || mockResult.detectedFoods
-    ).map((food, index) => ({
+    ).map((food) => ({
       id: generateFoodId(),
       name: food.name,
       matched: food.matched,
+      matchType: food.matchType,
       category: food.category || "Other",
     }));
     setEditableFoods(initialFoods);
-    setCurrentScore(result.score);
-  }, [analysisResult, result.score]);
+  }, [analysisResult]);
 
-  // Recalculate score when foods change
-  useEffect(() => {
-    if (editableFoods.length > 0) {
-      const newScore = calculateAdherenceScore(editableFoods);
-      setCurrentScore(newScore);
-    }
-  }, [editableFoods]);
+  // Derive score and breakdown from current foods (always deterministic)
+  const breakdown = getScoreBreakdown(editableFoods, missingRequired);
+  const currentScore = breakdown.score;
 
   const handleFoodUpdate = (id: string, updates: Partial<EditableFood>) => {
     setEditableFoods((prev) =>
-      prev.map((food) => (food.id === id ? { ...food, ...updates } : food))
+      prev.map((food) => {
+        if (food.id !== id) return food;
+        const merged = { ...food, ...updates };
+        // Sync matchType when matched is toggled without explicit matchType
+        if ("matched" in updates && !("matchType" in updates)) {
+          if (!updates.matched) {
+            merged.matchType = "off_plan";
+          } else if (food.matchType === "off_plan") {
+            merged.matchType = "allowed";
+          }
+        }
+        return merged;
+      })
     );
     setHasChanges(true);
   };
@@ -116,7 +126,9 @@ export default function MealResult() {
   const suggestions = analysisResult
     ? analysisResult.suggestedSwaps.map((swap) => ({
         food: swap.original,
-        replacement: swap.suggested,
+        replacement: Array.isArray(swap.suggested)
+          ? swap.suggested.join(", ")
+          : swap.suggested,
         reason: swap.reason,
       }))
     : mockResult.suggestions;
@@ -219,6 +231,116 @@ export default function MealResult() {
             </p>
           </div>
         </div>
+
+        {/* Score Breakdown */}
+        <Card className="card-shadow">
+          <CardContent className="p-4 space-y-4">
+            <h3 className="font-semibold text-sm">Score Breakdown</h3>
+
+            {/* Equation */}
+            <div className="flex flex-wrap items-center gap-1.5 text-xs p-3 bg-muted/40 rounded-lg font-mono">
+              <span className="text-foreground font-medium">100</span>
+              {breakdown.missingPenalty > 0 && (
+                <>
+                  <span className="text-muted-foreground">−</span>
+                  <span className="text-destructive font-medium">{breakdown.missingPenalty}</span>
+                  <span className="text-muted-foreground">(missing required)</span>
+                </>
+              )}
+              {breakdown.offPlanPenalty > 0 && (
+                <>
+                  <span className="text-muted-foreground">−</span>
+                  <span className="text-warning font-medium">{breakdown.offPlanPenalty}</span>
+                  <span className="text-muted-foreground">(off plan)</span>
+                </>
+              )}
+              <span className="text-muted-foreground">=</span>
+              <span className={cn(
+                "font-bold text-sm",
+                currentScore >= 70 ? "text-success" : currentScore >= 40 ? "text-warning" : "text-destructive"
+              )}>
+                {currentScore}
+              </span>
+            </div>
+
+            {/* Required foods present */}
+            {breakdown.requiredPresent.length > 0 && (
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-2">
+                  Required — on plate
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {breakdown.requiredPresent.map((food) => (
+                    <span key={food.id} className="inline-flex items-center gap-1 px-2.5 py-1 bg-success/10 text-success border border-success/20 rounded-full text-xs font-medium">
+                      <Check className="w-3 h-3" /> {food.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Allowed foods present */}
+            {breakdown.allowedPresent.length > 0 && (
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-2">
+                  Allowed — on plate
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {breakdown.allowedPresent.map((food) => (
+                    <span key={food.id} className="inline-flex items-center gap-1 px-2.5 py-1 bg-secondary text-secondary-foreground border border-border rounded-full text-xs">
+                      {food.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Missing required */}
+            {breakdown.missingRequired.length > 0 && (
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-2">
+                  Required — missing
+                  <span className="ml-1 text-destructive">
+                    (−{breakdown.missingPenalty} pts)
+                  </span>
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {breakdown.missingRequired.map((food, i) => (
+                    <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 bg-destructive/10 text-destructive border border-destructive/20 rounded-full text-xs font-medium">
+                      <X className="w-3 h-3" /> {food}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Off-plan foods */}
+            {breakdown.offPlan.length > 0 && (
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-2">
+                  Off plan
+                  <span className="ml-1 text-warning">
+                    (−{breakdown.offPlanPenalty} pts)
+                  </span>
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {breakdown.offPlan.map((food) => (
+                    <span key={food.id} className="inline-flex items-center gap-1 px-2.5 py-1 bg-warning/10 text-warning border border-warning/20 rounded-full text-xs">
+                      <AlertCircle className="w-3 h-3" /> {food.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Perfect score message */}
+            {breakdown.missingRequired.length === 0 && breakdown.offPlan.length === 0 && editableFoods.length > 0 && (
+              <p className="text-xs text-success text-center py-1">
+                All detected foods match your plan
+              </p>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Detected Foods - Editable */}
         <Card className="card-shadow">

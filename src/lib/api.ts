@@ -4,17 +4,20 @@ import { supabase } from './supabase';
 // Type Definitions
 // ============================================================================
 
+export type MatchType = 'required' | 'allowed' | 'off_plan';
+
 export interface DetectedFood {
   name: string;
   matched: boolean;
   confidence: number;
   category?: string;
+  matchType?: MatchType;
 }
 
 export interface SuggestedSwap {
   original: string;
-  suggested: string;
-  reason: string;
+  suggested: string[];
+  reason?: string;
 }
 
 export interface AnalyzeMealRequest {
@@ -27,6 +30,7 @@ export interface AnalyzeMealRequest {
 export interface AnalyzeMealResponse {
   score: number;
   detectedFoods: DetectedFood[];
+  missingRequired: string[];
   feedback: string;
   confidence: 'high' | 'medium' | 'low';
   suggestedSwaps: SuggestedSwap[];

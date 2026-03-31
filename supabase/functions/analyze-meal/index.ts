@@ -8,16 +8,20 @@ interface AnalyzeMealRequest {
   planId?: string;
 }
 
+type MatchType = "required" | "allowed" | "off_plan";
+
 interface AnalyzeMealResponse {
   score: number;
   detectedFoods: Array<{
     name: string;
     matched: boolean;
+    matchType: MatchType;
     confidence: number;
   }>;
+  missingRequired: string[];
   feedback: string;
   confidence: "high" | "medium" | "low";
-  suggestedSwaps?: Array<{
+  suggestedSwaps: Array<{
     original: string;
     suggested: string[];
   }>;
@@ -126,25 +130,28 @@ ${templateContext}
 Analyze the meal photo and return JSON:
 {
   "detectedFoods": [
-    { "name": "food name in English", "matched": true/false, "confidence": 0.0-1.0 }
+    {
+      "name": "food name in English",
+      "matchType": "required" | "allowed" | "off_plan",
+      "confidence": 0.0-1.0
+    }
   ],
-  "score": 0-100,
+  "missingRequired": ["required food from plan not detected in the photo"],
   "feedback": "1-2 sentence feedback in English about adherence to the plan",
   "confidence": "high" | "medium" | "low",
   "suggestedSwaps": [
-    { "original": "food not aligned with plan", "suggested": ["better alternatives from the plan"] }
+    { "original": "off-plan food", "suggested": ["plan-aligned alternative 1", "alternative 2"] }
   ]
 }
 
-Scoring guidelines:
-- 80-100: All required foods present, no disallowed foods, closely follows a meal option
-- 60-79: Most required foods present, minor deviations
-- 40-59: Some plan foods missing or extra unplanned items
-- 20-39: Few plan foods, significant deviations
-- 0-19: Mostly off plan, disallowed foods present
+Classification rules for matchType:
+- "required": food explicitly listed as required in the plan AND detected in the photo
+- "allowed": food in the allowed_foods list or matching a meal option AND detected in the photo
+- "off_plan": food detected but not in required_foods or allowed_foods
 
-For "matched": set true if the food aligns with required_foods, allowed_foods, or a meal option.
-Only include suggestedSwaps for foods that are off-plan or could be better aligned.`;
+For missingRequired: list required_foods from the plan that were NOT detected in the photo.
+Only include suggestedSwaps for off_plan foods.
+Do NOT include a score field — it will be calculated deterministically.`;
 
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -186,9 +193,35 @@ Only include suggestedSwaps for foods that are off-plan or could be better align
   }
 
   const data = await response.json();
-  const result = JSON.parse(data.choices[0].message.content);
+  const raw = JSON.parse(data.choices[0].message.content);
 
-  return result as AnalyzeMealResponse;
+  // Compute score deterministically — not delegated to the LLM
+  const missingRequired: string[] = raw.missingRequired ?? [];
+  const offPlanCount = (raw.detectedFoods ?? []).filter(
+    (f: { matchType: string }) => f.matchType === "off_plan"
+  ).length;
+  const missingPenalty = Math.min(60, missingRequired.length * 20);
+  const offPlanPenalty = Math.min(40, offPlanCount * 10);
+  const score = Math.max(0, Math.min(100, 100 - missingPenalty - offPlanPenalty));
+
+  // Derive matched boolean from matchType for backward compat
+  const detectedFoods = (raw.detectedFoods ?? []).map(
+    (f: { name: string; matchType: MatchType; confidence: number }) => ({
+      ...f,
+      matched: f.matchType !== "off_plan",
+    })
+  );
+
+  const result: AnalyzeMealResponse = {
+    score,
+    detectedFoods,
+    missingRequired,
+    feedback: raw.feedback ?? "",
+    confidence: raw.confidence ?? "medium",
+    suggestedSwaps: raw.suggestedSwaps ?? [],
+  };
+
+  return result;
 }
 
 // ============================================================================

@@ -2,29 +2,69 @@
  * Client-side scoring utility for real-time adherence score calculation
  */
 
+import type { MatchType } from './api';
+
 export interface EditableFood {
   id: string;
   name: string;
   matched: boolean;
+  matchType?: MatchType;
   category: string;
   isNew?: boolean;
   isDeleted?: boolean;
   originalName?: string;
 }
 
+export interface ScoreBreakdown {
+  score: number;
+  requiredPresent: EditableFood[];
+  allowedPresent: EditableFood[];
+  offPlan: EditableFood[];
+  missingRequired: string[];
+  missingPenalty: number;
+  offPlanPenalty: number;
+}
+
 /**
- * Calculate adherence score based on matched/unmatched foods
- * Formula: (matchedCount / totalCount) * 100
+ * Score formula (transparent and deterministic):
+ *   100 base
+ *   − 20 per missing required food  (capped at −60)
+ *   − 10 per off-plan food detected (capped at −40)
+ *
+ * When matchType is unavailable (legacy / mock data), falls back to:
+ *   matched = true  → 'allowed'
+ *   matched = false → 'off_plan'
  */
-export function calculateAdherenceScore(foods: EditableFood[]): number {
-  const activeFoods = foods.filter((f) => !f.isDeleted);
+export function getScoreBreakdown(
+  foods: EditableFood[],
+  missingRequired: string[] = []
+): ScoreBreakdown {
+  const active = foods.filter((f) => !f.isDeleted);
 
-  if (activeFoods.length === 0) return 0;
+  const resolveType = (f: EditableFood): MatchType =>
+    f.matchType ?? (f.matched ? 'allowed' : 'off_plan');
 
-  const matchedCount = activeFoods.filter((f) => f.matched).length;
-  const baseScore = (matchedCount / activeFoods.length) * 100;
+  const requiredPresent = active.filter((f) => resolveType(f) === 'required');
+  const allowedPresent = active.filter((f) => resolveType(f) === 'allowed');
+  const offPlan = active.filter((f) => resolveType(f) === 'off_plan');
 
-  return Math.round(Math.min(100, Math.max(0, baseScore)));
+  const missingPenalty = Math.min(60, missingRequired.length * 20);
+  const offPlanPenalty = Math.min(40, offPlan.length * 10);
+
+  const score = Math.max(0, Math.min(100, 100 - missingPenalty - offPlanPenalty));
+
+  return { score, requiredPresent, allowedPresent, offPlan, missingRequired, missingPenalty, offPlanPenalty };
+}
+
+/**
+ * Calculate adherence score based on matched/unmatched foods.
+ * Kept for compatibility — delegates to getScoreBreakdown.
+ */
+export function calculateAdherenceScore(
+  foods: EditableFood[],
+  missingRequired: string[] = []
+): number {
+  return getScoreBreakdown(foods, missingRequired).score;
 }
 
 /**
@@ -38,15 +78,15 @@ export function generateFoodId(): string {
  * Common food categories for the category selector
  */
 export const FOOD_CATEGORIES = [
-  "Protein",
-  "Carbs",
-  "Vegetables",
-  "Fruits",
-  "Dairy",
-  "Fats",
-  "Sauce",
-  "Beverage",
-  "Other",
+  'Protein',
+  'Carbs',
+  'Vegetables',
+  'Fruits',
+  'Dairy',
+  'Fats',
+  'Sauce',
+  'Beverage',
+  'Other',
 ] as const;
 
 export type FoodCategory = (typeof FOOD_CATEGORIES)[number];
