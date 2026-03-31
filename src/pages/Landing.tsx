@@ -91,7 +91,7 @@ export default function Landing() {
                 </div>
                 {/* Score */}
                 <div className="flex flex-col items-center justify-center w-12 h-12 bg-success/10 rounded-xl border border-success/20">
-                  <span className="text-lg font-black text-success leading-none">91</span>
+                  <span className="text-lg font-black text-success leading-none">90</span>
                   <span className="text-[8px] text-success/60 font-medium">score</span>
                 </div>
               </div>
@@ -100,37 +100,38 @@ export default function Landing() {
               <div className="px-4 py-3 space-y-2">
                 <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Detected foods</p>
                 {[
-                  { name: "Grilled salmon", matched: true },
-                  { name: "Quinoa", matched: true },
-                  { name: "Cream sauce", matched: false },
-                ].map(({ name, matched }) => (
+                  { name: "Grilled salmon", label: "Required", style: "bg-success/8 border-success/15 text-success" },
+                  { name: "Quinoa", label: "Allowed", style: "bg-secondary border-border text-muted-foreground" },
+                  { name: "Cream sauce", label: "Off plan", style: "bg-warning/8 border-warning/15 text-warning" },
+                ].map(({ name, label, style }) => (
                   <div key={name} className={cn(
-                    "flex items-center gap-2.5 px-3 py-2 rounded-lg",
-                    matched ? "bg-success/8 border border-success/15" : "bg-warning/8 border border-warning/15"
+                    "flex items-center gap-2.5 px-3 py-2 rounded-lg border",
+                    style.split(" ").slice(0, 2).join(" ")
                   )}>
-                    {matched
+                    {label === "Required"
                       ? <Check className="w-3.5 h-3.5 text-success flex-shrink-0" />
-                      : <AlertCircle className="w-3.5 h-3.5 text-warning flex-shrink-0" />
+                      : label === "Off plan"
+                        ? <AlertCircle className="w-3.5 h-3.5 text-warning flex-shrink-0" />
+                        : <span className="w-3.5 h-3.5 flex-shrink-0" />
                     }
                     <span className="text-xs text-foreground">{name}</span>
-                    <span className={cn(
-                      "ml-auto text-[10px] font-medium",
-                      matched ? "text-success" : "text-warning"
-                    )}>
-                      {matched ? "On plan" : "Not in plan"}
+                    <span className={cn("ml-auto text-[10px] font-medium", style.split(" ").slice(2).join(" "))}>
+                      {label}
                     </span>
                   </div>
                 ))}
               </div>
 
-              {/* Adherence bar */}
+              {/* Score breakdown */}
               <div className="px-4 pb-4 space-y-1.5">
-                <div className="flex justify-between">
-                  <span className="text-[10px] text-muted-foreground">Adherence</span>
-                  <span className="text-[10px] font-semibold text-success">On track</span>
-                </div>
-                <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                  <div className="h-full w-[91%] bg-gradient-to-r from-success to-success/60 rounded-full" />
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Score breakdown</p>
+                <div className="flex items-center gap-1.5 text-[10px] font-mono p-2 bg-muted/40 rounded-lg">
+                  <span className="text-foreground font-medium">100</span>
+                  <span className="text-muted-foreground">−</span>
+                  <span className="text-warning font-medium">10</span>
+                  <span className="text-muted-foreground">(off plan)</span>
+                  <span className="text-muted-foreground">=</span>
+                  <span className="text-success font-bold">90</span>
                 </div>
               </div>
             </div>
@@ -167,7 +168,7 @@ export default function Landing() {
                 icon: Sparkles,
                 color: "text-warning bg-warning/10",
                 title: "Get your score",
-                desc: "Instant feedback on how well your meal matches your plan, with clear explanations.",
+                desc: "Instant score with a full breakdown — required foods, off-plan items, and exactly what to swap.",
               },
             ].map(({ n, icon: Icon, color, title, desc }) => (
               <div key={n} className="flex items-start gap-4">
