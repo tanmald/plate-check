@@ -72,15 +72,10 @@ export default function Auth() {
     setIsLoading(true);
     try {
       await signUp(email, password);
-      posthog.identify({ distinctId: email, properties: { email } });
-      posthog.capture({
-        distinctId: email,
-        event: 'user signed up',
-        properties: { login_type: 'email' },
-      });
+      posthog.identify(email, { email });
+      posthog.capture('user signed up', { login_type: 'email' });
       setStep("check-email");
     } catch (error: any) {
-      posthog.captureException(error, email);
       setErrors({ general: error.message || "Sign up failed. Please try again." });
       toast.error("Sign up failed");
     } finally {
@@ -97,16 +92,11 @@ export default function Auth() {
     setIsLoading(true);
     try {
       await signIn(email, password);
-      posthog.identify({ distinctId: email, properties: { email } });
-      posthog.capture({
-        distinctId: email,
-        event: 'user signed in',
-        properties: { login_type: 'email' },
-      });
+      posthog.identify(email, { email });
+      posthog.capture('user signed in', { login_type: 'email' });
       toast.success("Welcome back!");
       navigate("/", { replace: true });
     } catch (error: any) {
-      posthog.captureException(error, email);
       setErrors({ general: error.message || "Invalid email or password" });
       toast.error("Sign in failed");
     } finally {
@@ -122,14 +112,10 @@ export default function Auth() {
     setIsLoading(true);
     try {
       await resetPassword(email);
-      posthog.capture({
-        distinctId: email,
-        event: 'password reset requested',
-      });
+      posthog.capture('password reset requested');
       toast.success("Password reset email sent");
       setErrors({ general: "Check your email for reset instructions" });
     } catch (error: any) {
-      posthog.captureException(error, email);
       setErrors({ general: error.message || "Failed to send reset email" });
       toast.error("Failed to send reset email");
     } finally {

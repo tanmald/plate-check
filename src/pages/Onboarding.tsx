@@ -10,27 +10,15 @@ export default function Onboarding() {
   const { user } = useAuth();
 
   const handleImportPlan = () => {
-    posthog.capture({
-      distinctId: user?.id || user?.email || 'anonymous',
-      event: 'onboarding completed',
-      properties: { choice: 'import_plan' },
-    });
+    posthog.capture('onboarding completed', { choice: 'import_plan' });
     navigate("/plan");
   };
   const handleCreateManually = () => {
-    posthog.capture({
-      distinctId: user?.id || user?.email || 'anonymous',
-      event: 'onboarding completed',
-      properties: { choice: 'create_manually' },
-    });
+    posthog.capture('onboarding completed', { choice: 'create_manually' });
     navigate("/plan");
   };
   const handleStartWithoutPlan = () => {
-    posthog.capture({
-      distinctId: user?.id || user?.email || 'anonymous',
-      event: 'onboarding completed',
-      properties: { choice: 'skip' },
-    });
+    posthog.capture('onboarding completed', { choice: 'skip' });
     navigate("/");
   };
 

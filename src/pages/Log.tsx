@@ -34,11 +34,7 @@ export default function Log() {
   const handleMealSelect = (mealId: string) => {
     setSelectedMealType(mealId);
     setStep("capture");
-    posthog.capture({
-      distinctId: user?.id || user?.email || 'anonymous',
-      event: 'meal logging started',
-      properties: { meal_type: mealId },
-    });
+    posthog.capture('meal logging started', { meal_type: mealId });
   };
 
   const handleFileSelect = (file: File) => {
@@ -52,11 +48,7 @@ export default function Log() {
     // Move to analyzing step
     setStep("analyzing");
 
-    posthog.capture({
-      distinctId: user?.id || user?.email || 'anonymous',
-      event: 'meal photo submitted',
-      properties: { meal_type: selectedMealType },
-    });
+    posthog.capture('meal photo submitted', { meal_type: selectedMealType });
 
     // Call the mutation to upload and analyze
     createMealLog.mutate(
@@ -66,15 +58,11 @@ export default function Log() {
       },
       {
         onSuccess: (analysisResult) => {
-          posthog.capture({
-            distinctId: user?.id || user?.email || 'anonymous',
-            event: 'meal logged',
-            properties: {
-              meal_type: selectedMealType,
-              score: analysisResult.score,
-              confidence: analysisResult.confidence,
-              detected_foods_count: analysisResult.detectedFoods?.length ?? 0,
-            },
+          posthog.capture('meal logged', {
+            meal_type: selectedMealType,
+            score: analysisResult.score,
+            confidence: analysisResult.confidence,
+            detected_foods_count: analysisResult.detectedFoods?.length ?? 0,
           });
           // Navigate to result page with real data and meal log ID
           navigate("/meal-result", {
@@ -87,7 +75,6 @@ export default function Log() {
           });
         },
         onError: (error) => {
-          posthog.captureException(error, user?.id || user?.email || 'anonymous');
           console.error("Error analyzing meal:", error);
           toast.error("Failed to analyze meal. Please try again.");
 

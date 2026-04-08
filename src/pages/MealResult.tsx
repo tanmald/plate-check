@@ -81,15 +81,11 @@ export default function MealResult() {
 
   // Track meal result viewed
   useEffect(() => {
-    posthog.capture({
-      distinctId: user?.id || user?.email || 'anonymous',
-      event: 'meal result viewed',
-      properties: {
-        meal_type: mealType,
-        score: analysisResult?.score ?? mockResult.score,
-        confidence: result.confidence,
-        has_real_data: !!analysisResult,
-      },
+    posthog.capture('meal result viewed', {
+      meal_type: mealType,
+      score: analysisResult?.score ?? mockResult.score,
+      confidence: result.confidence,
+      has_real_data: !!analysisResult,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -159,19 +155,14 @@ export default function MealResult() {
           correctedScore: currentScore,
         });
       } catch (error) {
-        posthog.captureException(error, user?.id || user?.email || 'anonymous');
         console.error("Failed to save corrections:", error);
       }
     }
-    posthog.capture({
-      distinctId: user?.id || user?.email || 'anonymous',
-      event: 'meal result saved',
-      properties: {
-        meal_type: mealType,
-        final_score: currentScore,
-        had_corrections: hasChanges,
-        active_foods_count: editableFoods.filter((f) => !f.isDeleted).length,
-      },
+    posthog.capture('meal result saved', {
+      meal_type: mealType,
+      final_score: currentScore,
+      had_corrections: hasChanges,
+      active_foods_count: editableFoods.filter((f) => !f.isDeleted).length,
     });
     navigate("/");
   };

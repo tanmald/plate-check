@@ -125,15 +125,10 @@ export default function EditProfile() {
       setOriginalEmail(email);
       setOriginalAvatarUrl(avatarUrl);
 
-      posthog.capture({
-        distinctId: user?.id || user?.email || 'anonymous',
-        event: 'profile updated',
-        properties: { has_name: !!fullName },
-      });
+      posthog.capture('profile updated', { has_name: !!fullName });
       toast.success("Profile updated");
       navigate(-1);
     } catch (error) {
-      posthog.captureException(error, user?.id || user?.email || 'anonymous');
       console.error("Failed to update profile:", error);
       setErrors({ general: "Failed to update profile. Please try again." });
     } finally {

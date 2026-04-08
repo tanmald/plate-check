@@ -32,9 +32,8 @@ export function LogoutDialog({ open, onOpenChange }: LogoutDialogProps) {
     setState("loading");
 
     try {
-      const distinctId = user?.id || user?.email || 'anonymous';
       await signOut();
-      posthog.capture({ distinctId, event: 'user logged out' });
+      posthog.capture('user logged out');
 
       // Close dialog
       onOpenChange(false);
@@ -46,7 +45,6 @@ export function LogoutDialog({ open, onOpenChange }: LogoutDialogProps) {
       // Navigate to onboarding/login with replace to prevent back navigation
       navigate("/onboarding", { replace: true });
     } catch (error) {
-      posthog.captureException(error, user?.id || user?.email || 'anonymous');
       console.error("Logout error:", error);
       setState("error");
     }

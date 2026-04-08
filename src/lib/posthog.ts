@@ -1,11 +1,10 @@
-import { PostHog } from 'posthog-node';
+import posthog from 'posthog-js';
 
-const posthog = new PostHog(
-  import.meta.env.VITE_POSTHOG_API_KEY as string,
-  {
-    host: import.meta.env.VITE_POSTHOG_HOST as string,
-    enableExceptionAutocapture: true,
-  }
-);
+posthog.init(import.meta.env.VITE_POSTHOG_API_KEY, {
+  api_host: import.meta.env.VITE_POSTHOG_HOST,
+  person_profiles: 'identified_only',
+  capture_pageview: true,
+  capture_pageleave: true,
+});
 
 export default posthog;

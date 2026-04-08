@@ -53,21 +53,16 @@ export default function Plan() {
       { file },
       {
         onSuccess: (result) => {
-          posthog.capture({
-            distinctId: user?.id || user?.email || 'anonymous',
-            event: 'nutrition plan imported',
-            properties: {
-              plan_name: result.planName,
-              confidence: result.confidence,
-              template_count: result.mealTemplates.length,
-              warnings_count: result.warnings.length,
-            },
+          posthog.capture('nutrition plan imported', {
+            plan_name: result.planName,
+            confidence: result.confidence,
+            template_count: result.mealTemplates.length,
+            warnings_count: result.warnings.length,
           });
           setParsedPlan(result);
           setViewState("review");
         },
         onError: (error) => {
-          posthog.captureException(error, user?.id || user?.email || 'anonymous');
           console.error("Error importing plan:", error);
           toast.error("Failed to parse plan. Please try again.");
           setViewState("empty");
@@ -85,20 +80,15 @@ export default function Plan() {
 
     confirmPlan.mutate(parsedPlan, {
       onSuccess: () => {
-        posthog.capture({
-          distinctId: user?.id || user?.email || 'anonymous',
-          event: 'nutrition plan confirmed',
-          properties: {
-            plan_name: parsedPlan.planName,
-            template_count: parsedPlan.mealTemplates.length,
-          },
+        posthog.capture('nutrition plan confirmed', {
+          plan_name: parsedPlan.planName,
+          template_count: parsedPlan.mealTemplates.length,
         });
         toast.success("Plan confirmed successfully!");
         setViewState("active");
         setParsedPlan(null);
       },
       onError: (error) => {
-        posthog.captureException(error, user?.id || user?.email || 'anonymous');
         console.error("Error confirming plan:", error);
         toast.error("Failed to save plan. Please try again.");
       },
