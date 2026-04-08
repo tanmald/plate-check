@@ -7,6 +7,8 @@ import { BottomNav } from "@/components/BottomNav";
 import { CameraView } from "@/components/CameraView";
 import { cn } from "@/lib/utils";
 import { useCreateMealLog, MealLogResult } from "@/hooks/use-meals";
+import { useAuth } from "@/hooks/use-auth";
+import posthog from "@/lib/posthog";
 
 type Step = "select" | "capture" | "analyzing";
 
@@ -19,6 +21,7 @@ const mealTypes = [
 
 export default function Log() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [step, setStep] = useState<Step>("select");
   const [selectedMealType, setSelectedMealType] = useState<string | null>(null);
   const [capturedPhoto, setCapturedPhoto] = useState<File | null>(null);
@@ -31,6 +34,11 @@ export default function Log() {
   const handleMealSelect = (mealId: string) => {
     setSelectedMealType(mealId);
     setStep("capture");
+    posthog.capture({
+      distinctId: user?.id || user?.email || 'anonymous',
+      event: 'meal logging started',
+      properties: { meal_type: mealId },
+    });
   };
 
   const handleFileSelect = (file: File) => {
@@ -44,6 +52,12 @@ export default function Log() {
     // Move to analyzing step
     setStep("analyzing");
 
+    posthog.capture({
+      distinctId: user?.id || user?.email || 'anonymous',
+      event: 'meal photo submitted',
+      properties: { meal_type: selectedMealType },
+    });
+
     // Call the mutation to upload and analyze
     createMealLog.mutate(
       {
@@ -52,6 +66,16 @@ export default function Log() {
       },
       {
         onSuccess: (analysisResult) => {
+          posthog.capture({
+            distinctId: user?.id || user?.email || 'anonymous',
+            event: 'meal logged',
+            properties: {
+              meal_type: selectedMealType,
+              score: analysisResult.score,
+              confidence: analysisResult.confidence,
+              detected_foods_count: analysisResult.detectedFoods?.length ?? 0,
+            },
+          });
           // Navigate to result page with real data and meal log ID
           navigate("/meal-result", {
             state: {
@@ -63,6 +87,7 @@ export default function Log() {
           });
         },
         onError: (error) => {
+          posthog.captureException(error, user?.id || user?.email || 'anonymous');
           console.error("Error analyzing meal:", error);
           toast.error("Failed to analyze meal. Please try again.");
 

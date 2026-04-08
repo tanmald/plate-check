@@ -17,12 +17,15 @@ import { cn } from "@/lib/utils";
 import { WeeklyPlanner } from "@/components/WeeklyPlanner";
 import { ShoppingListView } from "@/components/ShoppingListView";
 import { getWeekStartDate } from "@/hooks/use-weekly-plan";
+import { useAuth } from "@/hooks/use-auth";
+import posthog from "@/lib/posthog";
 
 type ViewState = "empty" | "importing" | "review" | "active";
 type PlanTab = "plan" | "week" | "shopping";
 
 export default function Plan() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { data: planData, isLoading } = useNutritionPlan();
   const [viewState, setViewState] = useState<ViewState>("empty");
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
@@ -50,10 +53,21 @@ export default function Plan() {
       { file },
       {
         onSuccess: (result) => {
+          posthog.capture({
+            distinctId: user?.id || user?.email || 'anonymous',
+            event: 'nutrition plan imported',
+            properties: {
+              plan_name: result.planName,
+              confidence: result.confidence,
+              template_count: result.mealTemplates.length,
+              warnings_count: result.warnings.length,
+            },
+          });
           setParsedPlan(result);
           setViewState("review");
         },
         onError: (error) => {
+          posthog.captureException(error, user?.id || user?.email || 'anonymous');
           console.error("Error importing plan:", error);
           toast.error("Failed to parse plan. Please try again.");
           setViewState("empty");
@@ -71,11 +85,20 @@ export default function Plan() {
 
     confirmPlan.mutate(parsedPlan, {
       onSuccess: () => {
+        posthog.capture({
+          distinctId: user?.id || user?.email || 'anonymous',
+          event: 'nutrition plan confirmed',
+          properties: {
+            plan_name: parsedPlan.planName,
+            template_count: parsedPlan.mealTemplates.length,
+          },
+        });
         toast.success("Plan confirmed successfully!");
         setViewState("active");
         setParsedPlan(null);
       },
       onError: (error) => {
+        posthog.captureException(error, user?.id || user?.email || 'anonymous');
         console.error("Error confirming plan:", error);
         toast.error("Failed to save plan. Please try again.");
       },

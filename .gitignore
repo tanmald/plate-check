@@ -40,3 +40,4 @@ bun.lockb
 
 # Claude/AI working directory
 .claude/
+.mcp.json

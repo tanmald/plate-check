@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Loader2, WifiOff, LogOut } from "lucide-react";
 import { toast } from "sonner";
+import posthog from "@/lib/posthog";
 
 interface LogoutDialogProps {
   open: boolean;
@@ -24,14 +25,16 @@ type LogoutState = "confirm" | "loading" | "error" | "expired";
 
 export function LogoutDialog({ open, onOpenChange }: LogoutDialogProps) {
   const navigate = useNavigate();
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const [state, setState] = useState<LogoutState>("confirm");
 
   const handleLogout = async () => {
     setState("loading");
 
     try {
+      const distinctId = user?.id || user?.email || 'anonymous';
       await signOut();
+      posthog.capture({ distinctId, event: 'user logged out' });
 
       // Close dialog
       onOpenChange(false);
@@ -43,6 +46,7 @@ export function LogoutDialog({ open, onOpenChange }: LogoutDialogProps) {
       // Navigate to onboarding/login with replace to prevent back navigation
       navigate("/onboarding", { replace: true });
     } catch (error) {
+      posthog.captureException(error, user?.id || user?.email || 'anonymous');
       console.error("Logout error:", error);
       setState("error");
     }

@@ -2,13 +2,37 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Upload, FileText, Shield } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import posthog from "@/lib/posthog";
 
 export default function Onboarding() {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
-  const handleImportPlan = () => navigate("/plan");
-  const handleCreateManually = () => navigate("/plan");
-  const handleStartWithoutPlan = () => navigate("/");
+  const handleImportPlan = () => {
+    posthog.capture({
+      distinctId: user?.id || user?.email || 'anonymous',
+      event: 'onboarding completed',
+      properties: { choice: 'import_plan' },
+    });
+    navigate("/plan");
+  };
+  const handleCreateManually = () => {
+    posthog.capture({
+      distinctId: user?.id || user?.email || 'anonymous',
+      event: 'onboarding completed',
+      properties: { choice: 'create_manually' },
+    });
+    navigate("/plan");
+  };
+  const handleStartWithoutPlan = () => {
+    posthog.capture({
+      distinctId: user?.id || user?.email || 'anonymous',
+      event: 'onboarding completed',
+      properties: { choice: 'skip' },
+    });
+    navigate("/");
+  };
 
   const handleWhyPlan = () => {
     toast.info(
