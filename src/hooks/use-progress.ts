@@ -39,9 +39,9 @@ export function useDailyProgress(date?: string) {
         .select("*")
         .eq("user_id", user.id)
         .eq("date", today)
-        .single();
+                        .maybeSingle();
 
-      if (error && error.code !== "PGRST116") throw error;
+      if (error) throw error;
 
       if (!data) {
         return {
