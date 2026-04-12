@@ -42,8 +42,8 @@ export function LogoutDialog({ open, onOpenChange }: LogoutDialogProps) {
       // Show success toast
       toast.success("Logged out successfully");
 
-      // Navigate to onboarding/login with replace to prevent back navigation
-      navigate("/onboarding", { replace: true });
+      // Navigate to landing/login with replace to prevent back navigation
+      navigate("/landing", { replace: true });
     } catch (error) {
       console.error("Logout error:", error);
       setState("error");
@@ -62,7 +62,7 @@ export function LogoutDialog({ open, onOpenChange }: LogoutDialogProps) {
   const handleGoToSignIn = () => {
     setState("confirm");
     onOpenChange(false);
-    navigate("/onboarding", { replace: true });
+    navigate("/landing", { replace: true });
   };
 
   // Confirmation state
