@@ -19,22 +19,43 @@ export default function ResetPassword() {
   const [done, setDone] = useState(false);
   const [errors, setErrors] = useState<{ password?: string; confirm?: string; general?: string }>({});
 
-  // Exchange the recovery code for a session as soon as the page loads
+  // Establish a session from the reset link.
+  // Supabase can send tokens in two ways:
+  //   - Implicit flow: tokens in the URL hash (#access_token=...&type=recovery)
+  //   - PKCE flow:     code in the query string (?code=...)
   useEffect(() => {
-    const code = new URL(window.location.href).searchParams.get("code");
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const accessToken = hashParams.get("access_token");
+    const refreshToken = hashParams.get("refresh_token");
+    const type = hashParams.get("type");
 
-    if (!code) {
-      setExchangeError("Invalid or missing reset link. Please request a new password reset.");
-      setIsExchanging(false);
+    if (accessToken && refreshToken && type === "recovery") {
+      // Implicit flow – set the session directly from the hash tokens
+      supabase.auth
+        .setSession({ access_token: accessToken, refresh_token: refreshToken })
+        .then(({ error }) => {
+          if (error) {
+            setExchangeError("The reset link has expired or is invalid. Please request a new one.");
+          }
+          setIsExchanging(false);
+        });
       return;
     }
 
-    supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
-      if (error) {
-        setExchangeError("The reset link has expired or is invalid. Please request a new one.");
-      }
-      setIsExchanging(false);
-    });
+    // PKCE flow – exchange the one-time code for a session
+    const code = new URL(window.location.href).searchParams.get("code");
+    if (code) {
+      supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
+        if (error) {
+          setExchangeError("The reset link has expired or is invalid. Please request a new one.");
+        }
+        setIsExchanging(false);
+      });
+      return;
+    }
+
+    setExchangeError("Invalid or missing reset link. Please request a new password reset.");
+    setIsExchanging(false);
   }, []);
 
   const validatePassword = (pw: string): string | undefined => {
