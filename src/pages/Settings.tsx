@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth, useUserProfile } from "@/hooks/use-auth";
+import { useTheme } from "@/contexts/ThemeContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -26,8 +27,8 @@ export default function Settings() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { profile } = useUserProfile();
+  const { theme, toggleTheme } = useTheme();
   const [notifications, setNotifications] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [deletePlanDialogOpen, setDeletePlanDialogOpen] = useState(false);
 
@@ -73,7 +74,7 @@ export default function Settings() {
   const accountItems: MenuItem[] = [
     { icon: User, label: "Edit Profile", action: true, onClick: handleEditProfile },
     { icon: Bell, label: "Notifications", toggle: true, value: notifications, onChange: setNotifications },
-    { icon: Moon, label: "Dark Mode", toggle: true, value: darkMode, onChange: setDarkMode },
+    { icon: Moon, label: "Dark Mode", toggle: true, value: theme === "dark", onChange: () => toggleTheme() },
   ];
 
   const planItems: MenuItem[] = [
