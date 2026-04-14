@@ -1,5 +1,5 @@
 /**
- * Client-side scoring utility for real-time adherence score calculation
+ * Client-side scoring utility for real-time alignment score calculation
  */
 
 import type { MatchType } from './api';
@@ -57,10 +57,10 @@ export function getScoreBreakdown(
 }
 
 /**
- * Calculate adherence score based on matched/unmatched foods.
+ * Calculate alignment score based on matched/unmatched foods.
  * Kept for compatibility — delegates to getScoreBreakdown.
  */
-export function calculateAdherenceScore(
+export function calculateAlignmentScore(
   foods: EditableFood[],
   missingRequired: string[] = []
 ): number {
