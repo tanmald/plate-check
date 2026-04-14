@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { X, RefreshCw, Camera } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface CameraViewProps {
   onCapture: (file: File) => void;
@@ -8,6 +9,7 @@ interface CameraViewProps {
 }
 
 export function CameraView({ onCapture, onClose }: CameraViewProps) {
+  const { t } = useTranslation();
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [isReady, setIsReady] = useState(false);
@@ -143,10 +145,10 @@ export function CameraView({ onCapture, onClose }: CameraViewProps) {
         {error && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-black/80 p-6 text-center">
             <Camera className="w-16 h-16 text-white/40" />
-            <p className="text-white text-sm">Could not access camera</p>
+            <p className="text-white text-sm">{t("camera.error_title")}</p>
             <p className="text-white/60 text-xs">{error}</p>
             <Button variant="outline" className="mt-2" onClick={onClose}>
-              Go Back
+              {t("camera.go_back")}
             </Button>
           </div>
         )}

@@ -10,6 +10,7 @@ import { useUpdateMealTemplate, useCreateMealTemplate } from "@/hooks/use-update
 import { toast } from "sonner";
 import { ArrowLeft, Plus, X, Check, Loader2, Clock, Flame, Dumbbell, Zap, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 type FoodCategory = "required" | "allowed" | "optional";
 
@@ -21,6 +22,7 @@ interface FoodItem {
 
 export default function EditMealTemplate() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { templateId } = useParams<{ templateId: string }>();
   const { data: planData, isLoading: planLoading } = useNutritionPlan();
   const updateTemplate = useUpdateMealTemplate();
@@ -159,12 +161,12 @@ export default function EditMealTemplate() {
     if (isCreateMode) {
       // Create new template
       if (!planId) {
-        toast.error("No active plan found");
+        toast.error(t("editTemplate.error_no_plan"));
         return;
       }
 
       if (!name.trim()) {
-        toast.error("Please enter a template name");
+        toast.error(t("editTemplate.error_no_name"));
         return;
       }
 
@@ -186,12 +188,12 @@ export default function EditMealTemplate() {
         },
         {
           onSuccess: () => {
-            toast.success("Template created successfully");
+            toast.success(t("editTemplate.success_created"));
             navigate("/plan");
           },
           onError: (error) => {
             console.error("Error creating template:", error);
-            toast.error("Failed to create template");
+            toast.error(t("editTemplate.error_create"));
           },
         }
       );
@@ -216,12 +218,12 @@ export default function EditMealTemplate() {
         },
         {
           onSuccess: () => {
-            toast.success("Template updated successfully");
+            toast.success(t("editTemplate.success_updated"));
             navigate("/plan");
           },
           onError: (error) => {
             console.error("Error updating template:", error);
-            toast.error("Failed to update template");
+            toast.error(t("editTemplate.error_update"));
           },
         }
       );
@@ -230,7 +232,7 @@ export default function EditMealTemplate() {
 
   const handleBack = () => {
     if (hasChanges) {
-      if (confirm("You have unsaved changes. Discard them?")) {
+      if (confirm(t("editTemplate.discard_confirm"))) {
         navigate("/plan");
       }
     } else {
@@ -257,15 +259,15 @@ export default function EditMealTemplate() {
             <Button variant="ghost" size="icon" onClick={() => navigate("/plan")}>
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <h1 className="text-lg font-semibold">Template Not Found</h1>
+            <h1 className="text-lg font-semibold">{t("editTemplate.not_found_title")}</h1>
           </div>
         </header>
         <main className="px-4 py-6 text-center">
           <p className="text-muted-foreground">
-            This template doesn't exist or has been deleted.
+            {t("editTemplate.not_found_desc")}
           </p>
           <Button className="mt-4" onClick={() => navigate("/plan")}>
-            Back to Plan
+            {t("editTemplate.back_to_plan")}
           </Button>
         </main>
       </div>
@@ -281,15 +283,15 @@ export default function EditMealTemplate() {
             <Button variant="ghost" size="icon" onClick={() => navigate("/plan")}>
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <h1 className="text-lg font-semibold">No Active Plan</h1>
+            <h1 className="text-lg font-semibold">{t("editTemplate.no_plan_title")}</h1>
           </div>
         </header>
         <main className="px-4 py-6 text-center">
           <p className="text-muted-foreground">
-            You need an active nutrition plan to create a new template.
+            {t("editTemplate.no_plan_desc")}
           </p>
           <Button className="mt-4" onClick={() => navigate("/plan")}>
-            Back to Plan
+            {t("editTemplate.back_to_plan")}
           </Button>
         </main>
       </div>
@@ -306,7 +308,7 @@ export default function EditMealTemplate() {
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <h1 className="text-lg font-semibold">
-              {isCreateMode ? "New Template" : "Edit Template"}
+              {isCreateMode ? t("editTemplate.new_title") : t("editTemplate.edit_title")}
             </h1>
           </div>
           <Button
@@ -314,12 +316,12 @@ export default function EditMealTemplate() {
             onClick={handleSave}
             disabled={!hasChanges || isPending || (isCreateMode && !name.trim())}
           >
-            {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
+            {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : t("editTemplate.save")}
           </Button>
         </div>
       </header>
 
-      <main className="px-4 py-6 space-y-6 max-w-lg mx-auto">
+      <main className="px-4 py-6 space-y-6 max-w-2xl mx-auto">
         {/* Template Icon & Name */}
         <Card className="card-shadow animate-fade-up">
           <CardContent className="p-4 space-y-4">
@@ -330,12 +332,12 @@ export default function EditMealTemplate() {
                 </span>
               </div>
               <div className="flex-1">
-                <Label htmlFor="name">Template Name</Label>
+                <Label htmlFor="name">{t("editTemplate.name_label")}</Label>
                 <Input
                   id="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g., Morning Snack"
+                  placeholder={t("editTemplate.name_placeholder")}
                   className="mt-1"
                 />
               </div>
@@ -346,14 +348,14 @@ export default function EditMealTemplate() {
         {/* Timing & Macros */}
         <Card className="card-shadow animate-fade-up" style={{ animationDelay: "50ms" }}>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Timing & Macros</CardTitle>
+            <CardTitle className="text-base">{t("editTemplate.timing_macros")}</CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-0 space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="time" className="flex items-center gap-1.5">
                   <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                  Time
+                  {t("editTemplate.time")}
                 </Label>
                 <Input
                   id="time"
@@ -366,13 +368,13 @@ export default function EditMealTemplate() {
               <div>
                 <Label htmlFor="calories" className="flex items-center gap-1.5">
                   <Flame className="w-3.5 h-3.5 text-accent" />
-                  Calories
+                  {t("editTemplate.calories")}
                 </Label>
                 <Input
                   id="calories"
                   value={calories}
                   onChange={(e) => setCalories(e.target.value)}
-                  placeholder="e.g., 400-500"
+                  placeholder={t("editTemplate.calories_placeholder")}
                   className="mt-1"
                 />
               </div>
@@ -380,13 +382,13 @@ export default function EditMealTemplate() {
             <div>
               <Label htmlFor="protein" className="flex items-center gap-1.5">
                 <Dumbbell className="w-3.5 h-3.5 text-primary" />
-                Protein
+                {t("editTemplate.protein")}
               </Label>
               <Input
                 id="protein"
                 value={protein}
                 onChange={(e) => setProtein(e.target.value)}
-                placeholder="e.g., 30g"
+                placeholder={t("editTemplate.protein_placeholder")}
                 className="mt-1"
               />
             </div>
@@ -396,19 +398,19 @@ export default function EditMealTemplate() {
         {/* Options */}
         <Card className="card-shadow animate-fade-up" style={{ animationDelay: "100ms" }}>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Options</CardTitle>
+            <CardTitle className="text-base">{t("editTemplate.options")}</CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-0 space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-sm">Optional Meal</span>
+                <span className="text-sm">{t("editTemplate.optional_meal")}</span>
               </div>
               <Switch checked={isOptional} onCheckedChange={setIsOptional} />
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Zap className="w-4 h-4 text-accent" />
-                <span className="text-sm">Pre-Workout</span>
+                <span className="text-sm">{t("editTemplate.pre_workout")}</span>
               </div>
               <Switch checked={isPreWorkout} onCheckedChange={setIsPreWorkout} />
             </div>
@@ -418,19 +420,19 @@ export default function EditMealTemplate() {
         {/* Foods Section */}
         <Card className="card-shadow animate-fade-up" style={{ animationDelay: "150ms" }}>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Foods</CardTitle>
+            <CardTitle className="text-base">{t("editTemplate.foods_title")}</CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-0 space-y-4">
             {/* Category Legend */}
             <div className="flex flex-wrap gap-2 text-xs">
               <span className="inline-flex items-center gap-1 px-2 py-1 bg-primary text-primary-foreground rounded-full">
-                <Check className="w-3 h-3" /> Required
+                <Check className="w-3 h-3" /> {t("editTemplate.required")}
               </span>
               <span className="px-2 py-1 bg-secondary text-secondary-foreground border border-border rounded-full">
-                Allowed
+                {t("editTemplate.allowed")}
               </span>
               <span className="inline-flex items-center gap-1 px-2 py-1 bg-muted/50 text-muted-foreground rounded-full border border-dashed border-muted-foreground/30">
-                <Plus className="w-3 h-3" /> Optional
+                <Plus className="w-3 h-3" /> {t("editTemplate.optional")}
               </span>
             </div>
 
@@ -438,7 +440,7 @@ export default function EditMealTemplate() {
             <div className="space-y-2">
               {foods.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-4">
-                  No foods added yet. Add some below.
+                  {t("editTemplate.no_foods")}
                 </p>
               ) : (
                 foods.map((food) => (
@@ -508,13 +510,13 @@ export default function EditMealTemplate() {
             {/* Add New Food */}
             <div className="pt-2 border-t border-border space-y-2">
               <Label className="text-xs text-muted-foreground uppercase tracking-wide">
-                Add Food
+                {t("editTemplate.add_food")}
               </Label>
               <div className="flex gap-2">
                 <Input
                   value={newFoodName}
                   onChange={(e) => setNewFoodName(e.target.value)}
-                  placeholder="Food name..."
+                  placeholder={t("editTemplate.food_placeholder")}
                   className="flex-1"
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
@@ -528,9 +530,9 @@ export default function EditMealTemplate() {
                   onChange={(e) => setNewFoodCategory(e.target.value as FoodCategory)}
                   className="px-3 py-2 bg-secondary border border-border rounded-lg text-sm"
                 >
-                  <option value="required">Required</option>
-                  <option value="allowed">Allowed</option>
-                  <option value="optional">Optional</option>
+                  <option value="required">{t("editTemplate.required")}</option>
+                  <option value="allowed">{t("editTemplate.allowed")}</option>
+                  <option value="optional">{t("editTemplate.optional")}</option>
                 </select>
                 <Button size="icon" onClick={handleAddFood} disabled={!newFoodName.trim()}>
                   <Plus className="w-4 h-4" />
@@ -551,12 +553,12 @@ export default function EditMealTemplate() {
             {isPending ? (
               <>
                 <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                {isCreateMode ? "Creating..." : "Saving..."}
+                {isCreateMode ? t("editTemplate.creating") : t("editTemplate.saving")}
               </>
             ) : isCreateMode ? (
-              "Create Template"
+              t("editTemplate.create_btn")
             ) : (
-              "Save Changes"
+              t("editTemplate.save_btn")
             )}
           </Button>
         </div>

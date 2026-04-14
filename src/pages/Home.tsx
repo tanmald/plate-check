@@ -2,25 +2,25 @@ import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { AdherenceScore, getScoreStatus } from "@/components/AdherenceScore";
+import { AlignmentScore, getScoreStatus } from "@/components/AlignmentScore";
 import { MealCard } from "@/components/MealCard";
-import { BottomNav } from "@/components/BottomNav";
 import { HomePageSkeleton } from "@/components/PageSkeletons";
 import { useAuth, useUserProfile } from "@/hooks/use-auth";
 import { useTodayMeals } from "@/hooks/use-meals";
 import { useNutritionPlan } from "@/hooks/use-nutrition-plan";
 import { useDailyProgress } from "@/hooks/use-progress";
 import { Flame, TrendingUp, Calendar, Camera, Info } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
-// Get time-based greeting
-function getGreeting(): string {
+function getGreeting(t: (key: string) => string): string {
   const hour = new Date().getHours();
-  if (hour >= 5 && hour < 12) return "Good morning";
-  if (hour >= 12 && hour < 18) return "Good afternoon";
-  return "Good evening";
+  if (hour >= 5 && hour < 12) return t("home.greeting_morning");
+  if (hour >= 12 && hour < 18) return t("home.greeting_afternoon");
+  return t("home.greeting_evening");
 }
 
 export default function Home() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { profile } = useUserProfile();
   const { data: meals = [], isLoading: mealsLoading } = useTodayMeals();
@@ -37,13 +37,13 @@ export default function Home() {
   const isLoading = mealsLoading || planLoading || statsLoading;
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-6 md:pb-0">
       {/* Header */}
       <header className="bg-card border-b border-border safe-top">
         <div className="px-4 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-muted-foreground">{getGreeting()},</p>
+              <p className="text-sm text-muted-foreground">{getGreeting(t)},</p>
               <h1 className="text-2xl font-bold text-foreground">
                 {profile?.full_name || user?.email?.split('@')[0] || 'User'}
               </h1>
@@ -55,7 +55,7 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="px-4 py-6 space-y-6 max-w-lg mx-auto">
+      <main className="px-4 py-6 space-y-6 max-w-2xl mx-auto">
         {isLoading ? (
           <HomePageSkeleton />
         ) : !hasPlan ? (
@@ -65,12 +65,12 @@ export default function Home() {
               <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
                 <span className="text-4xl">📋</span>
               </div>
-              <h3 className="text-lg font-semibold mb-2">Get started with your plan</h3>
+              <h3 className="text-lg font-semibold mb-2">{t("home.no_plan_title")}</h3>
               <p className="text-muted-foreground text-sm mb-6">
-                Import your nutrition plan to start tracking your meals and see how well you're sticking to it.
+                {t("home.no_plan_desc")}
               </p>
               <Button asChild size="lg" className="w-full">
-                <Link to="/plan">Import Plan</Link>
+                <Link to="/plan">{t("home.import_plan")}</Link>
               </Button>
             </CardContent>
           </Card>
@@ -83,17 +83,17 @@ export default function Home() {
                   <div className="flex items-center justify-between">
                     <div className="space-y-4">
                       <div>
-                        <p className="text-sm text-muted-foreground uppercase tracking-wide">Today's adherence</p>
+                        <p className="text-sm text-muted-foreground uppercase tracking-wide">{t("home.todays_adherence")}</p>
                         <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
                           <Calendar className="w-4 h-4" />
                           Sunday, Jan 5
                         </p>
                       </div>
-                      
+
                       <div className="flex gap-3">
                         <div className="flex items-center gap-2 bg-card/80 backdrop-blur-sm rounded-lg px-3 py-2">
                           <Flame className="w-4 h-4 text-accent" />
-                          <span className="text-sm font-semibold">{streak} days</span>
+                          <span className="text-sm font-semibold">{t("home.days_streak", { count: streak })}</span>
                         </div>
                         <div className="flex items-center gap-2 bg-card/80 backdrop-blur-sm rounded-lg px-3 py-2">
                           <TrendingUp className="w-4 h-4 text-primary" />
@@ -101,16 +101,16 @@ export default function Home() {
                         </div>
                       </div>
                     </div>
-                    
-                    <AdherenceScore score={dailyScore} size="md" />
+
+                    <AlignmentScore score={dailyScore} size="md" />
                   </div>
                 </div>
-                
+
                 {/* Meal progress */}
                 <div className="p-4 border-t border-border">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium">Meals logged today</span>
-                    <span className="text-sm text-muted-foreground">{mealsLogged} of {totalMeals}</span>
+                    <span className="text-sm font-medium">{t("home.meals_logged")}</span>
+                    <span className="text-sm text-muted-foreground">{t("home.meals_of", { logged: mealsLogged, total: totalMeals })}</span>
                   </div>
                   <Progress value={(mealsLogged / totalMeals) * 100} status={getScoreStatus(dailyScore)} />
                 </div>
@@ -121,7 +121,7 @@ export default function Home() {
             <Button asChild size="xl" className="w-full animate-fade-up animate-delay-100">
               <Link to="/log" className="flex items-center gap-2">
                 <Camera className="w-5 h-5" />
-                Log Meal
+                {t("home.log_meal")}
               </Link>
             </Button>
 
@@ -129,14 +129,14 @@ export default function Home() {
             {meals.length > 0 && (
               <div className="animate-fade-up animate-delay-200">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold">Today's Meals</h2>
-                  <Link to="/progress" className="text-sm text-primary font-medium">View all</Link>
+                  <h2 className="text-lg font-semibold">{t("home.todays_meals")}</h2>
+                  <Link to="/progress" className="text-sm text-primary font-medium">{t("home.view_all")}</Link>
                 </div>
                 <div className="space-y-3">
                   {meals.map((meal, idx) => (
-                    <Link 
-                      key={meal.id} 
-                      to="/meal-result" 
+                    <Link
+                      key={meal.id}
+                      to="/meal-result"
                       state={{ mealType: meal.type }}
                       className="block animate-fade-up"
                       style={{ animationDelay: `${(idx + 3) * 100}ms` }}
@@ -154,9 +154,9 @@ export default function Home() {
                 <div className="flex items-start gap-3">
                   <div className="text-2xl">🍽️</div>
                   <div>
-                    <h3 className="font-semibold text-sm">Dinner suggestion</h3>
+                    <h3 className="font-semibold text-sm">{t("home.dinner_suggestion")}</h3>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Based on your plan, consider grilled salmon with quinoa and roasted vegetables.
+                      {t("home.dinner_suggestion_desc")}
                     </p>
                   </div>
                 </div>
@@ -168,11 +168,10 @@ export default function Home() {
         {/* Trust note */}
         <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
           <Info className="w-3 h-3" />
-          <span>Wellness support, not medical advice</span>
+          <span>{t("common.wellness_note")}</span>
         </div>
       </main>
 
-      <BottomNav />
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Copy, Check, UserPlus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useJoinShoppingList } from "@/hooks/use-shopping-list";
+import { useTranslation } from "react-i18next";
 
 interface ShareListSheetProps {
   open: boolean;
@@ -14,6 +15,7 @@ interface ShareListSheetProps {
 }
 
 export function ShareListSheet({ open, onClose, shareCode, listName }: ShareListSheetProps) {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const [joinCode, setJoinCode] = useState("");
   const joinList = useJoinShoppingList();
@@ -23,9 +25,9 @@ export function ShareListSheet({ open, onClose, shareCode, listName }: ShareList
       await navigator.clipboard.writeText(shareCode);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-      toast.success("Código copiado!");
+      toast.success(t("shareList.code_copied"));
     } catch {
-      toast.error("Não foi possível copiar");
+      toast.error(t("shareList.copy_error"));
     }
   };
 
@@ -36,14 +38,14 @@ export function ShareListSheet({ open, onClose, shareCode, listName }: ShareList
       {
         onSuccess: ({ alreadyJoined }) => {
           if (alreadyJoined) {
-            toast.info("Já tens acesso a esta lista");
+            toast.info(t("shareList.already_joined"));
           } else {
-            toast.success("Lista adicionada com sucesso!");
+            toast.success(t("shareList.join_success"));
           }
           setJoinCode("");
           onClose();
         },
-        onError: (err: Error) => toast.error(err.message || "Código inválido"),
+        onError: (err: Error) => toast.error(err.message || t("shareList.join_error")),
       }
     );
   };
@@ -52,15 +54,12 @@ export function ShareListSheet({ open, onClose, shareCode, listName }: ShareList
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
       <SheetContent side="bottom" className="rounded-t-2xl">
         <SheetHeader className="mb-6">
-          <SheetTitle>Partilhar lista de compras</SheetTitle>
+          <SheetTitle>{t("shareList.title")}</SheetTitle>
         </SheetHeader>
 
         <div className="space-y-6 pb-6">
-          {/* Share section */}
           <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Partilha este código com o André para que ele possa ver e fazer check na lista em tempo real.
-            </p>
+            <p className="text-sm text-muted-foreground">{t("shareList.share_desc")}</p>
 
             <div className="flex items-center gap-2 p-4 bg-muted rounded-xl">
               <span className="flex-1 text-center text-2xl font-mono font-bold tracking-widest text-primary">
@@ -75,7 +74,7 @@ export function ShareListSheet({ open, onClose, shareCode, listName }: ShareList
             </div>
 
             <p className="text-xs text-muted-foreground text-center">
-              O André abre o PlateCheck → "Juntar-me a uma lista" → insere o código
+              {t("shareList.join_instructions")}
             </p>
           </div>
 
@@ -84,16 +83,15 @@ export function ShareListSheet({ open, onClose, shareCode, listName }: ShareList
               <div className="w-full border-t border-border" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">ou</span>
+              <span className="bg-background px-2 text-muted-foreground">{t("common.or")}</span>
             </div>
           </div>
 
-          {/* Join section */}
           <div className="space-y-3">
-            <p className="text-sm font-medium">Juntar-me a uma lista</p>
+            <p className="text-sm font-medium">{t("shareList.join_title")}</p>
             <div className="flex gap-2">
               <Input
-                placeholder="Código (ex: AB12CD)"
+                placeholder={t("shareList.join_placeholder")}
                 value={joinCode}
                 onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
                 maxLength={6}

@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, WifiOff, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import posthog from "@/lib/posthog";
+import { useTranslation } from "react-i18next";
 
 interface LogoutDialogProps {
   open: boolean;
@@ -24,25 +25,19 @@ interface LogoutDialogProps {
 type LogoutState = "confirm" | "loading" | "error" | "expired";
 
 export function LogoutDialog({ open, onOpenChange }: LogoutDialogProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
-  const { signOut, user } = useAuth();
+  const { signOut } = useAuth();
   const [state, setState] = useState<LogoutState>("confirm");
 
   const handleLogout = async () => {
     setState("loading");
-
     try {
       await signOut();
       posthog.capture('user logged out');
-
-      // Close dialog
       onOpenChange(false);
       setState("confirm");
-
-      // Show success toast
-      toast.success("Logged out successfully");
-
-      // Navigate to landing/login with replace to prevent back navigation
+      toast.success(t("dialogs.logged_out"));
       navigate("/landing", { replace: true });
     } catch (error) {
       console.error("Logout error:", error);
@@ -50,9 +45,7 @@ export function LogoutDialog({ open, onOpenChange }: LogoutDialogProps) {
     }
   };
 
-  const handleRetry = () => {
-    handleLogout();
-  };
+  const handleRetry = () => handleLogout();
 
   const handleCancel = () => {
     setState("confirm");
@@ -65,15 +58,14 @@ export function LogoutDialog({ open, onOpenChange }: LogoutDialogProps) {
     navigate("/landing", { replace: true });
   };
 
-  // Confirmation state
   if (state === "confirm") {
     return (
       <AlertDialog open={open} onOpenChange={onOpenChange}>
         <AlertDialogContent className="max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-center">Log out?</AlertDialogTitle>
+            <AlertDialogTitle className="text-center">{t("dialogs.logout_title")}</AlertDialogTitle>
             <AlertDialogDescription className="text-center">
-              You'll need to sign in again to access your plan and history.
+              {t("dialogs.logout_desc")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
@@ -82,21 +74,20 @@ export function LogoutDialog({ open, onOpenChange }: LogoutDialogProps) {
               className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               <LogOut className="w-4 h-4 mr-2" />
-              Log out
+              {t("dialogs.logout_confirm")}
             </AlertDialogAction>
             <AlertDialogCancel onClick={handleCancel} className="w-full mt-0">
-              Cancel
+              {t("common.cancel")}
             </AlertDialogCancel>
           </AlertDialogFooter>
           <p className="text-xs text-center text-muted-foreground -mt-2">
-            This does not delete your data.
+            {t("dialogs.logout_data_note")}
           </p>
         </AlertDialogContent>
       </AlertDialog>
     );
   }
 
-  // Loading state
   if (state === "loading") {
     return (
       <AlertDialog open={open} onOpenChange={() => {}}>
@@ -104,10 +95,8 @@ export function LogoutDialog({ open, onOpenChange }: LogoutDialogProps) {
           <div className="flex flex-col items-center justify-center py-8 gap-4">
             <Loader2 className="w-10 h-10 text-primary animate-spin" />
             <div className="text-center">
-              <p className="font-semibold text-foreground">Logging out…</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Securing your account.
-              </p>
+              <p className="font-semibold text-foreground">{t("dialogs.logout_loading")}</p>
+              <p className="text-sm text-muted-foreground mt-1">{t("dialogs.logout_securing")}</p>
             </div>
           </div>
         </AlertDialogContent>
@@ -115,7 +104,6 @@ export function LogoutDialog({ open, onOpenChange }: LogoutDialogProps) {
     );
   }
 
-  // Network error state
   if (state === "error") {
     return (
       <AlertDialog open={open} onOpenChange={() => {}}>
@@ -124,27 +112,20 @@ export function LogoutDialog({ open, onOpenChange }: LogoutDialogProps) {
             <div className="w-14 h-14 rounded-full bg-destructive/10 flex items-center justify-center mb-2">
               <WifiOff className="w-7 h-7 text-destructive" />
             </div>
-            <AlertDialogTitle className="text-center">
-              We couldn't log you out right now.
-            </AlertDialogTitle>
+            <AlertDialogTitle className="text-center">{t("dialogs.logout_error_title")}</AlertDialogTitle>
             <AlertDialogDescription className="text-center">
-              Please check your connection and try again.
+              {t("common.error_connection")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
-            <Button onClick={handleRetry} className="w-full">
-              Try again
-            </Button>
-            <Button variant="outline" onClick={handleCancel} className="w-full">
-              Cancel
-            </Button>
+            <Button onClick={handleRetry} className="w-full">{t("common.retry")}</Button>
+            <Button variant="outline" onClick={handleCancel} className="w-full">{t("common.cancel")}</Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     );
   }
 
-  // Session expired state
   if (state === "expired") {
     return (
       <AlertDialog open={open} onOpenChange={() => {}}>
@@ -153,17 +134,13 @@ export function LogoutDialog({ open, onOpenChange }: LogoutDialogProps) {
             <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center mb-2">
               <LogOut className="w-7 h-7 text-muted-foreground" />
             </div>
-            <AlertDialogTitle className="text-center">
-              You're already logged out.
-            </AlertDialogTitle>
+            <AlertDialogTitle className="text-center">{t("dialogs.logout_expired_title")}</AlertDialogTitle>
             <AlertDialogDescription className="text-center">
-              Your session has expired.
+              {t("dialogs.logout_expired_desc")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="sm:justify-center">
-            <Button onClick={handleGoToSignIn} className="w-full">
-              Go to sign in
-            </Button>
+            <Button onClick={handleGoToSignIn} className="w-full">{t("dialogs.go_to_signin")}</Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
