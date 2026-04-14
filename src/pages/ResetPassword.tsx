@@ -6,9 +6,11 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { AlertCircle, Eye, EyeOff, Loader2, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 export default function ResetPassword() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -20,9 +22,6 @@ export default function ResetPassword() {
   const [errors, setErrors] = useState<{ password?: string; confirm?: string; general?: string }>({});
 
   // Establish a session from the reset link.
-  // Supabase can send tokens in two ways:
-  //   - Implicit flow: tokens in the URL hash (#access_token=...&type=recovery)
-  //   - PKCE flow:     code in the query string (?code=...)
   useEffect(() => {
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     const accessToken = hashParams.get("access_token");
@@ -30,45 +29,43 @@ export default function ResetPassword() {
     const type = hashParams.get("type");
 
     if (accessToken && refreshToken && type === "recovery") {
-      // Implicit flow – set the session directly from the hash tokens
       supabase.auth
         .setSession({ access_token: accessToken, refresh_token: refreshToken })
         .then(({ error }) => {
           if (error) {
-            setExchangeError("The reset link has expired or is invalid. Please request a new one.");
+            setExchangeError(t("resetPassword.expired_error"));
           }
           setIsExchanging(false);
         });
       return;
     }
 
-    // PKCE flow – exchange the one-time code for a session
     const code = new URL(window.location.href).searchParams.get("code");
     if (code) {
       supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
         if (error) {
-          setExchangeError("The reset link has expired or is invalid. Please request a new one.");
+          setExchangeError(t("resetPassword.expired_error"));
         }
         setIsExchanging(false);
       });
       return;
     }
 
-    setExchangeError("Invalid or missing reset link. Please request a new password reset.");
+    setExchangeError(t("resetPassword.missing_error"));
     setIsExchanging(false);
-  }, []);
+  }, [t]);
 
   const validatePassword = (pw: string): string | undefined => {
-    if (!pw) return "Password is required";
-    if (pw.length < 8) return "Password must be at least 8 characters";
-    if (!/[A-Z]/.test(pw)) return "Password must contain an uppercase letter";
-    if (!/[0-9]/.test(pw)) return "Password must contain a number";
+    if (!pw) return t("resetPassword.error_required");
+    if (pw.length < 8) return t("resetPassword.error_min");
+    if (!/[A-Z]/.test(pw)) return t("resetPassword.error_uppercase");
+    if (!/[0-9]/.test(pw)) return t("resetPassword.error_number");
     return undefined;
   };
 
   const handleSubmit = async () => {
     const passwordError = validatePassword(password);
-    const confirmError = password !== confirmPassword ? "Passwords do not match" : undefined;
+    const confirmError = password !== confirmPassword ? t("resetPassword.error_mismatch") : undefined;
     setErrors({ password: passwordError, confirm: confirmError });
     if (passwordError || confirmError) return;
 
@@ -77,11 +74,11 @@ export default function ResetPassword() {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
       setDone(true);
-      toast.success("Password updated successfully");
+      toast.success(t("resetPassword.success_toast"));
       setTimeout(() => navigate("/", { replace: true }), 2000);
     } catch (error: any) {
-      setErrors({ general: error.message || "Failed to update password. Please try again." });
-      toast.error("Failed to update password");
+      setErrors({ general: error.message || t("resetPassword.error_general") });
+      toast.error(t("resetPassword.error_toast"));
     } finally {
       setIsLoading(false);
     }
@@ -89,9 +86,9 @@ export default function ResetPassword() {
 
   if (isExchanging) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-3">
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3 px-6">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        <p className="text-sm text-muted-foreground">Verifying reset link…</p>
+        <p className="text-sm text-muted-foreground">{t("resetPassword.verifying")}</p>
       </div>
     );
   }
@@ -99,12 +96,14 @@ export default function ResetPassword() {
   if (exchangeError) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-6 text-center">
-        <AlertCircle className="w-12 h-12 text-destructive" />
-        <h1 className="text-lg font-semibold">Reset link invalid</h1>
-        <p className="text-sm text-muted-foreground max-w-xs">{exchangeError}</p>
-        <Button onClick={() => navigate("/auth")} className="mt-2">
-          Back to sign in
-        </Button>
+        <div className="w-full max-w-md md:bg-card md:rounded-2xl md:shadow-xl md:border md:border-border md:p-10 flex flex-col items-center gap-4">
+          <AlertCircle className="w-12 h-12 text-destructive" />
+          <h1 className="text-lg font-semibold">{t("resetPassword.invalid_title")}</h1>
+          <p className="text-sm text-muted-foreground max-w-xs">{exchangeError}</p>
+          <Button onClick={() => navigate("/auth")} className="mt-2">
+            {t("resetPassword.back_to_signin")}
+          </Button>
+        </div>
       </div>
     );
   }
@@ -112,21 +111,24 @@ export default function ResetPassword() {
   if (done) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-6 text-center">
-        <CheckCircle2 className="w-12 h-12 text-success" />
-        <h1 className="text-lg font-semibold">Password updated</h1>
-        <p className="text-sm text-muted-foreground">Redirecting you to the app…</p>
+        <div className="w-full max-w-md md:bg-card md:rounded-2xl md:shadow-xl md:border md:border-border md:p-10 flex flex-col items-center gap-4">
+          <CheckCircle2 className="w-12 h-12 text-success" />
+          <h1 className="text-lg font-semibold">{t("resetPassword.updated_title")}</h1>
+          <p className="text-sm text-muted-foreground">{t("resetPassword.redirecting")}</p>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <div className="flex-1 flex flex-col justify-center px-6 py-8">
+      <div className="flex-1 flex flex-col justify-center px-6 py-8 md:items-center">
+        <div className="w-full max-w-md md:bg-card md:rounded-2xl md:shadow-xl md:border md:border-border md:p-10">
         <div className="space-y-6 animate-fade-up">
           <div className="text-center space-y-1.5">
-            <h2 className="text-2xl font-bold text-foreground">Set new password</h2>
+            <h2 className="text-2xl font-bold text-foreground">{t("resetPassword.title")}</h2>
             <p className="text-sm text-muted-foreground">
-              Choose a strong password for your account
+              {t("resetPassword.subtitle")}
             </p>
           </div>
 
@@ -139,11 +141,11 @@ export default function ResetPassword() {
 
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium mb-2 block text-foreground">New password</label>
+              <label className="text-sm font-medium mb-2 block text-foreground">{t("resetPassword.new_password")}</label>
               <div className="relative">
                 <Input
                   type={showPassword ? "text" : "password"}
-                  placeholder="At least 8 characters"
+                  placeholder={t("resetPassword.new_password_placeholder")}
                   value={password}
                   onChange={(e) => {
                     setPassword(e.target.value);
@@ -166,11 +168,11 @@ export default function ResetPassword() {
             </div>
 
             <div>
-              <label className="text-sm font-medium mb-2 block text-foreground">Confirm password</label>
+              <label className="text-sm font-medium mb-2 block text-foreground">{t("resetPassword.confirm_password")}</label>
               <div className="relative">
                 <Input
                   type={showConfirm ? "text" : "password"}
-                  placeholder="Repeat your password"
+                  placeholder={t("resetPassword.confirm_placeholder")}
                   value={confirmPassword}
                   onChange={(e) => {
                     setConfirmPassword(e.target.value);
@@ -202,12 +204,13 @@ export default function ResetPassword() {
             {isLoading ? (
               <>
                 <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                Updating…
+                {t("resetPassword.updating")}
               </>
             ) : (
-              "Update password"
+              t("resetPassword.update_btn")
             )}
           </Button>
+        </div>
         </div>
       </div>
     </div>

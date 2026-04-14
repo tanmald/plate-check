@@ -3,23 +3,17 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Camera, Image, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { BottomNav } from "@/components/BottomNav";
 import { CameraView } from "@/components/CameraView";
 import { cn } from "@/lib/utils";
 import { useCreateMealLog, MealLogResult } from "@/hooks/use-meals";
 import { useAuth } from "@/hooks/use-auth";
 import posthog from "@/lib/posthog";
+import { useTranslation } from "react-i18next";
 
 type Step = "select" | "capture" | "analyzing";
 
-const mealTypes = [
-  { id: "breakfast", label: "Breakfast", icon: "🌅", time: "6:00 AM - 10:00 AM" },
-  { id: "lunch", label: "Lunch", icon: "☀️", time: "11:00 AM - 2:00 PM" },
-  { id: "dinner", label: "Dinner", icon: "🌙", time: "5:00 PM - 9:00 PM" },
-  { id: "snack", label: "Snack", icon: "🍎", time: "Any time" },
-];
-
 export default function Log() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [step, setStep] = useState<Step>("select");
@@ -31,6 +25,13 @@ export default function Log() {
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const createMealLog = useCreateMealLog();
 
+  const mealTypes = [
+    { id: "breakfast", label: t("log.breakfast"), icon: "🌅", time: t("log.breakfast_time") },
+    { id: "lunch",     label: t("log.lunch"),     icon: "☀️",  time: t("log.lunch_time") },
+    { id: "dinner",    label: t("log.dinner"),    icon: "🌙", time: t("log.dinner_time") },
+    { id: "snack",     label: t("log.snack"),     icon: "🍎", time: t("log.snack_time") },
+  ];
+
   const handleMealSelect = (mealId: string) => {
     setSelectedMealType(mealId);
     setStep("capture");
@@ -40,31 +41,18 @@ export default function Log() {
   const handleFileSelect = (file: File) => {
     if (!selectedMealType) return;
 
-    // Store file and create preview
     setCapturedPhoto(file);
     const preview = URL.createObjectURL(file);
     setPhotoPreview(preview);
-
-    // Move to analyzing step
     setStep("analyzing");
 
     posthog.capture('meal photo submitted', { meal_type: selectedMealType });
 
-    // Call the mutation to upload and analyze
     createMealLog.mutate(
-      {
-        photoFile: file,
-        mealType: selectedMealType,
-      },
+      { photoFile: file, mealType: selectedMealType },
       {
         onSuccess: (analysisResult) => {
-          posthog.capture('meal logged', {
-            meal_type: selectedMealType,
-            score: analysisResult.score,
-            confidence: analysisResult.confidence,
-            detected_foods_count: analysisResult.detectedFoods?.length ?? 0,
-          });
-          // Navigate to result page with real data and meal log ID
+          posthog.capture('meal logged', { meal_type: selectedMealType });
           navigate("/meal-result", {
             state: {
               mealType: selectedMealType,
@@ -76,54 +64,40 @@ export default function Log() {
         },
         onError: (error) => {
           console.error("Error analyzing meal:", error);
-          toast.error("Failed to analyze meal. Please try again.");
-
-          // Reset to capture step
+          toast.error(t("log.error_analyze"));
           setStep("capture");
           setCapturedPhoto(null);
-          if (photoPreview) {
-            URL.revokeObjectURL(photoPreview);
-          }
+          if (photoPreview) URL.revokeObjectURL(photoPreview);
           setPhotoPreview(null);
         },
       }
     );
   };
 
-  const handleCapture = () => {
-    setShowCamera(true);
-  };
-
-  const handleGallery = () => {
-    galleryInputRef.current?.click();
-  };
+  const handleCapture = () => setShowCamera(true);
+  const handleGallery = () => galleryInputRef.current?.click();
 
   const handleBack = () => {
     if (step === "capture") {
       setStep("select");
       setSelectedMealType(null);
       setCapturedPhoto(null);
-      if (photoPreview) {
-        URL.revokeObjectURL(photoPreview);
-      }
+      if (photoPreview) URL.revokeObjectURL(photoPreview);
       setPhotoPreview(null);
     }
   };
 
+  const selectedMealLabel = mealTypes.find(m => m.id === selectedMealType)?.label ?? selectedMealType ?? "";
+
   return (
-    <div className="min-h-screen bg-background pb-24">
-      {/* Live camera view */}
+    <div className="min-h-screen bg-background pb-6 md:pb-0">
       {showCamera && (
         <CameraView
-          onCapture={(file) => {
-            setShowCamera(false);
-            handleFileSelect(file);
-          }}
+          onCapture={(file) => { setShowCamera(false); handleFileSelect(file); }}
           onClose={() => setShowCamera(false)}
         />
       )}
 
-      {/* Hidden gallery file input */}
       <input
         ref={galleryInputRef}
         type="file"
@@ -141,28 +115,28 @@ export default function Log() {
           <div className="flex items-center gap-3">
             {step === "capture" && (
               <Button variant="ghost" size="sm" onClick={handleBack}>
-                ← Back
+                {t("common.back")}
               </Button>
             )}
             <div>
-              <h1 className="text-2xl font-bold text-foreground">Log Meal</h1>
+              <h1 className="text-2xl font-bold text-foreground">{t("log.title")}</h1>
               <p className="text-sm text-muted-foreground">
-                {step === "select" && "What meal are you logging?"}
-                {step === "capture" && `Capture your ${selectedMealType}`}
-                {step === "analyzing" && "Analyzing..."}
+                {step === "select" && t("log.step_select")}
+                {step === "capture" && t("log.step_capture", { mealType: selectedMealLabel })}
+                {step === "analyzing" && t("log.step_analyzing")}
               </p>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="px-4 py-6 max-w-lg mx-auto">
+      <main className="px-4 py-6 max-w-2xl mx-auto">
         {step === "select" && (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground mb-6">
-              Select the meal type, then take a photo or choose from your gallery.
+              {t("log.select_hint")}
             </p>
-            
+
             <div className="space-y-3">
               {mealTypes.map((meal) => (
                 <button
@@ -186,7 +160,6 @@ export default function Log() {
 
         {step === "capture" && (
           <div className="space-y-6">
-            {/* Selected meal indicator */}
             <div className="flex items-center gap-3 p-3 bg-primary/5 border border-primary/20 rounded-xl">
               <span className="text-2xl">
                 {mealTypes.find(m => m.id === selectedMealType)?.icon}
@@ -196,36 +169,33 @@ export default function Log() {
               </span>
             </div>
 
-            {/* Camera preview area */}
             <div className="aspect-[4/3] bg-secondary rounded-2xl flex flex-col items-center justify-center">
               <div className="text-center">
                 <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
                   <Camera className="w-10 h-10 text-muted-foreground" />
                 </div>
-                <p className="text-muted-foreground mb-1">Take a photo of your meal</p>
-                <p className="text-sm text-muted-foreground/70">Center your plate in the frame</p>
+                <p className="text-muted-foreground mb-1">{t("log.take_photo")}</p>
+                <p className="text-sm text-muted-foreground/70">{t("log.center_plate")}</p>
               </div>
             </div>
 
-            {/* Action buttons */}
             <div className="flex gap-3">
               <Button variant="outline" size="lg" className="flex-1" onClick={handleGallery}>
                 <Image className="w-5 h-5 mr-2" />
-                Gallery
+                {t("log.gallery")}
               </Button>
               <Button size="lg" className="flex-[2]" onClick={handleCapture}>
                 <Camera className="w-5 h-5 mr-2" />
-                Take Photo
+                {t("log.take_photo_btn")}
               </Button>
             </div>
 
-            {/* Tips */}
             <div className="p-4 bg-muted/50 rounded-xl">
-              <p className="text-xs font-medium text-muted-foreground mb-2">📸 Photo tips</p>
+              <p className="text-xs font-medium text-muted-foreground mb-2">{t("log.photo_tips_title")}</p>
               <ul className="text-xs text-muted-foreground space-y-1">
-                <li>• Good lighting helps identify foods better</li>
-                <li>• Include all items on your plate</li>
-                <li>• Avoid shadows covering your food</li>
+                <li>{t("log.photo_tips_1")}</li>
+                <li>{t("log.photo_tips_2")}</li>
+                <li>{t("log.photo_tips_3")}</li>
               </ul>
             </div>
           </div>
@@ -233,14 +203,9 @@ export default function Log() {
 
         {step === "analyzing" && (
           <div className="flex flex-col items-center justify-center min-h-[400px] gap-6">
-            {/* Photo preview */}
             {photoPreview && (
               <div className="w-full max-w-sm aspect-[4/3] rounded-2xl overflow-hidden relative">
-                <img
-                  src={photoPreview}
-                  alt="Meal preview"
-                  className="w-full h-full object-cover"
-                />
+                <img src={photoPreview} alt="Meal preview" className="w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
                   <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center">
                     <Loader2 className="w-8 h-8 text-primary animate-spin" />
@@ -258,8 +223,8 @@ export default function Log() {
             )}
 
             <div className="text-center">
-              <h3 className="text-xl font-semibold mb-2">Analyzing your meal...</h3>
-              <p className="text-muted-foreground">Detecting foods and checking against your plan</p>
+              <h3 className="text-xl font-semibold mb-2">{t("log.analyzing_title")}</h3>
+              <p className="text-muted-foreground">{t("log.analyzing_desc")}</p>
             </div>
 
             <div className="flex gap-2">
@@ -271,7 +236,6 @@ export default function Log() {
         )}
       </main>
 
-      <BottomNav />
     </div>
   );
 }

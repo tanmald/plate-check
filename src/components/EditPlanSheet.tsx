@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { useUpdateNutritionPlan } from "@/hooks/use-nutrition-plan";
 import { toast } from "sonner";
 import { Loader2, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface EditPlanSheetProps {
   open: boolean;
@@ -27,6 +28,7 @@ export function EditPlanSheet({
   planName,
   onDeleteClick,
 }: EditPlanSheetProps) {
+  const { t } = useTranslation();
   const [name, setName] = useState(planName);
   const updatePlan = useUpdateNutritionPlan();
 
@@ -47,12 +49,12 @@ export function EditPlanSheet({
       { planId, name: name.trim() },
       {
         onSuccess: () => {
-          toast.success("Plan name updated");
+          toast.success(t("editPlan.success_toast"));
           onOpenChange(false);
         },
         onError: (error) => {
           console.error("Error updating plan:", error);
-          toast.error("Failed to update plan name");
+          toast.error(t("editPlan.error_toast"));
         },
       }
     );
@@ -70,18 +72,18 @@ export function EditPlanSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="rounded-t-2xl">
         <SheetHeader className="text-left pb-4">
-          <SheetTitle>Edit Plan</SheetTitle>
+          <SheetTitle>{t("editPlan.title")}</SheetTitle>
         </SheetHeader>
 
         <div className="space-y-6">
           {/* Plan Name */}
           <div className="space-y-2">
-            <Label htmlFor="plan-name">Plan Name</Label>
+            <Label htmlFor="plan-name">{t("editPlan.name_label")}</Label>
             <Input
               id="plan-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g., My Nutrition Plan"
+              placeholder={t("editPlan.name_placeholder")}
             />
           </div>
 
@@ -94,17 +96,17 @@ export function EditPlanSheet({
             {updatePlan.isPending ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Saving...
+                {t("editPlan.saving")}
               </>
             ) : (
-              "Save Changes"
+              t("editPlan.save")
             )}
           </Button>
 
           {/* Danger Zone */}
           <div className="pt-4 border-t border-border">
             <p className="text-xs text-muted-foreground uppercase tracking-wide mb-3">
-              Danger Zone
+              {t("editPlan.danger_zone")}
             </p>
             <Button
               variant="outline"
@@ -112,7 +114,7 @@ export function EditPlanSheet({
               onClick={handleDelete}
             >
               <Trash2 className="w-4 h-4 mr-2" />
-              Delete Plan
+              {t("editPlan.delete_plan")}
             </Button>
           </div>
         </div>

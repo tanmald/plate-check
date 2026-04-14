@@ -211,7 +211,7 @@ export const mockAnalysisResult = {
 // Legacy format for backward compatibility (deprecated - use mockAnalysisResult)
 export const mockMealResult = {
   score: 78,
-  status: "On plan" as const,
+  status: "Aligned" as const,
   confidence: "high" as const,
   detectedFoods: [
     { name: "Grilled chicken breast", matched: true, category: "Protein" },

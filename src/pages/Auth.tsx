@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import posthog from "@/lib/posthog";
+import { useTranslation } from "react-i18next";
 
 type AuthStep = "welcome" | "signup" | "signin" | "forgot-password" | "check-email";
 
@@ -28,6 +29,7 @@ interface FormErrors {
 
 export default function Auth() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const { user, signUp, signIn, resetPassword } = useAuth();
 
@@ -48,24 +50,24 @@ export default function Auth() {
     }
   }, [user, navigate]);
 
-  const validateEmail = (email: string): string | undefined => {
-    if (!email) return "Email is required";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "Please enter a valid email";
+  const validateEmail = (val: string): string | undefined => {
+    if (!val) return t("auth.error_email_required");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) return t("auth.error_email_invalid");
     return undefined;
   };
 
-  const validatePassword = (password: string): string | undefined => {
-    if (!password) return "Password is required";
-    if (password.length < 8) return "Password must be at least 8 characters";
-    if (!/[A-Z]/.test(password)) return "Password must contain an uppercase letter";
-    if (!/[0-9]/.test(password)) return "Password must contain a number";
+  const validatePassword = (val: string): string | undefined => {
+    if (!val) return t("auth.error_password_required");
+    if (val.length < 8) return t("auth.error_password_min");
+    if (!/[A-Z]/.test(val)) return t("auth.error_password_uppercase");
+    if (!/[0-9]/.test(val)) return t("auth.error_password_number");
     return undefined;
   };
 
   const handleSignUp = async () => {
     const emailError = validateEmail(email);
     const passwordError = validatePassword(password);
-    const termsError = !termsAccepted ? "You must accept the terms" : undefined;
+    const termsError = !termsAccepted ? t("auth.error_terms") : undefined;
     setErrors({ email: emailError, password: passwordError, terms: termsError });
     if (emailError || passwordError || termsError) return;
 
@@ -76,8 +78,8 @@ export default function Auth() {
       posthog.capture('user signed up', { login_type: 'email' });
       setStep("check-email");
     } catch (error: any) {
-      setErrors({ general: error.message || "Sign up failed. Please try again." });
-      toast.error("Sign up failed");
+      setErrors({ general: error.message || t("auth.error_signup") });
+      toast.error(t("auth.signup_failed"));
     } finally {
       setIsLoading(false);
     }
@@ -85,7 +87,7 @@ export default function Auth() {
 
   const handleSignIn = async () => {
     const emailError = validateEmail(email);
-    const passwordError = !password ? "Password is required" : undefined;
+    const passwordError = !password ? t("auth.error_password_required") : undefined;
     setErrors({ email: emailError, password: passwordError });
     if (emailError || passwordError) return;
 
@@ -94,11 +96,11 @@ export default function Auth() {
       await signIn(email, password);
       posthog.identify(email, { email });
       posthog.capture('user signed in', { login_type: 'email' });
-      toast.success("Welcome back!");
+      toast.success(t("auth.welcome_back"));
       navigate("/", { replace: true });
     } catch (error: any) {
-      setErrors({ general: error.message || "Invalid email or password" });
-      toast.error("Sign in failed");
+      setErrors({ general: error.message || t("auth.error_signin") });
+      toast.error(t("auth.signin_failed"));
     } finally {
       setIsLoading(false);
     }
@@ -113,11 +115,11 @@ export default function Auth() {
     try {
       await resetPassword(email);
       posthog.capture('password reset requested');
-      toast.success("Password reset email sent");
-      setErrors({ general: "Check your email for reset instructions" });
+      toast.success(t("auth.reset_sent_toast"));
+      setErrors({ general: t("auth.reset_check_email") });
     } catch (error: any) {
-      setErrors({ general: error.message || "Failed to send reset email" });
-      toast.error("Failed to send reset email");
+      setErrors({ general: error.message || t("auth.reset_failed_toast") });
+      toast.error(t("auth.reset_failed_toast"));
     } finally {
       setIsLoading(false);
     }
@@ -145,12 +147,12 @@ export default function Auth() {
 
   const handleTermsClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    toast.info("Terms of Service coming soon");
+    toast.info(t("auth.terms_coming_soon"));
   };
 
   const handlePrivacyClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    toast.info("Privacy Policy coming soon");
+    toast.info(t("auth.privacy_coming_soon"));
   };
 
   return (
@@ -163,11 +165,12 @@ export default function Auth() {
           disabled={isLoading}
         >
           <ChevronLeft className="w-5 h-5" />
-          <span className="text-sm">Back</span>
+          <span className="text-sm">{t("auth.back")}</span>
         </button>
       </div>
 
-      <div className="flex-1 flex flex-col justify-center px-6 py-8">
+      <div className="flex-1 flex flex-col justify-center px-6 py-8 md:items-center">
+        <div className="w-full max-w-md md:bg-card md:rounded-2xl md:shadow-xl md:border md:border-border md:p-10">
         {/* ── Welcome ──────────────────────────────────────── */}
         {step === "welcome" && (
           <div className="space-y-8 animate-fade-up">
@@ -176,10 +179,10 @@ export default function Auth() {
                 <span className="text-3xl">🥗</span>
               </div>
               <h1 className="text-2xl font-bold text-foreground">
-                Welcome to PlateCheck
+                {t("auth.welcome_title_simple")}
               </h1>
               <p className="text-muted-foreground text-sm leading-relaxed max-w-[260px] mx-auto">
-                Create an account or sign in to save your plan and track progress
+                {t("auth.welcome_desc")}
               </p>
             </div>
 
@@ -194,7 +197,7 @@ export default function Auth() {
                 <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
                 </svg>
-                Continue with Apple
+                {t("auth.continue_apple")}
               </Button>
 
               <Button
@@ -210,7 +213,7 @@ export default function Auth() {
                   <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
                   <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                 </svg>
-                Continue with Google
+                {t("auth.continue_google")}
               </Button>
 
               <Button
@@ -221,7 +224,7 @@ export default function Auth() {
                 disabled={isLoading}
               >
                 <FileText className="w-5 h-5 flex-shrink-0" />
-                Continue with Email
+                {t("auth.continue_email")}
               </Button>
             </div>
 
@@ -230,12 +233,12 @@ export default function Auth() {
                 className="text-sm text-primary font-semibold"
                 onClick={() => setStep("signin")}
               >
-                Already have an account? Sign in
+                {t("auth.have_account_link")}
               </button>
             </div>
 
             <p className="text-xs text-center text-muted-foreground">
-              Your data stays private. We never share your information.
+              {t("auth.privacy_note")}
             </p>
           </div>
         )}
@@ -244,8 +247,8 @@ export default function Auth() {
         {step === "signup" && (
           <div className="space-y-6 animate-fade-up">
             <div className="text-center space-y-1.5">
-              <h2 className="text-2xl font-bold text-foreground">Create your account</h2>
-              <p className="text-sm text-muted-foreground">Start tracking your nutrition journey</p>
+              <h2 className="text-2xl font-bold text-foreground">{t("auth.sign_up_title")}</h2>
+              <p className="text-sm text-muted-foreground">{t("auth.sign_up_subtitle")}</p>
             </div>
 
             {errors.general && (
@@ -257,10 +260,10 @@ export default function Auth() {
 
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium mb-2 block text-foreground">Email</label>
+                <label className="text-sm font-medium mb-2 block text-foreground">{t("auth.email_label")}</label>
                 <Input
                   type="email"
-                  placeholder="you@example.com"
+                  placeholder={t("auth.email_placeholder")}
                   value={email}
                   onChange={(e) => {
                     setEmail(e.target.value);
@@ -275,11 +278,11 @@ export default function Auth() {
               </div>
 
               <div>
-                <label className="text-sm font-medium mb-2 block text-foreground">Password</label>
+                <label className="text-sm font-medium mb-2 block text-foreground">{t("auth.password_label")}</label>
                 <div className="relative">
                   <Input
                     type={showPassword ? "text" : "password"}
-                    placeholder="At least 8 characters"
+                    placeholder={t("auth.password_hint")}
                     value={password}
                     onChange={(e) => {
                       setPassword(e.target.value);
@@ -313,13 +316,13 @@ export default function Auth() {
                   className={cn(errors.terms && "border-destructive")}
                 />
                 <label htmlFor="terms" className="text-sm text-muted-foreground leading-tight">
-                  I agree to the{" "}
+                  {t("auth.terms_agree")}{" "}
                   <a href="#" onClick={handleTermsClick} className="text-primary underline">
-                    Terms of Service
+                    {t("auth.terms_service")}
                   </a>{" "}
-                  and{" "}
+                  {t("auth.terms_and")}{" "}
                   <a href="#" onClick={handlePrivacyClick} className="text-primary underline">
-                    Privacy Policy
+                    {t("auth.privacy_link")}
                   </a>
                 </label>
               </div>
@@ -338,10 +341,10 @@ export default function Auth() {
                 {isLoading ? (
                   <>
                     <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Creating account...
+                    {t("auth.creating_account")}
                   </>
                 ) : (
-                  "Create account"
+                  t("auth.create_account")
                 )}
               </Button>
               <Button
@@ -350,7 +353,7 @@ export default function Auth() {
                 onClick={() => setStep("welcome")}
                 disabled={isLoading}
               >
-                Back
+                {t("auth.back")}
               </Button>
             </div>
 
@@ -359,7 +362,7 @@ export default function Auth() {
                 className="text-sm text-primary font-semibold"
                 onClick={() => setStep("signin")}
               >
-                Already have an account? Sign in
+                {t("auth.have_account_link")}
               </button>
             </div>
           </div>
@@ -369,8 +372,8 @@ export default function Auth() {
         {step === "signin" && (
           <div className="space-y-6 animate-fade-up">
             <div className="text-center space-y-1.5">
-              <h2 className="text-2xl font-bold text-foreground">Welcome back</h2>
-              <p className="text-sm text-muted-foreground">Sign in to continue tracking</p>
+              <h2 className="text-2xl font-bold text-foreground">{t("auth.sign_in_title")}</h2>
+              <p className="text-sm text-muted-foreground">{t("auth.sign_in_subtitle_short")}</p>
             </div>
 
             {errors.general && (
@@ -382,10 +385,10 @@ export default function Auth() {
 
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium mb-2 block text-foreground">Email</label>
+                <label className="text-sm font-medium mb-2 block text-foreground">{t("auth.email_label")}</label>
                 <Input
                   type="email"
-                  placeholder="you@example.com"
+                  placeholder={t("auth.email_placeholder")}
                   value={email}
                   onChange={(e) => {
                     setEmail(e.target.value);
@@ -401,18 +404,18 @@ export default function Auth() {
 
               <div>
                 <div className="flex justify-between items-center mb-2">
-                  <label className="text-sm font-medium text-foreground">Password</label>
+                  <label className="text-sm font-medium text-foreground">{t("auth.password_label")}</label>
                   <button
                     className="text-sm text-primary font-medium"
                     onClick={() => setStep("forgot-password")}
                   >
-                    Forgot password?
+                    {t("auth.forgot_password")}
                   </button>
                 </div>
                 <div className="relative">
                   <Input
                     type={showPassword ? "text" : "password"}
-                    placeholder="Enter your password"
+                    placeholder={t("auth.password_placeholder")}
                     value={password}
                     onChange={(e) => {
                       setPassword(e.target.value);
@@ -445,10 +448,10 @@ export default function Auth() {
                 {isLoading ? (
                   <>
                     <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Signing in...
+                    {t("auth.signing_in")}
                   </>
                 ) : (
-                  "Sign in"
+                  t("auth.sign_in")
                 )}
               </Button>
               <Button
@@ -457,7 +460,7 @@ export default function Auth() {
                 onClick={() => setStep("welcome")}
                 disabled={isLoading}
               >
-                Back
+                {t("auth.back")}
               </Button>
             </div>
 
@@ -466,7 +469,7 @@ export default function Auth() {
                 className="text-sm text-primary font-semibold"
                 onClick={() => setStep("signup")}
               >
-                Don't have an account? Sign up
+                {t("auth.no_account_link")}
               </button>
             </div>
           </div>
@@ -479,13 +482,13 @@ export default function Auth() {
               <Check className="w-8 h-8 text-primary" />
             </div>
             <div className="space-y-2">
-              <h2 className="text-2xl font-bold text-foreground">Check your email</h2>
+              <h2 className="text-2xl font-bold text-foreground">{t("auth.check_email_title")}</h2>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                We sent a confirmation link to
+                {t("auth.check_email_sent")}
               </p>
               <p className="text-sm font-semibold text-foreground">{email}</p>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Click the link to confirm your account and get started.
+                {t("auth.check_email_click")}
               </p>
             </div>
             <div className="space-y-3">
@@ -497,22 +500,22 @@ export default function Auth() {
                   setIsLoading(true);
                   try {
                     await signUp(email, password);
-                    toast.success("Confirmation email resent");
+                    toast.success(t("auth.resend_success"));
                   } catch {
-                    toast.error("Failed to resend email");
+                    toast.error(t("auth.resend_fail"));
                   } finally {
                     setIsLoading(false);
                   }
                 }}
                 disabled={isLoading}
               >
-                {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Resend email"}
+                {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : t("auth.resend_email")}
               </Button>
               <button
                 className="text-sm text-primary font-semibold"
                 onClick={() => setStep("signin")}
               >
-                Already confirmed? Sign in
+                {t("auth.already_confirmed")}
               </button>
             </div>
           </div>
@@ -522,9 +525,9 @@ export default function Auth() {
         {step === "forgot-password" && (
           <div className="space-y-6 animate-fade-up">
             <div className="text-center space-y-1.5">
-              <h2 className="text-2xl font-bold text-foreground">Reset password</h2>
+              <h2 className="text-2xl font-bold text-foreground">{t("auth.reset_title")}</h2>
               <p className="text-sm text-muted-foreground">
-                Enter your email to receive reset instructions
+                {t("auth.reset_subtitle")}
               </p>
             </div>
 
@@ -536,10 +539,10 @@ export default function Auth() {
             )}
 
             <div>
-              <label className="text-sm font-medium mb-2 block text-foreground">Email</label>
+              <label className="text-sm font-medium mb-2 block text-foreground">{t("auth.email_label")}</label>
               <Input
                 type="email"
-                placeholder="you@example.com"
+                placeholder={t("auth.email_placeholder")}
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value);
@@ -563,10 +566,10 @@ export default function Auth() {
                 {isLoading ? (
                   <>
                     <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Sending...
+                    {t("auth.sending")}
                   </>
                 ) : (
-                  "Send reset link"
+                  t("auth.send_reset")
                 )}
               </Button>
               <Button
@@ -575,11 +578,12 @@ export default function Auth() {
                 onClick={() => setStep("signin")}
                 disabled={isLoading}
               >
-                Back to sign in
+                {t("auth.back_to_sign_in")}
               </Button>
             </div>
           </div>
         )}
+        </div>
       </div>
     </div>
   );

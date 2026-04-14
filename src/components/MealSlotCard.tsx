@@ -1,12 +1,15 @@
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { WeeklyPlanEntry, MealType } from "@/hooks/use-weekly-plan";
+import { useTranslation } from "react-i18next";
 
-const MEAL_CONFIG: Record<MealType, { icon: string; label: string; priority: "high" | "normal" | "low" }> = {
-  dinner:    { icon: "🌙", label: "Jantar",           priority: "high" },
-  lunch:     { icon: "☀️",  label: "Almoço",           priority: "normal" },
-  breakfast: { icon: "🌅", label: "Pequeno-almoço",   priority: "normal" },
-  snack:     { icon: "🍎", label: "Lanche",            priority: "low" },
+type MealConfig = { icon: string; labelKey: string; priority: "high" | "normal" | "low" };
+
+const MEAL_CONFIG: Record<MealType, MealConfig> = {
+  dinner:    { icon: "🌙", labelKey: "mealSlot.dinner",    priority: "high" },
+  lunch:     { icon: "☀️",  labelKey: "mealSlot.lunch",     priority: "normal" },
+  breakfast: { icon: "🌅", labelKey: "mealSlot.breakfast", priority: "normal" },
+  snack:     { icon: "🍎", labelKey: "mealSlot.snack",     priority: "low" },
 };
 
 interface MealSlotCardProps {
@@ -18,17 +21,17 @@ interface MealSlotCardProps {
 }
 
 export function MealSlotCard({ mealType, entry, onAdd, onEdit, onDelete }: MealSlotCardProps) {
+  const { t } = useTranslation();
   const config = MEAL_CONFIG[mealType];
   const isEmpty = !entry;
   const isHighPriority = config.priority === "high";
+  const label = t(config.labelKey);
 
   return (
     <div
       className={cn(
         "rounded-xl border transition-all",
-        isHighPriority
-          ? "border-primary/20 bg-primary/5"
-          : "border-border bg-card",
+        isHighPriority ? "border-primary/20 bg-primary/5" : "border-border bg-card",
         isEmpty && "border-dashed"
       )}
     >
@@ -41,7 +44,7 @@ export function MealSlotCard({ mealType, entry, onAdd, onEdit, onDelete }: MealS
                 "font-medium leading-tight",
                 isHighPriority ? "text-base" : "text-sm text-muted-foreground"
               )}>
-                {config.label}
+                {label}
               </p>
               {entry && (
                 <p className="text-sm text-foreground font-medium mt-0.5 truncate">
@@ -51,7 +54,6 @@ export function MealSlotCard({ mealType, entry, onAdd, onEdit, onDelete }: MealS
             </div>
           </div>
 
-          {/* Actions */}
           {isEmpty ? (
             <button
               onClick={onAdd}
@@ -63,7 +65,7 @@ export function MealSlotCard({ mealType, entry, onAdd, onEdit, onDelete }: MealS
               )}
             >
               <Plus className="w-3.5 h-3.5" />
-              Adicionar
+              {t("mealSlot.add")}
             </button>
           ) : (
             <div className="flex items-center gap-1 flex-shrink-0">
@@ -83,7 +85,6 @@ export function MealSlotCard({ mealType, entry, onAdd, onEdit, onDelete }: MealS
           )}
         </div>
 
-        {/* Ingredient tags */}
         {entry && entry.ingredients.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-2 ml-8">
             {entry.ingredients.slice(0, 4).map((ing, idx) => (

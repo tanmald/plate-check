@@ -127,7 +127,7 @@ async function retryWithBackoff<T>(
 
 /**
  * Call the analyze-meal Edge Function
- * Analyzes a meal photo against a nutrition plan and returns adherence score
+ * Analyzes a meal photo against a nutrition plan and returns an alignment score
  */
 export async function analyzeMeal(
   request: AnalyzeMealRequest

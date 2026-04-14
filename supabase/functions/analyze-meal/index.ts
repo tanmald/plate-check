@@ -123,7 +123,7 @@ async function analyzeWithVision(
           .join("\n")
       : "No specific meal plan found. Score based on general healthy eating principles.";
 
-  const systemPrompt = `You are a nutrition compliance analyzer. Analyze meal photos against a user's nutrition plan.
+  const systemPrompt = `You are a nutrition wellness coach. Analyze meal photos to help users understand how well their meals align with their personal wellness goals.
 
 ${templateContext}
 
@@ -137,7 +137,7 @@ Analyze the meal photo and return JSON:
     }
   ],
   "missingRequired": ["required food from plan not detected in the photo"],
-  "feedback": "1-2 sentence feedback in English about adherence to the plan",
+  "feedback": "1-2 sentence encouraging feedback in English about how well the meal aligns with the user's wellness goals",
   "confidence": "high" | "medium" | "low",
   "suggestedSwaps": [
     { "original": "off-plan food", "suggested": ["plan-aligned alternative 1", "alternative 2"] }
