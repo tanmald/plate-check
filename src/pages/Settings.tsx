@@ -96,26 +96,43 @@ export default function Settings() {
       </CardHeader>
       <CardContent className="p-0">
         <div className="divide-y divide-border">
-          {items.map((item) => (
-            <div
-              key={item.label}
-              className={`flex items-center justify-between px-4 py-3 ${item.action ? 'cursor-pointer hover:bg-muted/50 transition-colors' : ''}`}
-              onClick={item.onClick}
-            >
-              <div className="flex items-center gap-3">
-                <item.icon className={`w-5 h-5 ${item.danger ? 'text-destructive' : 'text-muted-foreground'}`} />
-                <span className={`font-medium ${item.danger ? 'text-destructive' : ''}`}>{item.label}</span>
+          {items.map((item) => {
+            const rowContent = (
+              <>
+                <div className="flex items-center gap-3">
+                  <item.icon className={`w-5 h-5 ${item.danger ? 'text-destructive' : 'text-muted-foreground'}`} />
+                  <span className={`font-medium ${item.danger ? 'text-destructive' : ''}`}>{item.label}</span>
+                </div>
+                {item.toggle ? (
+                  <Switch
+                    checked={item.value}
+                    onCheckedChange={item.onChange}
+                  />
+                ) : (
+                  <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                )}
+              </>
+            );
+
+            if (item.action) {
+              return (
+                <button
+                  key={item.label}
+                  type="button"
+                  onClick={item.onClick}
+                  className="flex items-center justify-between w-full px-4 py-3 text-left cursor-pointer hover:bg-muted/50 transition-colors"
+                >
+                  {rowContent}
+                </button>
+              );
+            }
+
+            return (
+              <div key={item.label} className="flex items-center justify-between px-4 py-3">
+                {rowContent}
               </div>
-              {item.toggle ? (
-                <Switch
-                  checked={item.value}
-                  onCheckedChange={item.onChange}
-                />
-              ) : (
-                <ChevronRight className="w-5 h-5 text-muted-foreground" />
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       </CardContent>
     </Card>

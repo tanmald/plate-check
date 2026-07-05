@@ -5,6 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useNutritionPlan } from "@/hooks/use-nutrition-plan";
 import { useUpdateMealTemplate, useCreateMealTemplate } from "@/hooks/use-update-meal-template";
 import { toast } from "sonner";
@@ -40,6 +50,7 @@ export default function EditMealTemplate() {
   const [newFoodName, setNewFoodName] = useState("");
   const [newFoodCategory, setNewFoodCategory] = useState<FoodCategory>("allowed");
   const [hasChanges, setHasChanges] = useState(false);
+  const [showDiscardDialog, setShowDiscardDialog] = useState(false);
 
   // Find the template (only in edit mode)
   const template = !isCreateMode
@@ -230,12 +241,15 @@ export default function EditMealTemplate() {
 
   const handleBack = () => {
     if (hasChanges) {
-      if (confirm("You have unsaved changes. Discard them?")) {
-        navigate("/plan");
-      }
+      setShowDiscardDialog(true);
     } else {
       navigate("/plan");
     }
+  };
+
+  const handleDiscard = () => {
+    setShowDiscardDialog(false);
+    navigate("/plan");
   };
 
   const isPending = updateTemplate.isPending || createTemplate.isPending;
@@ -561,6 +575,26 @@ export default function EditMealTemplate() {
           </Button>
         </div>
       </main>
+
+      <AlertDialog open={showDiscardDialog} onOpenChange={setShowDiscardDialog}>
+        <AlertDialogContent className="max-w-[90vw] rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Discard changes?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have unsaved changes. Are you sure you want to leave?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row gap-3">
+            <AlertDialogCancel className="flex-1 m-0">Keep editing</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDiscard}
+              className="flex-1 bg-destructive hover:bg-destructive/90"
+            >
+              Discard
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
