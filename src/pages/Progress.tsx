@@ -117,10 +117,10 @@ export default function Progress() {
               <h2 className="text-lg font-semibold mb-4">Today's Meals</h2>
               <div className="space-y-3">
                 {todayMeals.map((meal, idx) => (
-                  <Link 
-                    key={meal.id} 
-                    to="/meal-result" 
-                    state={{ mealType: meal.type }}
+                  <Link
+                    key={meal.id}
+                    to="/meal-result"
+                    state={{ mealLogId: meal.id, mealType: meal.type }}
                     className="block animate-fade-up"
                     style={{ animationDelay: `${(idx + 2) * 100}ms` }}
                   >

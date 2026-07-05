@@ -134,10 +134,10 @@ export default function Home() {
                 </div>
                 <div className="space-y-3">
                   {meals.map((meal, idx) => (
-                    <Link 
-                      key={meal.id} 
-                      to="/meal-result" 
-                      state={{ mealType: meal.type }}
+                    <Link
+                      key={meal.id}
+                      to="/meal-result"
+                      state={{ mealLogId: meal.id, mealType: meal.type }}
                       className="block animate-fade-up"
                       style={{ animationDelay: `${(idx + 3) * 100}ms` }}
                     >

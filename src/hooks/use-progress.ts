@@ -54,7 +54,7 @@ export function useDailyProgress(date?: string) {
       }
 
       return {
-        dailyScore: data.daily_adherence_score || 0,
+        dailyScore: data.average_score || 0,
         streak: await calculateStreak(user.id),
         weeklyAverage: await calculateWeeklyAverage(user.id),
         mealsLogged: data.meals_logged || 0,
@@ -110,7 +110,7 @@ export function useWeeklyProgress() {
         weeklyData.push({
           day: dayName,
           shortDay: shortDayName,
-          score: dayData?.daily_adherence_score || 0,
+          score: dayData?.average_score || 0,
           mealsLogged: dayData?.meals_logged || 0,
           isToday: dateStr === todayStr,
         });
@@ -125,26 +125,31 @@ export function useWeeklyProgress() {
 async function calculateStreak(userId: string): Promise<number> {
   const { data, error } = await supabase
     .from("daily_progress")
-    .select("date, daily_adherence_score")
+    .select("date, average_score")
     .eq("user_id", userId)
-    .gte("daily_adherence_score", 70) // On plan threshold
+    .gte("average_score", 70) // On plan threshold
     .order("date", { ascending: false })
     .limit(30);
 
   if (error || !data) return 0;
 
   let streak = 0;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  // `date` rows are UTC calendar dates written by the `update_daily_progress`
+  // DB trigger (`DATE(logged_at)`, cast in the UTC session timezone).
+  // Comparing plain date strings here — instead of re-parsing into local
+  // Date objects — keeps the streak in the same day-boundary convention as
+  // the trigger, avoiding off-by-one-day drift for non-UTC users.
+  const todayUtc = new Date();
 
   for (const day of data) {
-    const dayDate = new Date(day.date);
-    dayDate.setHours(0, 0, 0, 0);
+    const expectedDate = new Date(Date.UTC(
+      todayUtc.getUTCFullYear(),
+      todayUtc.getUTCMonth(),
+      todayUtc.getUTCDate() - streak
+    ));
+    const expectedStr = expectedDate.toISOString().split("T")[0];
 
-    const expectedDate = new Date(today);
-    expectedDate.setDate(expectedDate.getDate() - streak);
-
-    if (dayDate.getTime() === expectedDate.getTime()) {
+    if (day.date === expectedStr) {
       streak++;
     } else {
       break;
@@ -161,13 +166,13 @@ async function calculateWeeklyAverage(userId: string): Promise<number> {
 
   const { data, error } = await supabase
     .from("daily_progress")
-    .select("daily_adherence_score")
+    .select("average_score")
     .eq("user_id", userId)
     .gte("date", startDate.toISOString().split("T")[0])
     .lte("date", endDate.toISOString().split("T")[0]);
 
   if (error || !data || data.length === 0) return 0;
 
-  const sum = data.reduce((acc, day) => acc + (day.daily_adherence_score || 0), 0);
+  const sum = data.reduce((acc, day) => acc + (day.average_score || 0), 0);
   return Math.round(sum / data.length);
 }
