@@ -15,6 +15,10 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// The test-user auth bypass fabricates a session with no password check —
+// it must never be reachable outside local/dev builds.
+const TEST_USER_BYPASS_ENABLED = import.meta.env.DEV;
+
 // Mock user/session for test accounts
 function createMockSession(email: string): { user: User; session: Session } {
   const mockUser: User = {
@@ -45,18 +49,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for mock session first (test users)
-    const mockSessionData = localStorage.getItem('mock-session');
-    if (mockSessionData) {
-      try {
-        const { user: mockUser, session: mockSession } = JSON.parse(mockSessionData);
-        setUser(mockUser);
-        setSession(mockSession);
-        setLoading(false);
-        return;
-      } catch (e) {
-        localStorage.removeItem('mock-session');
+    // Check for mock session first (test users) — dev/local builds only
+    if (TEST_USER_BYPASS_ENABLED) {
+      const mockSessionData = localStorage.getItem('mock-session');
+      if (mockSessionData) {
+        try {
+          const { user: mockUser, session: mockSession } = JSON.parse(mockSessionData);
+          setUser(mockUser);
+          setSession(mockSession);
+          setLoading(false);
+          return;
+        } catch (e) {
+          localStorage.removeItem('mock-session');
+        }
       }
+    } else {
+      localStorage.removeItem('mock-session');
     }
 
     // Get initial session from Supabase (real users)
@@ -79,8 +87,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signUp = async (email: string, password: string) => {
-    // Handle test user sign-up
-    if (isTestUser(email)) {
+    // Handle test user sign-up (dev/local builds only)
+    if (TEST_USER_BYPASS_ENABLED && isTestUser(email)) {
       const { user: mockUser, session: mockSession } = createMockSession(email);
       setUser(mockUser);
       setSession(mockSession);
@@ -100,8 +108,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
-    // Handle test user sign-in
-    if (isTestUser(email)) {
+    // Handle test user sign-in (dev/local builds only)
+    if (TEST_USER_BYPASS_ENABLED && isTestUser(email)) {
       const { user: mockUser, session: mockSession } = createMockSession(email);
       setUser(mockUser);
       setSession(mockSession);
