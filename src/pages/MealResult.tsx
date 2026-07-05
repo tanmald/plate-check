@@ -9,6 +9,7 @@ import { FoodItemEditor } from "@/components/FoodItemEditor";
 import { AddFoodSheet } from "@/components/AddFoodSheet";
 import { cn } from "@/lib/utils";
 import { MealLogResult, useMealLogDetail } from "@/hooks/use-meals";
+import { getScoreColor, getScoreLabel } from "@/components/AdherenceScore";
 
 import {
   getScoreBreakdown,
@@ -174,12 +175,6 @@ export default function MealResult() {
     navigate("/log");
   };
 
-  const getStatusLabel = (score: number) => {
-    if (score >= 70) return "On plan";
-    if (score >= 40) return "Needs attention";
-    return "Off plan";
-  };
-
   const getConfidenceLabel = (confidence: string) => {
     switch (confidence) {
       case "high":
@@ -249,17 +244,8 @@ export default function MealResult() {
         <div className="flex flex-col items-center pt-4">
           <AdherenceScore score={currentScore} size="lg" animated />
           <div className="mt-4 text-center">
-            <p
-              className={cn(
-                "text-lg font-semibold",
-                currentScore >= 70
-                  ? "text-success"
-                  : currentScore >= 40
-                  ? "text-warning"
-                  : "text-destructive"
-              )}
-            >
-              {getStatusLabel(currentScore)}
+            <p className={cn("text-lg font-semibold", getScoreColor(currentScore))}>
+              {getScoreLabel(currentScore)}
             </p>
             <p className={cn("text-sm", confidenceInfo.color)}>
               {confidenceInfo.label}
@@ -290,10 +276,7 @@ export default function MealResult() {
                 </>
               )}
               <span className="text-muted-foreground">=</span>
-              <span className={cn(
-                "font-bold text-sm",
-                currentScore >= 70 ? "text-success" : currentScore >= 40 ? "text-warning" : "text-destructive"
-              )}>
+              <span className={cn("font-bold text-sm", getScoreColor(currentScore))}>
                 {currentScore}
               </span>
             </div>

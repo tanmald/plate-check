@@ -1,7 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/use-auth";
-import { isTestUser, mockWeeklyData, mockDailyStats } from "@/lib/test-data";
+import {
+  isTestUser,
+  mockWeeklyData,
+  mockDailyStats,
+  mockAdherenceByMealType,
+  mockPreviousWeekAverage,
+} from "@/lib/test-data";
 
 export interface DailyStats {
   dailyScore: number;
@@ -17,6 +23,12 @@ export interface WeeklyDataPoint {
   score: number;
   mealsLogged: number;
   isToday?: boolean;
+}
+
+export interface MealTypeAdherence {
+  type: "breakfast" | "lunch" | "dinner" | "snack" | string;
+  averageScore: number;
+  mealsLogged: number;
 }
 
 export function useDailyProgress(date?: string) {
@@ -163,6 +175,91 @@ async function calculateWeeklyAverage(userId: string): Promise<number> {
   const endDate = new Date();
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - 6);
+
+  const { data, error } = await supabase
+    .from("daily_progress")
+    .select("average_score")
+    .eq("user_id", userId)
+    .gte("date", startDate.toISOString().split("T")[0])
+    .lte("date", endDate.toISOString().split("T")[0]);
+
+  if (error || !data || data.length === 0) return 0;
+
+  const sum = data.reduce((acc, day) => acc + (day.average_score || 0), 0);
+  return Math.round(sum / data.length);
+}
+
+/**
+ * Per-meal-type average adherence over the last 7 days, for the "Adherence
+ * by Meal" breakdown. Meal types with no logs in the window are omitted
+ * rather than shown as a fabricated 0%.
+ */
+export function useAdherenceByMealType() {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ["adherence-by-meal-type", user?.id],
+    queryFn: async (): Promise<MealTypeAdherence[]> => {
+      if (isTestUser(user?.email)) {
+        return mockAdherenceByMealType;
+      }
+
+      if (!user?.id) return [];
+
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 6);
+
+      const { data, error } = await supabase
+        .from("meal_logs")
+        .select("meal_type, adherence_score")
+        .eq("user_id", user.id)
+        .gte("logged_at", `${startDate.toISOString().split("T")[0]}T00:00:00.000Z`)
+        .lt("logged_at", `${endDate.toISOString().split("T")[0]}T23:59:59.999Z`);
+
+      if (error || !data) return [];
+
+      const buckets = new Map<string, { sum: number; count: number }>();
+      for (const row of data) {
+        const bucket = buckets.get(row.meal_type) ?? { sum: 0, count: 0 };
+        bucket.sum += row.adherence_score || 0;
+        bucket.count += 1;
+        buckets.set(row.meal_type, bucket);
+      }
+
+      return Array.from(buckets.entries()).map(([type, { sum, count }]) => ({
+        type,
+        averageScore: Math.round(sum / count),
+        mealsLogged: count,
+      }));
+    },
+    enabled: !!user,
+  });
+}
+
+/** Average daily_progress score for the 7-day window before the current one. */
+export function usePreviousWeekAverage() {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ["previous-week-average", user?.id],
+    queryFn: async (): Promise<number> => {
+      if (isTestUser(user?.email)) {
+        return mockPreviousWeekAverage;
+      }
+
+      if (!user?.id) return 0;
+      return calculatePreviousWeekAverage(user.id);
+    },
+    enabled: !!user,
+  });
+}
+
+async function calculatePreviousWeekAverage(userId: string): Promise<number> {
+  const endDate = new Date();
+  endDate.setDate(endDate.getDate() - 7);
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - 13);
 
   const { data, error } = await supabase
     .from("daily_progress")

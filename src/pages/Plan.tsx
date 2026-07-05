@@ -9,7 +9,13 @@ import { DailyTargetsCard } from "@/components/DailyTargetsCard";
 import { PlanPageSkeleton } from "@/components/PageSkeletons";
 import { EditPlanSheet } from "@/components/EditPlanSheet";
 import { DeletePlanDialog } from "@/components/DeletePlanDialog";
-import { useNutritionPlan, useImportNutritionPlan, useConfirmNutritionPlan } from "@/hooks/use-nutrition-plan";
+import {
+  useNutritionPlan,
+  useImportNutritionPlan,
+  useConfirmNutritionPlan,
+  computeDailyTargets,
+  getLoggableMealCount,
+} from "@/hooks/use-nutrition-plan";
 import { ParsePlanResponse } from "@/lib/api";
 import { toast } from "sonner";
 import { Upload, FileText, ChevronRight, Plus, Edit2, Image, File, Info, Loader2, AlertCircle, Clock, Zap, ArrowRight, Check, CalendarDays, ShoppingCart } from "lucide-react";
@@ -41,6 +47,7 @@ export default function Plan() {
 
   const hasPlan = planData?.hasPlan || false;
   const plan = planData?.plan;
+  const dailyTargets = plan ? computeDailyTargets(plan.templates) : null;
 
   const handleImportStart = () => {
     fileInputRef.current?.click();
@@ -485,9 +492,9 @@ export default function Plan() {
 
             {/* Daily Targets */}
             <DailyTargetsCard
-              calories={1800}
-              protein={120}
-              meals={plan.templates.length}
+              calories={dailyTargets?.calories}
+              protein={dailyTargets?.protein}
+              meals={getLoggableMealCount(plan)}
               className="animate-fade-up animate-delay-400"
             />
 

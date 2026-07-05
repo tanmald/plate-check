@@ -25,10 +25,13 @@ const getScoreStroke = (score: number) => {
   return "stroke-destructive";
 };
 
+// Label boundaries stay inside the tier boundaries used by getScoreStatus/
+// getScoreColor (70/40) so a label and its color can never contradict each
+// other (e.g. a 45 reading "Off plan" in a warning-yellow "medium" tier).
 const getScoreLabel = (score: number) => {
-  if (score >= 80) return "Great match!";
+  if (score >= 90) return "Great match!";
   if (score >= 70) return "On track";
-  if (score >= 50) return "Needs attention";
+  if (score >= 40) return "Needs attention";
   return "Off plan";
 };
 
