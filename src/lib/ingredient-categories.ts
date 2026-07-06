@@ -2,27 +2,27 @@
 // Used as fallback when the Edge Function doesn't return a category
 
 export const CATEGORIES = [
-  "Peixe & Marisco",
-  "Carnes",
-  "Legumes",
-  "Fruta",
-  "Lacticínios",
-  "Cereais & Leguminosas",
-  "Condimentos & Ervas",
-  "Outros",
+  "Fish & Seafood",
+  "Meat",
+  "Vegetables",
+  "Fruit",
+  "Dairy",
+  "Grains & Legumes",
+  "Condiments & Herbs",
+  "Other",
 ] as const;
 
 export type IngredientCategory = typeof CATEGORIES[number];
 
 const CATEGORY_KEYWORDS: Record<IngredientCategory, string[]> = {
-  "Peixe & Marisco": ["salmão", "bacalhau", "atum", "camarão", "peixe", "polvo", "lulas", "truta", "dourada", "robalo", "sardinhas", "linguado"],
-  "Carnes": ["frango", "peru", "vaca", "porco", "borrego", "carne", "hambúrguer", "bife", "peito", "coxa", "entrecosto", "filete", "almôndega"],
-  "Legumes": ["brócolos", "espinafres", "courgette", "cenoura", "cebola", "alho", "tomate", "pimento", "pepino", "alface", "rúcula", "beterraba", "abóbora", "beringela", "cogumelos", "acelgas", "nabo", "ervilhas", "feijão verde", "aipo"],
-  "Fruta": ["banana", "maçã", "laranja", "limão", "pera", "uva", "morango", "framboesa", "mirtilo", "manga", "ananás", "melão", "kiwi", "ameixa", "cereja", "tomate cherry"],
-  "Lacticínios": ["leite", "queijo", "iogurte", "manteiga", "natas", "burrata", "mozzarella", "ricotta", "requeijão", "kefir", "parmesão"],
-  "Cereais & Leguminosas": ["quinoa", "arroz", "aveia", "pão", "massa", "grão", "lentilhas", "feijão", "ervilhas", "cuscuz", "bulgur", "trigo", "milho", "amaranto", "farinha"],
-  "Condimentos & Ervas": ["azeite", "sal", "pimenta", "alho", "cebola", "manjericão", "coentros", "salsa", "oregãos", "tomilho", "rosmaninho", "vinagre", "mostarda", "molho", "limão", "gengibre", "açafrão", "paprika", "canela", "mel"],
-  "Outros": [],
+  "Fish & Seafood": ["salmon", "cod", "tuna", "shrimp", "prawn", "fish", "octopus", "squid", "trout", "sea bream", "sea bass", "sardine", "sole", "mussel", "clam"],
+  "Meat": ["chicken", "turkey", "beef", "pork", "lamb", "meat", "burger", "steak", "breast", "thigh", "rib", "fillet", "meatball", "sausage", "bacon"],
+  "Vegetables": ["broccoli", "spinach", "zucchini", "courgette", "carrot", "onion", "garlic", "tomato", "pepper", "cucumber", "lettuce", "arugula", "rocket", "beet", "beetroot", "pumpkin", "squash", "eggplant", "aubergine", "mushroom", "chard", "turnip", "peas", "green bean", "celery"],
+  "Fruit": ["banana", "apple", "orange", "lemon", "pear", "grape", "strawberry", "raspberry", "blueberry", "mango", "pineapple", "melon", "kiwi", "plum", "cherry", "cherry tomato"],
+  "Dairy": ["milk", "cheese", "yogurt", "yoghurt", "butter", "cream", "burrata", "mozzarella", "ricotta", "cottage cheese", "kefir", "parmesan"],
+  "Grains & Legumes": ["quinoa", "rice", "oats", "bread", "pasta", "chickpea", "lentil", "beans", "peas", "couscous", "bulgur", "wheat", "corn", "amaranth", "flour"],
+  "Condiments & Herbs": ["olive oil", "salt", "pepper", "garlic", "onion", "basil", "cilantro", "coriander", "parsley", "oregano", "thyme", "rosemary", "vinegar", "mustard", "sauce", "lemon", "ginger", "saffron", "paprika", "cinnamon", "honey"],
+  "Other": [],
 };
 
 export function guessCategory(ingredientName: string): IngredientCategory {
@@ -32,29 +32,29 @@ export function guessCategory(ingredientName: string): IngredientCategory {
       return category;
     }
   }
-  return "Outros";
+  return "Other";
 }
 
 // Category sort order for display
 export const CATEGORY_ORDER: IngredientCategory[] = [
-  "Peixe & Marisco",
-  "Carnes",
-  "Legumes",
-  "Fruta",
-  "Lacticínios",
-  "Cereais & Leguminosas",
-  "Condimentos & Ervas",
-  "Outros",
+  "Fish & Seafood",
+  "Meat",
+  "Vegetables",
+  "Fruit",
+  "Dairy",
+  "Grains & Legumes",
+  "Condiments & Herbs",
+  "Other",
 ];
 
 // Category emoji icons
 export const CATEGORY_ICONS: Record<IngredientCategory, string> = {
-  "Peixe & Marisco": "🐟",
-  "Carnes": "🥩",
-  "Legumes": "🥦",
-  "Fruta": "🍎",
-  "Lacticínios": "🧀",
-  "Cereais & Leguminosas": "🌾",
-  "Condimentos & Ervas": "🧄",
-  "Outros": "🛒",
+  "Fish & Seafood": "🐟",
+  "Meat": "🥩",
+  "Vegetables": "🥦",
+  "Fruit": "🍎",
+  "Dairy": "🧀",
+  "Grains & Legumes": "🌾",
+  "Condiments & Herbs": "🧄",
+  "Other": "🛒",
 };

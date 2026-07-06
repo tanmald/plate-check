@@ -48,7 +48,7 @@ export function ShoppingListView({ weekStartDate }: ShoppingListViewProps) {
   // Items with unknown category
   const otherItems = items.filter((i) => !CATEGORY_ORDER.includes(i.category as IngredientCategory));
   if (otherItems.length > 0) {
-    grouped["Outros"] = [...(grouped["Outros"] ?? []), ...otherItems];
+    grouped["Other"] = [...(grouped["Other"] ?? []), ...otherItems];
   }
 
   const handleToggle = (itemId: string, checked: boolean) => {
@@ -64,13 +64,13 @@ export function ShoppingListView({ weekStartDate }: ShoppingListViewProps) {
     if (!name || !list) return;
 
     addItem.mutate(
-      { listId: list.id, name, category: "Outros", quantity: null, weekStartDate },
+      { listId: list.id, name, category: "Other", quantity: null, weekStartDate },
       {
         onSuccess: () => {
           setNewItemName("");
-          toast.success("Item adicionado");
+          toast.success("Item added");
         },
-        onError: () => toast.error("Erro ao adicionar item"),
+        onError: () => toast.error("Failed to add item"),
       }
     );
   };
@@ -89,9 +89,9 @@ export function ShoppingListView({ weekStartDate }: ShoppingListViewProps) {
         <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto">
           <ShoppingCart className="w-8 h-8 text-muted-foreground" />
         </div>
-        <p className="font-medium">Sem lista para esta semana</p>
+        <p className="font-medium">No list for this week</p>
         <p className="text-sm text-muted-foreground">
-          Vai a "Esta Semana", planeia as refeições e toca em "Gerar lista de compras".
+          Go to "This Week", plan your meals, and tap "Generate shopping list".
         </p>
       </div>
     );
@@ -104,7 +104,7 @@ export function ShoppingListView({ weekStartDate }: ShoppingListViewProps) {
         <div>
           <p className="font-medium text-sm">{list.name}</p>
           <p className="text-xs text-muted-foreground">
-            {checkedCount}/{totalCount} comprado{checkedCount !== 1 ? "s" : ""}
+            {checkedCount}/{totalCount} bought
           </p>
         </div>
         <div className="flex gap-2">
@@ -115,7 +115,7 @@ export function ShoppingListView({ weekStartDate }: ShoppingListViewProps) {
             className="gap-1.5"
           >
             <Users className="w-3.5 h-3.5" />
-            Partilhar
+            Share
           </Button>
         </div>
       </div>
@@ -161,7 +161,7 @@ export function ShoppingListView({ weekStartDate }: ShoppingListViewProps) {
       {showAddForm ? (
         <div className="flex gap-2">
           <Input
-            placeholder="Adicionar item..."
+            placeholder="Add item..."
             value={newItemName}
             onChange={(e) => setNewItemName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleAddItem()}
@@ -175,7 +175,7 @@ export function ShoppingListView({ weekStartDate }: ShoppingListViewProps) {
             {addItem.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
           </Button>
           <Button variant="ghost" size="sm" onClick={() => { setShowAddForm(false); setNewItemName(""); }}>
-            Cancelar
+            Cancel
           </Button>
         </div>
       ) : (
@@ -186,7 +186,7 @@ export function ShoppingListView({ weekStartDate }: ShoppingListViewProps) {
           onClick={() => setShowAddForm(true)}
         >
           <Plus className="w-4 h-4 mr-1.5" />
-          Adicionar item
+          Add item
         </Button>
       )}
 
@@ -194,7 +194,7 @@ export function ShoppingListView({ weekStartDate }: ShoppingListViewProps) {
       {list.collaboratorIds.length > 0 && (
         <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-1">
           <span className="w-1.5 h-1.5 rounded-full bg-success inline-block" />
-          Lista em tempo real com {list.collaboratorIds.length} {list.collaboratorIds.length === 1 ? "pessoa" : "pessoas"}
+          Live list with {list.collaboratorIds.length} {list.collaboratorIds.length === 1 ? "other person" : "other people"}
         </p>
       )}
 

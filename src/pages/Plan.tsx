@@ -132,14 +132,14 @@ export default function Plan() {
       {/* Header */}
       <header className="bg-card border-b border-border safe-top">
         <div className="px-4 pt-4 pb-0">
-          <h1 className="text-2xl font-bold text-foreground">Plano</h1>
+          <h1 className="text-2xl font-bold text-foreground">Plan</h1>
 
           {/* Tab bar */}
           <div className="flex gap-1 mt-3">
             {([
-              { key: "plan",     label: "Meu Plano",    icon: FileText },
-              { key: "week",     label: "Esta Semana",  icon: CalendarDays },
-              { key: "shopping", label: "Compras",       icon: ShoppingCart },
+              { key: "plan",     label: "My Plan",    icon: FileText },
+              { key: "week",     label: "This Week",  icon: CalendarDays },
+              { key: "shopping", label: "Shopping",   icon: ShoppingCart },
             ] as { key: PlanTab; label: string; icon: React.ElementType }[]).map(({ key, label, icon: Icon }) => (
               <button
                 key={key}
@@ -167,12 +167,12 @@ export default function Plan() {
           ) : (
             <div className="text-center py-12 space-y-3">
               <CalendarDays className="w-12 h-12 text-muted-foreground mx-auto" />
-              <p className="font-medium">Importa primeiro o teu plano nutricional</p>
+              <p className="font-medium">Import your nutrition plan first</p>
               <p className="text-sm text-muted-foreground">
-                Para planear a ementa semanal precisas de um plano activo.
+                You need an active plan to plan out your weekly meals.
               </p>
               <Button variant="outline" size="sm" onClick={() => setActiveTab("plan")}>
-                Ir para Meu Plano
+                Go to My Plan
               </Button>
             </div>
           )
@@ -185,12 +185,12 @@ export default function Plan() {
           ) : (
             <div className="text-center py-12 space-y-3">
               <ShoppingCart className="w-12 h-12 text-muted-foreground mx-auto" />
-              <p className="font-medium">Importa primeiro o teu plano nutricional</p>
+              <p className="font-medium">Import your nutrition plan first</p>
               <p className="text-sm text-muted-foreground">
-                Precisas de um plano activo para gerar listas de compras.
+                You need an active plan to generate shopping lists.
               </p>
               <Button variant="outline" size="sm" onClick={() => setActiveTab("plan")}>
-                Ir para Meu Plano
+                Go to My Plan
               </Button>
             </div>
           )
