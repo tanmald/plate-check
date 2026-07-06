@@ -136,6 +136,7 @@ export type Database = {
           meal_type: string
           notes: string | null
           photo_path: string | null
+          plan_id: string | null
           scored_at: string | null
           scoring_result: Json | null
           status: string
@@ -153,6 +154,7 @@ export type Database = {
           meal_type: string
           notes?: string | null
           photo_path?: string | null
+          plan_id?: string | null
           scored_at?: string | null
           scoring_result?: Json | null
           status?: string
@@ -170,6 +172,7 @@ export type Database = {
           meal_type?: string
           notes?: string | null
           photo_path?: string | null
+          plan_id?: string | null
           scored_at?: string | null
           scoring_result?: Json | null
           status?: string
@@ -177,7 +180,15 @@ export type Database = {
           user_corrections?: Json | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "meal_logs_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "nutrition_plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       meal_options: {
         Row: {
