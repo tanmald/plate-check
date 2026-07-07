@@ -127,7 +127,7 @@ async function calculateStreak(userId: string): Promise<number> {
     .from("daily_progress")
     .select("date, daily_adherence_score")
     .eq("user_id", userId)
-    .gte("daily_adherence_score", 70) // On plan threshold
+    .gte("daily_adherence_score", 70) // Alignment threshold
     .order("date", { ascending: false })
     .limit(30);
 

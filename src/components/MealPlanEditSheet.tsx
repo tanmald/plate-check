@@ -9,18 +9,14 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/use-auth";
 import { isTestUser } from "@/lib/test-data";
 import { guessCategory } from "@/lib/ingredient-categories";
-
-const MEAL_LABELS: Record<MealType, string> = {
-  dinner:    "Jantar",
-  lunch:     "Almoço",
-  breakfast: "Pequeno-almoço",
-  snack:     "Lanche",
-};
+import { useTranslation } from "react-i18next";
 
 const MOCK_INGREDIENTS: Record<string, string[]> = {
   "salmão": ["salmão 200g", "quinoa 80g", "brócolos 150g", "azeite", "limão"],
   "frango": ["peito de frango 200g", "batata-doce 200g", "espinafres", "alho"],
   "bacalhau": ["bacalhau 200g", "grão de bico 150g", "cebola", "azeite", "coentros"],
+  "salmon": ["salmon 200g", "quinoa 80g", "broccoli 150g", "olive oil", "lemon"],
+  "chicken": ["chicken breast 200g", "sweet potato 200g", "spinach", "garlic"],
 };
 
 interface MealPlanEditSheetProps {
@@ -40,13 +36,15 @@ export function MealPlanEditSheet({
   onSave,
   isSaving,
 }: MealPlanEditSheetProps) {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [mealName, setMealName] = useState(existingEntry?.mealName ?? "");
   const [ingredients, setIngredients] = useState<string[]>(existingEntry?.ingredients ?? []);
   const [isExtracting, setIsExtracting] = useState(false);
   const [newIngredient, setNewIngredient] = useState("");
 
-  // Reset when opening with a different entry
+  const mealLabel = t(`mealSlot.${mealType}`);
+
   useEffect(() => {
     if (open) {
       setMealName(existingEntry?.mealName ?? "");
@@ -57,14 +55,13 @@ export function MealPlanEditSheet({
 
   const handleExtractIngredients = async () => {
     if (!mealName.trim()) {
-      toast.error("Escreve o nome da refeição primeiro");
+      toast.error(t("mealPlanEdit.error_no_name"));
       return;
     }
 
     setIsExtracting(true);
     try {
       if (isTestUser(user?.email)) {
-        // Mock extraction for test users
         await new Promise((r) => setTimeout(r, 1200));
         const lowerName = mealName.toLowerCase();
         let mockResult = ["ingrediente 1", "ingrediente 2", "azeite"];
@@ -85,14 +82,11 @@ export function MealPlanEditSheet({
               "Content-Type": "application/json",
               "Authorization": `Bearer ${session?.access_token}`,
             },
-            body: JSON.stringify({
-              mealName: mealName.trim(),
-              mealType,
-            }),
+            body: JSON.stringify({ mealName: mealName.trim(), mealType }),
           }
         );
 
-        if (!res.ok) throw new Error("Erro ao extrair ingredientes");
+        if (!res.ok) throw new Error("Extraction failed");
 
         const data = await res.json();
         const extracted: string[] = data.ingredients.map((i: { name: string; quantity: string }) =>
@@ -100,8 +94,8 @@ export function MealPlanEditSheet({
         );
         setIngredients(extracted);
       }
-    } catch (err) {
-      toast.error("Não foi possível extrair os ingredientes. Adiciona manualmente.");
+    } catch {
+      toast.error(t("mealPlanEdit.error_extract"));
     } finally {
       setIsExtracting(false);
     }
@@ -120,7 +114,7 @@ export function MealPlanEditSheet({
 
   const handleSave = () => {
     if (!mealName.trim()) {
-      toast.error("Escreve o nome da refeição");
+      toast.error(t("mealPlanEdit.error_no_name_save"));
       return;
     }
     onSave(mealName.trim(), ingredients);
@@ -130,15 +124,16 @@ export function MealPlanEditSheet({
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
       <SheetContent side="bottom" className="rounded-t-2xl max-h-[85vh] overflow-y-auto">
         <SheetHeader className="mb-4">
-          <SheetTitle>{existingEntry ? "Editar" : "Adicionar"} {MEAL_LABELS[mealType]}</SheetTitle>
+          <SheetTitle>
+            {existingEntry ? t("mealPlanEdit.edit") : t("mealPlanEdit.add")} {mealLabel}
+          </SheetTitle>
         </SheetHeader>
 
         <div className="space-y-4 pb-6">
-          {/* Meal name input */}
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Refeição</label>
+            <label className="text-sm font-medium">{t("mealPlanEdit.meal_label")}</label>
             <Input
-              placeholder={`Ex: Salmão grelhado com quinoa`}
+              placeholder={t("mealPlanEdit.meal_placeholder")}
               value={mealName}
               onChange={(e) => setMealName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && !ingredients.length && handleExtractIngredients()}
@@ -146,7 +141,6 @@ export function MealPlanEditSheet({
             />
           </div>
 
-          {/* AI extract button */}
           <Button
             variant="outline"
             size="sm"
@@ -157,20 +151,19 @@ export function MealPlanEditSheet({
             {isExtracting ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                A extrair ingredientes...
+                {t("mealPlanEdit.extracting")}
               </>
             ) : (
               <>
                 <Sparkles className="w-4 h-4 mr-2" />
-                {ingredients.length > 0 ? "Regenerar ingredientes com IA" : "Extrair ingredientes com IA"}
+                {ingredients.length > 0 ? t("mealPlanEdit.regenerate_btn") : t("mealPlanEdit.extract_btn")}
               </>
             )}
           </Button>
 
-          {/* Ingredients list */}
           {ingredients.length > 0 && (
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Ingredientes</label>
+              <label className="text-sm font-medium">{t("mealPlanEdit.ingredients_label")}</label>
               <div className="flex flex-wrap gap-2">
                 {ingredients.map((ing, idx) => (
                   <span
@@ -187,14 +180,13 @@ export function MealPlanEditSheet({
             </div>
           )}
 
-          {/* Manual ingredient add */}
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-muted-foreground">
-              {ingredients.length > 0 ? "Adicionar ingrediente" : "Ou adiciona manualmente"}
+              {ingredients.length > 0 ? t("mealPlanEdit.add_ingredient_label") : t("mealPlanEdit.add_manually_label")}
             </label>
             <div className="flex gap-2">
               <Input
-                placeholder="Ex: alho"
+                placeholder={t("mealPlanEdit.ingredient_placeholder")}
                 value={newIngredient}
                 onChange={(e) => setNewIngredient(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && addIngredient()}
@@ -205,7 +197,6 @@ export function MealPlanEditSheet({
             </div>
           </div>
 
-          {/* Save */}
           <Button
             className="w-full"
             size="lg"
@@ -215,10 +206,10 @@ export function MealPlanEditSheet({
             {isSaving ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                A guardar...
+                {t("mealPlanEdit.saving")}
               </>
             ) : (
-              "Guardar refeição"
+              t("mealPlanEdit.save_meal")
             )}
           </Button>
         </div>

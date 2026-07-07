@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress as ProgressBar } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { BottomNav } from "@/components/BottomNav";
 import { WeeklyChart } from "@/components/WeeklyChart";
 import { MealCard } from "@/components/MealCard";
 import { ProgressPageSkeleton } from "@/components/PageSkeletons";
@@ -12,8 +11,10 @@ import { useDailyProgress, useWeeklyProgress } from "@/hooks/use-progress";
 import { toast } from "sonner";
 import { TrendingUp, TrendingDown, Target, AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 export default function Progress() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<"daily" | "weekly">("daily");
   const { data: todayMeals = [], isLoading: mealsLoading } = useTodayMeals();
   const { data: dailyStats, isLoading: dailyLoading } = useDailyProgress();
@@ -27,53 +28,61 @@ export default function Progress() {
   const lastWeekAverage = 78;
   const trend = weeklyAverage - lastWeekAverage;
 
-  const handlePreviousDay = () => {
-    toast.info("Previous day navigation coming soon");
+  const handlePreviousDay = () => toast.info(t("common.coming_soon", "Previous day navigation coming soon"));
+  const handlePreviousWeek = () => toast.info(t("common.coming_soon", "Previous week navigation coming soon"));
+
+  const getScoreLabel = (score: number) => {
+    if (score >= 70) return t("progress.aligned");
+    if (score >= 40) return t("progress.needs_attention");
+    return t("progress.not_aligned");
   };
 
-  const handlePreviousWeek = () => {
-    toast.info("Previous week navigation coming soon");
-  };
+  const adherenceByMeal = [
+    { meal: t("log.breakfast"), adherence: 92, icon: "🌅" },
+    { meal: t("log.lunch"),     adherence: 78, icon: "☀️" },
+    { meal: t("log.dinner"),    adherence: 71, icon: "🌙" },
+    { meal: t("mealCard.snack"), adherence: 85, icon: "🍎" },
+  ];
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-6 md:pb-0">
       {/* Header */}
       <header className="bg-card border-b border-border safe-top">
         <div className="px-4 py-4">
-          <h1 className="text-2xl font-bold text-foreground">Progress</h1>
-          <p className="text-sm text-muted-foreground">Track your nutrition adherence</p>
+          <h1 className="text-2xl font-bold text-foreground">{t("progress.title")}</h1>
+          <p className="text-sm text-muted-foreground">{t("progress.subtitle")}</p>
         </div>
       </header>
 
       {/* Tab Toggle */}
       <div className="px-4 py-4 bg-card border-b border-border">
-        <div className="flex gap-2 p-1 bg-secondary rounded-xl max-w-lg mx-auto">
+        <div className="flex gap-2 p-1 bg-secondary rounded-xl max-w-2xl mx-auto">
           <button
             onClick={() => setActiveTab("daily")}
             className={cn(
               "flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all",
-              activeTab === "daily" 
-                ? "bg-card text-foreground shadow-sm" 
+              activeTab === "daily"
+                ? "bg-card text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
-            Daily Summary
+            {t("progress.tab_daily")}
           </button>
           <button
             onClick={() => setActiveTab("weekly")}
             className={cn(
               "flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all",
-              activeTab === "weekly" 
-                ? "bg-card text-foreground shadow-sm" 
+              activeTab === "weekly"
+                ? "bg-card text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
-            Weekly View
+            {t("progress.tab_weekly")}
           </button>
         </div>
       </div>
 
-      <main className="px-4 py-6 space-y-6 max-w-lg mx-auto">
+      <main className="px-4 py-6 space-y-6 max-w-2xl mx-auto">
         {isLoading ? (
           <ProgressPageSkeleton />
         ) : activeTab === "daily" ? (
@@ -84,7 +93,7 @@ export default function Progress() {
                 <ChevronLeft className="w-5 h-5" />
               </Button>
               <div className="text-center">
-                <p className="font-semibold">Today</p>
+                <p className="font-semibold">{t("progress.today")}</p>
                 <p className="text-sm text-muted-foreground">Sunday, Jan 5</p>
               </div>
               <Button variant="ghost" size="icon" disabled>
@@ -103,23 +112,22 @@ export default function Progress() {
                   (dailyStats?.dailyScore || 0) >= 70 ? "text-success" :
                   (dailyStats?.dailyScore || 0) >= 40 ? "text-warning" : "text-destructive"
                 )}>
-                  {(dailyStats?.dailyScore || 0) >= 70 ? "On plan" :
-                   (dailyStats?.dailyScore || 0) >= 40 ? "Needs attention" : "Off plan"}
+                  {getScoreLabel(dailyStats?.dailyScore || 0)}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {dailyStats?.mealsLogged || 0} of {dailyStats?.totalMeals || 4} meals logged
+                  {t("progress.meals_logged", { logged: dailyStats?.mealsLogged || 0, total: dailyStats?.totalMeals || 4 })}
                 </p>
               </CardContent>
             </Card>
 
             {/* Today's Meals */}
             <div className="animate-fade-up animate-delay-100">
-              <h2 className="text-lg font-semibold mb-4">Today's Meals</h2>
+              <h2 className="text-lg font-semibold mb-4">{t("progress.todays_meals")}</h2>
               <div className="space-y-3">
                 {todayMeals.map((meal, idx) => (
-                  <Link 
-                    key={meal.id} 
-                    to="/meal-result" 
+                  <Link
+                    key={meal.id}
+                    to="/meal-result"
                     state={{ mealType: meal.type }}
                     className="block animate-fade-up"
                     style={{ animationDelay: `${(idx + 2) * 100}ms` }}
@@ -136,8 +144,8 @@ export default function Progress() {
                         <span className="text-2xl opacity-50">🌙</span>
                       </div>
                       <div className="flex-1">
-                        <p className="font-medium text-muted-foreground">Dinner</p>
-                        <p className="text-sm text-muted-foreground">Not logged yet</p>
+                        <p className="font-medium text-muted-foreground">{t("progress.dinner_pending")}</p>
+                        <p className="text-sm text-muted-foreground">{t("progress.not_logged")}</p>
                       </div>
                     </div>
                   </CardContent>
@@ -148,21 +156,21 @@ export default function Progress() {
             {/* Daily Insights */}
             <Card className="card-shadow animate-fade-up animate-delay-400">
               <CardHeader className="pb-2">
-                <CardTitle className="text-base">Today's Insights</CardTitle>
+                <CardTitle className="text-base">{t("progress.todays_insights")}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-start gap-3 p-3 bg-success/10 rounded-lg">
                   <CheckCircle2 className="w-5 h-5 text-success mt-0.5" />
                   <div>
-                    <p className="font-medium text-sm">Great breakfast choice</p>
-                    <p className="text-xs text-muted-foreground">Matched all required food groups</p>
+                    <p className="font-medium text-sm">{t("progress.insight_breakfast_title")}</p>
+                    <p className="text-xs text-muted-foreground">{t("progress.insight_breakfast_desc")}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3 p-3 bg-warning/10 rounded-lg">
                   <AlertCircle className="w-5 h-5 text-warning mt-0.5" />
                   <div>
-                    <p className="font-medium text-sm">Lunch dressing swap suggested</p>
-                    <p className="text-xs text-muted-foreground">Try olive oil instead of Caesar next time</p>
+                    <p className="font-medium text-sm">{t("progress.insight_lunch_title")}</p>
+                    <p className="text-xs text-muted-foreground">{t("progress.insight_lunch_desc")}</p>
                   </div>
                 </div>
               </CardContent>
@@ -176,7 +184,7 @@ export default function Progress() {
                 <ChevronLeft className="w-5 h-5" />
               </Button>
               <div className="text-center">
-                <p className="font-semibold">This Week</p>
+                <p className="font-semibold">{t("progress.this_week")}</p>
                 <p className="text-sm text-muted-foreground">Dec 30 - Jan 5</p>
               </div>
               <Button variant="ghost" size="icon" disabled>
@@ -188,13 +196,13 @@ export default function Progress() {
             <Card className="card-shadow animate-fade-up">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-base">Daily Adherence</CardTitle>
+                  <CardTitle className="text-base">{t("progress.daily_adherence")}</CardTitle>
                   <div className={cn(
                     "flex items-center gap-1 text-sm font-medium",
                     trend >= 0 ? "text-success" : "text-destructive"
                   )}>
                     {trend >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-                    {trend >= 0 ? "+" : ""}{trend}% vs last week
+                    {t("progress.vs_last_week", { sign: trend >= 0 ? "+" : "", diff: trend })}
                   </div>
                 </div>
               </CardHeader>
@@ -211,17 +219,17 @@ export default function Progress() {
                     <Target className="w-6 h-6 text-primary" />
                   </div>
                   <p className="text-3xl font-bold text-primary">{weeklyAverage}%</p>
-                  <p className="text-sm text-muted-foreground">Weekly Average</p>
+                  <p className="text-sm text-muted-foreground">{t("progress.weekly_average")}</p>
                 </CardContent>
               </Card>
-              
+
               <Card className="card-shadow animate-fade-up animate-delay-200 hover-lift">
                 <CardContent className="p-4 text-center">
                   <div className="w-12 h-12 rounded-full bg-warning/10 flex items-center justify-center mx-auto mb-2">
                     <AlertCircle className="w-6 h-6 text-warning" />
                   </div>
                   <p className="text-3xl font-bold text-warning">{offPlanPercentage}%</p>
-                  <p className="text-sm text-muted-foreground">Off-Plan Days</p>
+                  <p className="text-sm text-muted-foreground">{t("progress.off_plan_days")}</p>
                 </CardContent>
               </Card>
             </div>
@@ -229,17 +237,12 @@ export default function Progress() {
             {/* Plan Adherence Breakdown */}
             <Card className="card-shadow animate-fade-up animate-delay-300">
               <CardHeader className="pb-2">
-                <CardTitle className="text-base">Adherence by Meal</CardTitle>
+                <CardTitle className="text-base">{t("progress.adherence_by_meal")}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {[
-                  { meal: "Breakfast", adherence: 92, icon: "🌅" },
-                  { meal: "Lunch", adherence: 78, icon: "☀️" },
-                  { meal: "Dinner", adherence: 71, icon: "🌙" },
-                  { meal: "Snacks", adherence: 85, icon: "🍎" },
-                ].map((item, idx) => (
-                  <div 
-                    key={item.meal} 
+                {adherenceByMeal.map((item, idx) => (
+                  <div
+                    key={item.meal}
                     className="space-y-2 animate-fade-up"
                     style={{ animationDelay: `${(idx + 4) * 100}ms` }}
                   >
@@ -255,8 +258,8 @@ export default function Progress() {
                         {item.adherence}%
                       </span>
                     </div>
-                    <ProgressBar 
-                      value={item.adherence} 
+                    <ProgressBar
+                      value={item.adherence}
                       status={item.adherence >= 70 ? "high" : item.adherence >= 50 ? "medium" : "low"}
                     />
                   </div>
@@ -267,21 +270,21 @@ export default function Progress() {
             {/* Weekly Insights */}
             <Card className="card-shadow animate-fade-up animate-delay-400">
               <CardHeader className="pb-2">
-                <CardTitle className="text-base">Weekly Insights</CardTitle>
+                <CardTitle className="text-base">{t("progress.weekly_insights")}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-start gap-3 p-3 bg-success/10 rounded-lg">
                   <CheckCircle2 className="w-5 h-5 text-success mt-0.5" />
                   <div>
-                    <p className="font-medium text-sm">Strong breakfast routine</p>
-                    <p className="text-xs text-muted-foreground">Consistent morning meals all week</p>
+                    <p className="font-medium text-sm">{t("progress.insight_weekly_1_title")}</p>
+                    <p className="text-xs text-muted-foreground">{t("progress.insight_weekly_1_desc")}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3 p-3 bg-warning/10 rounded-lg">
                   <AlertCircle className="w-5 h-5 text-warning mt-0.5" />
                   <div>
-                    <p className="font-medium text-sm">Friday was off-plan</p>
-                    <p className="text-xs text-muted-foreground">Social dining - marked as exception</p>
+                    <p className="font-medium text-sm">{t("progress.insight_weekly_2_title")}</p>
+                    <p className="text-xs text-muted-foreground">{t("progress.insight_weekly_2_desc")}</p>
                   </div>
                 </div>
               </CardContent>
@@ -293,12 +296,11 @@ export default function Progress() {
         {!isLoading && (
           <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
             <Info className="w-3 h-3" />
-            <span>Wellness support, not medical advice</span>
+            <span>{t("common.wellness_note")}</span>
           </div>
         )}
       </main>
 
-      <BottomNav />
     </div>
   );
 }

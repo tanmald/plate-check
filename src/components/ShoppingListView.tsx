@@ -14,12 +14,14 @@ import {
 } from "@/hooks/use-shopping-list";
 import { CATEGORY_ORDER, CATEGORY_ICONS } from "@/lib/ingredient-categories";
 import type { IngredientCategory } from "@/lib/ingredient-categories";
+import { useTranslation } from "react-i18next";
 
 interface ShoppingListViewProps {
   weekStartDate: string;
 }
 
 export function ShoppingListView({ weekStartDate }: ShoppingListViewProps) {
+  const { t } = useTranslation();
   const { data, isLoading } = useShoppingList(weekStartDate);
   const [shareOpen, setShareOpen] = useState(false);
   const [newItemName, setNewItemName] = useState("");
@@ -29,7 +31,6 @@ export function ShoppingListView({ weekStartDate }: ShoppingListViewProps) {
   const addItem = useAddShoppingItem();
   const removeItem = useRemoveShoppingItem();
 
-  // Subscribe to real-time updates
   useShoppingListRealtime(data?.list?.id);
 
   const list = data?.list ?? null;
@@ -38,14 +39,12 @@ export function ShoppingListView({ weekStartDate }: ShoppingListViewProps) {
   const checkedCount = items.filter((i) => i.checked).length;
   const totalCount = items.length;
 
-  // Group items by category
   const grouped = CATEGORY_ORDER.reduce<Record<string, typeof items>>((acc, cat) => {
     const catItems = items.filter((i) => i.category === cat);
     if (catItems.length > 0) acc[cat] = catItems;
     return acc;
   }, {});
 
-  // Items with unknown category
   const otherItems = items.filter((i) => !CATEGORY_ORDER.includes(i.category as IngredientCategory));
   if (otherItems.length > 0) {
     grouped["Outros"] = [...(grouped["Outros"] ?? []), ...otherItems];
@@ -68,9 +67,9 @@ export function ShoppingListView({ weekStartDate }: ShoppingListViewProps) {
       {
         onSuccess: () => {
           setNewItemName("");
-          toast.success("Item adicionado");
+          toast.success(t("shopping.item_added"));
         },
-        onError: () => toast.error("Erro ao adicionar item"),
+        onError: () => toast.error(t("shopping.error_add")),
       }
     );
   };
@@ -89,10 +88,8 @@ export function ShoppingListView({ weekStartDate }: ShoppingListViewProps) {
         <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto">
           <ShoppingCart className="w-8 h-8 text-muted-foreground" />
         </div>
-        <p className="font-medium">Sem lista para esta semana</p>
-        <p className="text-sm text-muted-foreground">
-          Vai a "Esta Semana", planeia as refeições e toca em "Gerar lista de compras".
-        </p>
+        <p className="font-medium">{t("shopping.empty_title")}</p>
+        <p className="text-sm text-muted-foreground">{t("shopping.empty_desc")}</p>
       </div>
     );
   }
@@ -104,18 +101,13 @@ export function ShoppingListView({ weekStartDate }: ShoppingListViewProps) {
         <div>
           <p className="font-medium text-sm">{list.name}</p>
           <p className="text-xs text-muted-foreground">
-            {checkedCount}/{totalCount} comprado{checkedCount !== 1 ? "s" : ""}
+            {checkedCount}/{totalCount} {t("shopping.bought", { checked: checkedCount, total: totalCount, plural: checkedCount !== 1 ? "s" : "" })}
           </p>
         </div>
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShareOpen(true)}
-            className="gap-1.5"
-          >
+          <Button variant="outline" size="sm" onClick={() => setShareOpen(true)} className="gap-1.5">
             <Users className="w-3.5 h-3.5" />
-            Partilhar
+            {t("shopping.share")}
           </Button>
         </div>
       </div>
@@ -161,32 +153,23 @@ export function ShoppingListView({ weekStartDate }: ShoppingListViewProps) {
       {showAddForm ? (
         <div className="flex gap-2">
           <Input
-            placeholder="Adicionar item..."
+            placeholder={t("shopping.add_item_placeholder")}
             value={newItemName}
             onChange={(e) => setNewItemName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleAddItem()}
             autoFocus
           />
-          <Button
-            size="sm"
-            onClick={handleAddItem}
-            disabled={!newItemName.trim() || addItem.isPending}
-          >
+          <Button size="sm" onClick={handleAddItem} disabled={!newItemName.trim() || addItem.isPending}>
             {addItem.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
           </Button>
           <Button variant="ghost" size="sm" onClick={() => { setShowAddForm(false); setNewItemName(""); }}>
-            Cancelar
+            {t("shopping.cancel")}
           </Button>
         </div>
       ) : (
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full"
-          onClick={() => setShowAddForm(true)}
-        >
+        <Button variant="outline" size="sm" className="w-full" onClick={() => setShowAddForm(true)}>
           <Plus className="w-4 h-4 mr-1.5" />
-          Adicionar item
+          {t("shopping.add_item_btn")}
         </Button>
       )}
 
@@ -194,11 +177,12 @@ export function ShoppingListView({ weekStartDate }: ShoppingListViewProps) {
       {list.collaboratorIds.length > 0 && (
         <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-1">
           <span className="w-1.5 h-1.5 rounded-full bg-success inline-block" />
-          Lista em tempo real com {list.collaboratorIds.length} {list.collaboratorIds.length === 1 ? "pessoa" : "pessoas"}
+          {list.collaboratorIds.length === 1
+            ? t("shopping.realtime_with", { count: list.collaboratorIds.length })
+            : t("shopping.realtime_with_plural", { count: list.collaboratorIds.length })}
         </p>
       )}
 
-      {/* Share sheet */}
       {list && (
         <ShareListSheet
           open={shareOpen}

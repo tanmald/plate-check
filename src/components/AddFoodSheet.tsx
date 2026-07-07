@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { FOOD_CATEGORIES, generateFoodId, type EditableFood } from "@/lib/scoring";
+import { useTranslation } from "react-i18next";
 
 interface AddFoodSheetProps {
   open: boolean;
@@ -26,6 +27,7 @@ interface AddFoodSheetProps {
 }
 
 export function AddFoodSheet({ open, onOpenChange, onAddFood }: AddFoodSheetProps) {
+  const { t } = useTranslation();
   const [name, setName] = useState("");
   const [category, setCategory] = useState<string>("Other");
   const [matched, setMatched] = useState(true);
@@ -42,8 +44,6 @@ export function AddFoodSheet({ open, onOpenChange, onAddFood }: AddFoodSheetProp
     };
 
     onAddFood(newFood);
-    
-    // Reset form
     setName("");
     setCategory("Other");
     setMatched(true);
@@ -52,7 +52,6 @@ export function AddFoodSheet({ open, onOpenChange, onAddFood }: AddFoodSheetProp
 
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen) {
-      // Reset form when closing
       setName("");
       setCategory("Other");
       setMatched(true);
@@ -64,26 +63,24 @@ export function AddFoodSheet({ open, onOpenChange, onAddFood }: AddFoodSheetProp
     <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent side="bottom" className="h-auto max-h-[85vh] rounded-t-2xl">
         <SheetHeader className="text-left">
-          <SheetTitle>Add Food</SheetTitle>
-          <SheetDescription>
-            Add a food item that wasn't detected
-          </SheetDescription>
+          <SheetTitle>{t("addFood.title")}</SheetTitle>
+          <SheetDescription>{t("addFood.desc")}</SheetDescription>
         </SheetHeader>
 
         <div className="space-y-4 py-6">
           <div className="space-y-2">
-            <label className="text-sm font-medium">Food name</label>
+            <label className="text-sm font-medium">{t("addFood.food_name")}</label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g., Grilled salmon"
+              placeholder={t("addFood.food_placeholder")}
               className="h-12"
               autoFocus
             />
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Category</label>
+            <label className="text-sm font-medium">{t("addFood.category")}</label>
             <Select value={category} onValueChange={setCategory}>
               <SelectTrigger className="h-12">
                 <SelectValue />
@@ -100,22 +97,15 @@ export function AddFoodSheet({ open, onOpenChange, onAddFood }: AddFoodSheetProp
 
           <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-xl">
             <div>
-              <p className="font-medium text-sm">Matches plan</p>
-              <p className="text-xs text-muted-foreground">
-                Does this food fit your nutrition plan?
-              </p>
+              <p className="font-medium text-sm">{t("addFood.matches_plan")}</p>
+              <p className="text-xs text-muted-foreground">{t("addFood.matches_plan_desc")}</p>
             </div>
             <Switch checked={matched} onCheckedChange={setMatched} />
           </div>
 
-          <Button
-            size="lg"
-            className="w-full mt-4"
-            onClick={handleAdd}
-            disabled={!name.trim()}
-          >
+          <Button size="lg" className="w-full mt-4" onClick={handleAdd} disabled={!name.trim()}>
             <Plus className="w-5 h-5 mr-2" />
-            Add Food
+            {t("addFood.add_button")}
           </Button>
         </div>
       </SheetContent>

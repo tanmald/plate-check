@@ -14,11 +14,10 @@ import {
   WeeklyPlanEntry,
 } from "@/hooks/use-weekly-plan";
 import { useGenerateShoppingList } from "@/hooks/use-shopping-list";
-import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
-// Displayed meal types per day in order (dinner first = priority)
 const MEAL_TYPES: MealType[] = ["dinner", "lunch", "breakfast", "snack"];
-const COLLAPSED_TYPES: MealType[] = ["snack"]; // hidden by default, shown on toggle
+const COLLAPSED_TYPES: MealType[] = ["snack"];
 
 function getPreviousWeek(dateStr: string): string {
   const d = new Date(dateStr + "T00:00:00");
@@ -52,14 +51,14 @@ interface WeeklyPlannerProps {
 }
 
 export function WeeklyPlanner({ onShoppingListGenerated }: WeeklyPlannerProps) {
+  const { t } = useTranslation();
   const today = new Date();
   const currentWeekStart = getWeekStartDate(today);
 
   const [weekStartDate, setWeekStartDate] = useState(currentWeekStart);
   const [selectedDay, setSelectedDay] = useState(() => {
-    // Default to today's day-of-week (0=Mon), clamped to current week
     const day = today.getDay();
-    return day === 0 ? 6 : day - 1; // convert JS Sunday=0 to Mon=0
+    return day === 0 ? 6 : day - 1;
   });
   const [editState, setEditState] = useState<EditState | null>(null);
   const [showSnacks, setShowSnacks] = useState(false);
@@ -91,10 +90,10 @@ export function WeeklyPlanner({ onShoppingListGenerated }: WeeklyPlannerProps) {
       },
       {
         onSuccess: () => {
-          toast.success("Refeição guardada");
+          toast.success(t("weeklyPlanner.meal_saved"));
           setEditState(null);
         },
-        onError: () => toast.error("Erro ao guardar. Tenta de novo."),
+        onError: () => toast.error(t("weeklyPlanner.error_save")),
       }
     );
   };
@@ -103,30 +102,26 @@ export function WeeklyPlanner({ onShoppingListGenerated }: WeeklyPlannerProps) {
     deleteEntry.mutate(
       { entryId: entry.id, weekStartDate },
       {
-        onSuccess: () => toast.success("Refeição removida"),
-        onError: () => toast.error("Erro ao remover"),
+        onSuccess: () => toast.success(t("weeklyPlanner.meal_removed")),
+        onError: () => toast.error(t("weeklyPlanner.error_delete")),
       }
     );
   };
 
   const handleGenerateShoppingList = () => {
     if (!plan || plan.entries.length === 0) {
-      toast.error("Adiciona pelo menos uma refeição antes de gerar a lista");
+      toast.error(t("weeklyPlanner.error_min_meal"));
       return;
     }
 
     generateList.mutate(
-      {
-        weekStartDate,
-        weeklyPlanId: plan.id,
-        entries: plan.entries,
-      },
+      { weekStartDate, weeklyPlanId: plan.id, entries: plan.entries },
       {
         onSuccess: () => {
-          toast.success("Lista de compras gerada!");
+          toast.success(t("weeklyPlanner.list_generated"));
           onShoppingListGenerated?.();
         },
-        onError: () => toast.error("Erro ao gerar a lista. Tenta de novo."),
+        onError: () => toast.error(t("weeklyPlanner.error_generate")),
       }
     );
   };
@@ -147,7 +142,7 @@ export function WeeklyPlanner({ onShoppingListGenerated }: WeeklyPlannerProps) {
         <div className="text-center">
           <p className="text-sm font-medium">{formatWeekRange(weekStartDate)}</p>
           {weekStartDate === currentWeekStart && (
-            <p className="text-xs text-primary">Esta semana</p>
+            <p className="text-xs text-primary">{t("weeklyPlanner.this_week")}</p>
           )}
         </div>
         <button
@@ -158,7 +153,6 @@ export function WeeklyPlanner({ onShoppingListGenerated }: WeeklyPlannerProps) {
         </button>
       </div>
 
-      {/* Day strip */}
       <DayStrip
         weekStartDate={weekStartDate}
         selectedDay={selectedDay}
@@ -166,14 +160,12 @@ export function WeeklyPlanner({ onShoppingListGenerated }: WeeklyPlannerProps) {
         entries={plan?.entries ?? []}
       />
 
-      {/* Loading */}
       {isLoading ? (
         <div className="flex justify-center py-10">
           <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
         </div>
       ) : (
         <div className="space-y-2">
-          {/* Dinner always first and prominent */}
           <MealSlotCard
             mealType="dinner"
             entry={getEntry("dinner")}
@@ -182,7 +174,6 @@ export function WeeklyPlanner({ onShoppingListGenerated }: WeeklyPlannerProps) {
             onDelete={() => { const e = getEntry("dinner"); if (e) handleDeleteEntry(e); }}
           />
 
-          {/* Lunch and breakfast */}
           {(["lunch", "breakfast"] as MealType[]).map((mt) => (
             <MealSlotCard
               key={mt}
@@ -194,7 +185,6 @@ export function WeeklyPlanner({ onShoppingListGenerated }: WeeklyPlannerProps) {
             />
           ))}
 
-          {/* Snack: collapsed by default */}
           {showSnacks ? (
             <div className="space-y-2">
               <MealSlotCard
@@ -208,7 +198,7 @@ export function WeeklyPlanner({ onShoppingListGenerated }: WeeklyPlannerProps) {
                 onClick={() => setShowSnacks(false)}
                 className="text-xs text-muted-foreground hover:text-foreground transition-colors w-full text-center py-1"
               >
-                Ocultar lanches
+                {t("weeklyPlanner.hide_snacks")}
               </button>
             </div>
           ) : (
@@ -216,18 +206,20 @@ export function WeeklyPlanner({ onShoppingListGenerated }: WeeklyPlannerProps) {
               onClick={() => setShowSnacks(true)}
               className="text-xs text-muted-foreground hover:text-foreground transition-colors w-full text-center py-1"
             >
-              + Ver lanches
+              {t("weeklyPlanner.show_snacks")}
             </button>
           )}
         </div>
       )}
 
-      {/* Summary + generate button */}
       {totalMeals > 0 && (
         <div className="pt-2 border-t border-border">
           <div className="flex items-center justify-between mb-3">
             <p className="text-xs text-muted-foreground">
-              {totalMeals} {totalMeals === 1 ? "refeição" : "refeições"} em {totalDays} {totalDays === 1 ? "dia" : "dias"}
+              {totalMeals} {totalMeals === 1 ? t("weeklyPlanner.meal_singular") : t("weeklyPlanner.meal_plural")}{" "}
+              {totalDays === 1
+                ? `${t("weeklyPlanner.day_singular") === "dia" ? "em" : "in"} ${totalDays} ${t("weeklyPlanner.day_singular")}`
+                : `${t("weeklyPlanner.day_singular") === "dia" ? "em" : "in"} ${totalDays} ${t("weeklyPlanner.day_plural")}`}
             </p>
           </div>
           <Button
@@ -238,19 +230,18 @@ export function WeeklyPlanner({ onShoppingListGenerated }: WeeklyPlannerProps) {
             {generateList.isPending ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                A gerar lista...
+                {t("weeklyPlanner.generating")}
               </>
             ) : (
               <>
                 <ShoppingCart className="w-4 h-4 mr-2" />
-                Gerar lista de compras
+                {t("weeklyPlanner.generate_list")}
               </>
             )}
           </Button>
         </div>
       )}
 
-      {/* Edit sheet */}
       {editState && (
         <MealPlanEditSheet
           open={!!editState}

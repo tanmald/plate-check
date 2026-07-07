@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { type EditableFood, FOOD_CATEGORIES } from "@/lib/scoring";
+import { useTranslation } from "react-i18next";
 
 interface FoodItemEditorProps {
   food: EditableFood;
@@ -26,6 +27,7 @@ export function FoodItemEditor({
   onDelete,
   onUndo,
 }: FoodItemEditorProps) {
+  const { t } = useTranslation();
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(food.name);
   const [editCategory, setEditCategory] = useState(food.category);
@@ -62,7 +64,7 @@ export function FoodItemEditor({
           onClick={onUndo}
           className="text-primary h-8 px-3"
         >
-          Undo
+          {t("foodEditor.undo")}
         </Button>
       </div>
     );
@@ -74,12 +76,12 @@ export function FoodItemEditor({
       <div className="p-4 rounded-xl bg-secondary/50 border border-border space-y-3 animate-scale-in">
         <div className="space-y-2">
           <label className="text-xs font-medium text-muted-foreground">
-            Food name
+            {t("foodEditor.food_name")}
           </label>
           <Input
             value={editName}
             onChange={(e) => setEditName(e.target.value)}
-            placeholder="Food name"
+            placeholder={t("foodEditor.food_placeholder")}
             className="h-10"
             autoFocus
           />
@@ -87,7 +89,7 @@ export function FoodItemEditor({
 
         <div className="space-y-2">
           <label className="text-xs font-medium text-muted-foreground">
-            Category
+            {t("foodEditor.category")}
           </label>
           <Select value={editCategory} onValueChange={setEditCategory}>
             <SelectTrigger className="h-10">
@@ -114,7 +116,7 @@ export function FoodItemEditor({
               htmlFor="matched-toggle"
               className="text-sm text-muted-foreground cursor-pointer"
             >
-              Matches plan
+              {t("foodEditor.matches_plan")}
             </label>
           </div>
         </div>
@@ -127,7 +129,7 @@ export function FoodItemEditor({
             className="flex-1"
           >
             <X className="w-4 h-4 mr-1" />
-            Cancel
+            {t("foodEditor.cancel")}
           </Button>
           <Button
             size="sm"
@@ -136,7 +138,7 @@ export function FoodItemEditor({
             disabled={!editName.trim()}
           >
             <Check className="w-4 h-4 mr-1" />
-            Save
+            {t("foodEditor.save")}
           </Button>
         </div>
       </div>

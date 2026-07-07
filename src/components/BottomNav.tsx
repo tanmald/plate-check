@@ -2,20 +2,21 @@ import { NavLink } from "react-router-dom";
 import { Home, FileText, Camera, BarChart3, Settings } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 type NavItem = {
   to: string;
   icon: LucideIcon;
-  label: string;
+  labelKey: string;
   isCenter?: boolean;
 };
 
 const NAV_ITEMS: NavItem[] = [
-  { to: "/", icon: Home, label: "Home" },
-  { to: "/plan", icon: FileText, label: "Plan" },
-  { to: "/log", icon: Camera, label: "Log", isCenter: true },
-  { to: "/progress", icon: BarChart3, label: "Progress" },
-  { to: "/settings", icon: Settings, label: "Settings" },
+  { to: "/",         icon: Home,     labelKey: "nav.home" },
+  { to: "/plan",     icon: FileText, labelKey: "nav.plan" },
+  { to: "/log",      icon: Camera,   labelKey: "nav.log",      isCenter: true },
+  { to: "/progress", icon: BarChart3,labelKey: "nav.progress" },
+  { to: "/settings", icon: Settings, labelKey: "nav.settings" },
 ];
 
 const CenterNavIcon = ({ icon: Icon, isActive }: { icon: LucideIcon; isActive: boolean }) => (
@@ -36,11 +37,13 @@ const SideNavIcon = ({ icon: Icon }: { icon: LucideIcon }) => (
 function NavItemContent({
   item,
   isActive,
+  label,
 }: {
   item: NavItem;
   isActive: boolean;
+  label: string;
 }) {
-  const { icon: Icon, label, isCenter } = item;
+  const { icon: Icon, isCenter } = item;
 
   if (isCenter) {
     return (
@@ -67,6 +70,9 @@ function NavItemContent({
 }
 
 function NavItemLink({ item }: { item: NavItem }) {
+  const { t } = useTranslation();
+  const label = t(item.labelKey);
+
   return (
     <NavLink
       key={item.to}
@@ -80,7 +86,7 @@ function NavItemLink({ item }: { item: NavItem }) {
         )
       }
     >
-      {({ isActive }) => <NavItemContent item={item} isActive={isActive} />}
+      {({ isActive }) => <NavItemContent item={item} isActive={isActive} label={label} />}
     </NavLink>
   );
 }
@@ -92,21 +98,16 @@ export function BottomNav() {
   const rightItems = NAV_ITEMS.slice(centerIndex + 1);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border safe-bottom z-50">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border safe-bottom z-50">
       <div className="relative flex items-center justify-between px-2 h-16 w-full">
-        {/* Left items */}
         <div className="flex items-center justify-around flex-1 pr-8">
           {leftItems.map((item) => (
             <NavItemLink key={item.to} item={item} />
           ))}
         </div>
-
-        {/* Center item - absolutely positioned */}
         <div className="absolute left-1/2 transform -translate-x-1/2 -translate-y-2">
           <NavItemLink item={centerItem} />
         </div>
-
-        {/* Right items */}
         <div className="flex items-center justify-around flex-1 pl-8">
           {rightItems.map((item) => (
             <NavItemLink key={item.to} item={item} />

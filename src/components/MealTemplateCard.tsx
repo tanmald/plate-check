@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { FoodTagGroup } from "@/components/FoodTagGroup";
 import { ChevronDown, Clock, Flame, Dumbbell, Zap, ArrowRight, Edit2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 // Meal type gradient themes
 const mealGradients = {
@@ -60,6 +61,7 @@ export function MealTemplateCard({
   onEdit,
   animationDelay = 0,
 }: MealTemplateCardProps) {
+  const { t } = useTranslation();
   const gradientClass = getMealGradient(template.name);
 
   return (
@@ -92,13 +94,13 @@ export function MealTemplateCard({
                   <h3 className="font-semibold text-foreground">{template.name}</h3>
                   {template.isOptional && (
                     <span className="px-2 py-0.5 bg-warning/20 text-warning text-xs rounded-full font-medium">
-                      OPTIONAL
+                      {t("mealTemplate.optional")}
                     </span>
                   )}
                   {template.isPreWorkout && (
                     <span className="px-2 py-0.5 bg-accent/20 text-accent text-xs rounded-full font-medium flex items-center gap-1">
                       <Zap className="w-3 h-3" />
-                      PRE-WORKOUT
+                      {t("mealTemplate.pre_workout")}
                     </span>
                   )}
                 </div>
@@ -152,7 +154,7 @@ export function MealTemplateCard({
               {template.referencesMeal && (
                 <div className="mb-4 p-3 bg-muted/50 rounded-lg flex items-center gap-2">
                   <ArrowRight className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Same rules as</span>
+                  <span className="text-sm text-muted-foreground">{t("mealTemplate.same_rules_as")}</span>
                   <span className="text-sm font-medium">{template.referencesMeal}</span>
                 </div>
               )}
@@ -161,7 +163,7 @@ export function MealTemplateCard({
               {template.options && template.options.length > 0 && (
                 <div className="mb-4">
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">
-                    Choose 1 Option
+                    {t("mealTemplate.choose_option")}
                   </p>
                   <div className="space-y-2">
                     {template.options.map((option, idx) => (
@@ -199,7 +201,7 @@ export function MealTemplateCard({
               {/* Food tag groups */}
               {template.requiredFoods.length > 0 && (
                 <FoodTagGroup
-                  label="Required"
+                  label={t("mealTemplate.required")}
                   foods={template.requiredFoods}
                   type="required"
                   maxVisible={6}
@@ -208,7 +210,7 @@ export function MealTemplateCard({
 
               {template.allowedFoods.length > 0 && (
                 <FoodTagGroup
-                  label="Allowed Foods"
+                  label={t("mealTemplate.allowed_foods")}
                   foods={template.allowedFoods}
                   type="allowed"
                   maxVisible={6}
@@ -217,7 +219,7 @@ export function MealTemplateCard({
 
               {template.optionalAddons && template.optionalAddons.length > 0 && (
                 <FoodTagGroup
-                  label="Optional Add-ons"
+                  label={t("mealTemplate.optional_addons")}
                   foods={template.optionalAddons}
                   type="optional"
                   maxVisible={6}
@@ -236,7 +238,7 @@ export function MealTemplateCard({
                   }}
                 >
                   <Edit2 className="w-4 h-4 mr-2" />
-                  Edit Template
+                  {t("mealTemplate.edit_template")}
                 </Button>
               )}
             </div>
