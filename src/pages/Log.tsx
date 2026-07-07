@@ -8,6 +8,7 @@ import { CameraView } from "@/components/CameraView";
 import { cn } from "@/lib/utils";
 import { useCreateMealLog, MealLogResult } from "@/hooks/use-meals";
 import { useAuth } from "@/hooks/use-auth";
+import { useNutritionPlan } from "@/hooks/use-nutrition-plan";
 import posthog from "@/lib/posthog";
 
 type Step = "select" | "capture" | "analyzing";
@@ -30,6 +31,7 @@ export default function Log() {
 
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const createMealLog = useCreateMealLog();
+  const { data: planData } = useNutritionPlan();
 
   const handleMealSelect = (mealId: string) => {
     setSelectedMealType(mealId);
@@ -55,6 +57,7 @@ export default function Log() {
       {
         photoFile: file,
         mealType: selectedMealType,
+        planId: planData?.plan?.id,
       },
       {
         onSuccess: (analysisResult) => {

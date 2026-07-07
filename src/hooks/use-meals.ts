@@ -137,6 +137,7 @@ export function useCreateMealLog() {
                       .from("meal_logs")
                       .insert({
                                     user_id: user.id,
+                                    plan_id: planId ?? null,
                                     meal_type: mealType,
                                     photo_path: photoPath,
                                     adherence_score: analysisResult.score,
