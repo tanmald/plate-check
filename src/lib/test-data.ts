@@ -191,6 +191,15 @@ export const mockDailyStats = {
   totalMeals: 4,
 };
 
+export const mockAdherenceByMealType = [
+  { type: "breakfast" as const, averageScore: 92, mealsLogged: 6 },
+  { type: "lunch" as const, averageScore: 78, mealsLogged: 6 },
+  { type: "dinner" as const, averageScore: 71, mealsLogged: 5 },
+  { type: "snack" as const, averageScore: 85, mealsLogged: 4 },
+];
+
+export const mockPreviousWeekAverage = 78;
+
 // Mock data matching Edge Function response format (AnalyzeMealResponse)
 export const mockAnalysisResult = {
   score: 80,

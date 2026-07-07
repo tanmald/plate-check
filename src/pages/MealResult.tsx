@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Navigate } from "react-router-dom";
 import { Check, AlertCircle, Sparkles, Info, RefreshCw, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,7 +8,8 @@ import { BottomNav } from "@/components/BottomNav";
 import { FoodItemEditor } from "@/components/FoodItemEditor";
 import { AddFoodSheet } from "@/components/AddFoodSheet";
 import { cn } from "@/lib/utils";
-import { MealLogResult } from "@/hooks/use-meals";
+import { MealLogResult, useMealLogDetail } from "@/hooks/use-meals";
+import { getScoreColor, getScoreLabel } from "@/components/AdherenceScore";
 
 import {
   getScoreBreakdown,
@@ -20,24 +21,20 @@ import { useAuth } from "@/hooks/use-auth";
 import { isTestUser } from "@/lib/test-data";
 import posthog from "@/lib/posthog";
 
-const mockResult = {
+const mockResult: MealLogResult = {
   score: 78,
-  status: "On plan" as const,
-  confidence: "high" as const,
+  confidence: "high",
   detectedFoods: [
-    { name: "Grilled chicken breast", matched: true, category: "Protein" },
-    { name: "Brown rice", matched: true, category: "Carbs" },
-    { name: "Steamed broccoli", matched: true, category: "Vegetables" },
-    { name: "Caesar dressing", matched: false, category: "Sauce" },
+    { name: "Grilled chicken breast", matched: true, confidence: 0.95, category: "Protein" },
+    { name: "Brown rice", matched: true, confidence: 0.9, category: "Carbs" },
+    { name: "Steamed broccoli", matched: true, confidence: 0.9, category: "Vegetables" },
+    { name: "Caesar dressing", matched: false, confidence: 0.8, category: "Sauce" },
   ],
+  missingRequired: [],
   feedback:
     "Great protein choice! The chicken and rice match your lunch template. Consider using olive oil instead of Caesar dressing for better plan adherence.",
-  suggestions: [
-    {
-      food: "Caesar dressing",
-      replacement: "Olive oil & lemon",
-      reason: "Lower sodium, fits plan",
-    },
+  suggestedSwaps: [
+    { original: "Caesar dressing", suggested: ["Olive oil & lemon"], reason: "Lower sodium, fits plan" },
   ],
 };
 
@@ -46,6 +43,7 @@ export default function MealResult() {
   const location = useLocation();
   const { user } = useAuth();
   const updateMealLog = useUpdateMealLog();
+  const isTest = isTestUser(user?.email);
 
   const mealType = location.state?.mealType || "lunch";
   const analysisResult = location.state?.analysisResult as
@@ -54,11 +52,19 @@ export default function MealResult() {
   const photoPreview = location.state?.photoPreview as string | undefined;
   const mealLogId = (location.state?.mealLogId || analysisResult?.mealLogId) as string | undefined;
 
-  // Use real data if available, otherwise fall back to mockResult
-  const result = analysisResult || mockResult;
+  // Only hit the DB when we don't already have the analysis inline (i.e. we
+  // navigated here from Home/Progress to reopen a previously saved meal).
+  const shouldFetchMealLog = !analysisResult && !!mealLogId && !isTest;
+  const { data: fetchedResult, isLoading: isFetchingMeal } = useMealLogDetail(
+    shouldFetchMealLog ? mealLogId : undefined
+  );
 
-  // missingRequired comes from the API and stays static (plan context)
-  const missingRequired: string[] = analysisResult?.missingRequired ?? [];
+  // Real data (inline from /log, or fetched for a saved meal) always wins.
+  // mockResult is a test-mode-only demo fixture — never a fallback for real users.
+  const result = analysisResult ?? fetchedResult ?? (isTest ? mockResult : undefined);
+
+  // missingRequired comes from the API/DB and stays static (plan context)
+  const missingRequired: string[] = result?.missingRequired ?? [];
 
   // Initialize editable foods state
   const [editableFoods, setEditableFoods] = useState<EditableFood[]>([]);
@@ -67,9 +73,8 @@ export default function MealResult() {
 
   // Initialize editable foods from detected foods
   useEffect(() => {
-    const initialFoods: EditableFood[] = (
-      analysisResult?.detectedFoods || mockResult.detectedFoods
-    ).map((food) => ({
+    if (!result) return;
+    const initialFoods: EditableFood[] = (result.detectedFoods || []).map((food) => ({
       id: generateFoodId(),
       name: food.name,
       matched: food.matched,
@@ -77,18 +82,19 @@ export default function MealResult() {
       category: food.category || "Other",
     }));
     setEditableFoods(initialFoods);
-  }, [analysisResult]);
+  }, [result]);
 
   // Track meal result viewed
   useEffect(() => {
+    if (!result) return;
     posthog.capture('meal result viewed', {
       meal_type: mealType,
-      score: analysisResult?.score ?? mockResult.score,
+      score: result.score,
       confidence: result.confidence,
-      has_real_data: !!analysisResult,
+      has_real_data: !!(analysisResult ?? fetchedResult),
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [result]);
 
   // Derive score and breakdown from current foods (always deterministic)
   const breakdown = getScoreBreakdown(editableFoods, missingRequired);
@@ -135,15 +141,13 @@ export default function MealResult() {
     setHasChanges(true);
   };
 
-  const suggestions = analysisResult
-    ? analysisResult.suggestedSwaps.map((swap) => ({
-        food: swap.original,
-        replacement: Array.isArray(swap.suggested)
-          ? swap.suggested.join(", ")
-          : swap.suggested,
-        reason: swap.reason,
-      }))
-    : mockResult.suggestions;
+  const suggestions = (result?.suggestedSwaps ?? []).map((swap) => ({
+    food: swap.original,
+    replacement: Array.isArray(swap.suggested)
+      ? swap.suggested.join(", ")
+      : swap.suggested,
+    reason: swap.reason,
+  }));
 
   const handleSave = async () => {
     // If there are changes and we have a meal log ID, update the database
@@ -171,12 +175,6 @@ export default function MealResult() {
     navigate("/log");
   };
 
-  const getStatusLabel = (score: number) => {
-    if (score >= 70) return "On plan";
-    if (score >= 40) return "Needs attention";
-    return "Off plan";
-  };
-
   const getConfidenceLabel = (confidence: string) => {
     switch (confidence) {
       case "high":
@@ -187,6 +185,20 @@ export default function MealResult() {
         return { label: "Low confidence", color: "text-muted-foreground" };
     }
   };
+
+  if (isFetchingMeal) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-sm text-muted-foreground">Loading meal…</p>
+      </div>
+    );
+  }
+
+  if (!result) {
+    // No inline analysis, no meal log to fetch, and not in test mode —
+    // nothing to show. Bail back home rather than render a fake analysis.
+    return <Navigate to="/" replace />;
+  }
 
   const confidenceInfo = getConfidenceLabel(result.confidence);
   const activeFoodsCount = editableFoods.filter((f) => !f.isDeleted).length;
@@ -232,17 +244,8 @@ export default function MealResult() {
         <div className="flex flex-col items-center pt-4">
           <AdherenceScore score={currentScore} size="lg" animated />
           <div className="mt-4 text-center">
-            <p
-              className={cn(
-                "text-lg font-semibold",
-                currentScore >= 70
-                  ? "text-success"
-                  : currentScore >= 40
-                  ? "text-warning"
-                  : "text-destructive"
-              )}
-            >
-              {getStatusLabel(currentScore)}
+            <p className={cn("text-lg font-semibold", getScoreColor(currentScore))}>
+              {getScoreLabel(currentScore)}
             </p>
             <p className={cn("text-sm", confidenceInfo.color)}>
               {confidenceInfo.label}
@@ -273,10 +276,7 @@ export default function MealResult() {
                 </>
               )}
               <span className="text-muted-foreground">=</span>
-              <span className={cn(
-                "font-bold text-sm",
-                currentScore >= 70 ? "text-success" : currentScore >= 40 ? "text-warning" : "text-destructive"
-              )}>
+              <span className={cn("font-bold text-sm", getScoreColor(currentScore))}>
                 {currentScore}
               </span>
             </div>

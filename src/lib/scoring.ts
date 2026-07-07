@@ -75,6 +75,21 @@ export function generateFoodId(): string {
 }
 
 /**
+ * detection_confidence is stored as NUMERIC in the database; these convert
+ * to/from the "high" | "medium" | "low" label used throughout the UI.
+ */
+export function confidenceLabelToNumeric(confidence: 'high' | 'medium' | 'low'): number {
+  return { high: 0.9, medium: 0.6, low: 0.3 }[confidence];
+}
+
+export function numericToConfidenceLabel(value: number | null | undefined): 'high' | 'medium' | 'low' {
+  if (value == null) return 'medium';
+  if (value >= 0.8) return 'high';
+  if (value >= 0.5) return 'medium';
+  return 'low';
+}
+
+/**
  * Common food categories for the category selector
  */
 export const FOOD_CATEGORIES = [

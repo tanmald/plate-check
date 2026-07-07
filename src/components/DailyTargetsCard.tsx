@@ -10,9 +10,9 @@ interface DailyTargetsCardProps {
 }
 
 export function DailyTargetsCard({
-  calories = 1800,
-  protein = 120,
-  meals = 4,
+  calories,
+  protein,
+  meals,
   className,
 }: DailyTargetsCardProps) {
   return (
@@ -28,7 +28,7 @@ export function DailyTargetsCard({
               <Flame className="w-6 h-6 text-accent" />
             </div>
             <p className="text-2xl font-bold text-foreground">
-              <AnimatedNumber value={calories} duration={1200} />
+              {calories != null ? <AnimatedNumber value={calories} duration={1200} /> : "–"}
             </p>
             <p className="text-xs text-muted-foreground">Calories</p>
           </div>
@@ -39,7 +39,7 @@ export function DailyTargetsCard({
               <Dumbbell className="w-6 h-6 text-primary" />
             </div>
             <p className="text-2xl font-bold text-foreground">
-              <AnimatedNumber value={protein} duration={1200} suffix="g" />
+              {protein != null ? <AnimatedNumber value={protein} duration={1200} suffix="g" /> : "–"}
             </p>
             <p className="text-xs text-muted-foreground">Protein</p>
           </div>
@@ -50,7 +50,7 @@ export function DailyTargetsCard({
               <UtensilsCrossed className="w-6 h-6 text-success" />
             </div>
             <p className="text-2xl font-bold text-foreground">
-              <AnimatedNumber value={meals} duration={800} />
+              {meals != null ? <AnimatedNumber value={meals} duration={800} /> : "–"}
             </p>
             <p className="text-xs text-muted-foreground">Meals</p>
           </div>

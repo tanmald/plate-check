@@ -8,7 +8,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { HomePageSkeleton } from "@/components/PageSkeletons";
 import { useAuth, useUserProfile } from "@/hooks/use-auth";
 import { useTodayMeals } from "@/hooks/use-meals";
-import { useNutritionPlan } from "@/hooks/use-nutrition-plan";
+import { useNutritionPlan, getLoggableMealCount, getNextUnloggedTemplate } from "@/hooks/use-nutrition-plan";
 import { useDailyProgress } from "@/hooks/use-progress";
 import { Flame, TrendingUp, Calendar, Camera, Info } from "lucide-react";
 
@@ -20,6 +20,14 @@ function getGreeting(): string {
   return "Good evening";
 }
 
+function formatTodayLabel(): string {
+  return new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "short",
+    day: "numeric",
+  });
+}
+
 export default function Home() {
   const { user } = useAuth();
   const { profile } = useUserProfile();
@@ -28,11 +36,13 @@ export default function Home() {
   const { data: dailyStats, isLoading: statsLoading } = useDailyProgress();
 
   const hasPlan = planData?.hasPlan || false;
+  const plan = planData?.plan;
   const dailyScore = dailyStats?.dailyScore || 0;
   const streak = dailyStats?.streak || 0;
   const weeklyAverage = dailyStats?.weeklyAverage || 0;
   const mealsLogged = dailyStats?.mealsLogged || 0;
-  const totalMeals = dailyStats?.totalMeals || 4;
+  const totalMeals = getLoggableMealCount(plan) ?? dailyStats?.totalMeals ?? 4;
+  const nextMealSuggestion = getNextUnloggedTemplate(plan, meals);
 
   const isLoading = mealsLoading || planLoading || statsLoading;
 
@@ -86,7 +96,7 @@ export default function Home() {
                         <p className="text-sm text-muted-foreground uppercase tracking-wide">Today's adherence</p>
                         <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
                           <Calendar className="w-4 h-4" />
-                          Sunday, Jan 5
+                          {formatTodayLabel()}
                         </p>
                       </div>
                       
@@ -134,10 +144,10 @@ export default function Home() {
                 </div>
                 <div className="space-y-3">
                   {meals.map((meal, idx) => (
-                    <Link 
-                      key={meal.id} 
-                      to="/meal-result" 
-                      state={{ mealType: meal.type }}
+                    <Link
+                      key={meal.id}
+                      to="/meal-result"
+                      state={{ mealLogId: meal.id, mealType: meal.type }}
                       className="block animate-fade-up"
                       style={{ animationDelay: `${(idx + 3) * 100}ms` }}
                     >
@@ -149,19 +159,23 @@ export default function Home() {
             )}
 
             {/* Next meal suggestion */}
-            <Card className="card-shadow border-l-4 border-l-accent animate-fade-up animate-delay-300 hover-lift">
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  <div className="text-2xl">🍽️</div>
-                  <div>
-                    <h3 className="font-semibold text-sm">Dinner suggestion</h3>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Based on your plan, consider grilled salmon with quinoa and roasted vegetables.
-                    </p>
+            {nextMealSuggestion && (
+              <Card className="card-shadow border-l-4 border-l-accent animate-fade-up animate-delay-300 hover-lift">
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="text-2xl">{nextMealSuggestion.icon}</div>
+                    <div>
+                      <h3 className="font-semibold text-sm">{nextMealSuggestion.name} suggestion</h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {nextMealSuggestion.allowedFoods.length > 0
+                          ? `Based on your plan, consider: ${nextMealSuggestion.allowedFoods.slice(0, 3).join(", ")}.`
+                          : `Based on your plan, aim for: ${nextMealSuggestion.requiredFoods.join(", ")}.`}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
           </>
         )}
 

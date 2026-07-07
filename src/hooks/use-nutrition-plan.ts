@@ -133,7 +133,7 @@ export function useNutritionPlan() {
   });
 }
 
-function getMealIcon(mealType: string): string {
+export function getMealIcon(mealType: string): string {
   const icons: Record<string, string> = {
     breakfast: "☀️",
     lunch: "🌤️",
@@ -144,7 +144,7 @@ function getMealIcon(mealType: string): string {
   return icons[mealType] || "🍽️";
 }
 
-function getMealName(mealType: string): string {
+export function getMealName(mealType: string): string {
   const names: Record<string, string> = {
     breakfast: "Breakfast",
     lunch: "Lunch",
@@ -153,6 +153,100 @@ function getMealName(mealType: string): string {
     fasting: "Fasting / Wake-up",
   };
   return names[mealType] || "Meal";
+}
+
+/**
+ * "fasting" templates (e.g. "drink water on waking") aren't meals a user
+ * photographs and logs — exclude them when counting how many meals a plan
+ * expects per day.
+ */
+function isLoggableTemplate(template: MealTemplate): boolean {
+  return template.type !== "fasting";
+}
+
+export function getLoggableMealCount(plan?: NutritionPlan | null): number | undefined {
+  if (!plan) return undefined;
+  const count = plan.templates.filter(isLoggableTemplate).length;
+  return count > 0 ? count : undefined;
+}
+
+/**
+ * Plan templates (excluding fasting) whose type has no matching entry in
+ * `todayMeals` yet, deduplicated by type — used to show what's still
+ * expected today without repeating e.g. multiple snack templates.
+ */
+export function getUnloggedTemplates(
+  plan: NutritionPlan | null | undefined,
+  todayMeals: { type: string }[]
+): MealTemplate[] {
+  if (!plan) return [];
+  const loggedTypes = new Set(todayMeals.map((m) => m.type));
+  const seenTypes = new Set<string>();
+
+  return plan.templates.filter((t) => {
+    if (!isLoggableTemplate(t) || loggedTypes.has(t.type) || seenTypes.has(t.type)) {
+      return false;
+    }
+    seenTypes.add(t.type);
+    return true;
+  });
+}
+
+export function getNextUnloggedTemplate(
+  plan: NutritionPlan | null | undefined,
+  todayMeals: { type: string }[]
+): MealTemplate | undefined {
+  return getUnloggedTemplates(plan, todayMeals)[0];
+}
+
+/**
+ * Rough daily targets derived from the plan's own templates: the midpoint
+ * of each template's calorie range summed, and protein summed. Returns null
+ * when the plan carries no numeric calorie/protein data at all, so callers
+ * can show "no data" instead of a fabricated default.
+ */
+export function computeDailyTargets(
+  templates: MealTemplate[]
+): { calories: number; protein: number } | null {
+  const loggable = templates.filter(isLoggableTemplate);
+
+  let caloriesSum = 0;
+  let hasCalories = false;
+  let proteinSum = 0;
+  let hasProtein = false;
+
+  for (const t of loggable) {
+    if (t.calories) {
+      const values = t.calories
+        .split("-")
+        .map((s) => parseFloat(s.trim()))
+        .filter((n) => !Number.isNaN(n));
+      if (values.length > 0) {
+        caloriesSum += values.reduce((a, b) => a + b, 0) / values.length;
+        hasCalories = true;
+      }
+    }
+    if (t.protein) {
+      // Split on "-" *before* stripping non-numeric characters, so a range
+      // like "20-30g" averages to 25 instead of the digits "20" and "30"
+      // being concatenated into 2030 by a single strip-then-parse pass.
+      const values = t.protein
+        .split("-")
+        .map((s) => parseFloat(s.replace(/[^\d.]/g, "")))
+        .filter((n) => !Number.isNaN(n));
+      if (values.length > 0) {
+        proteinSum += values.reduce((a, b) => a + b, 0) / values.length;
+        hasProtein = true;
+      }
+    }
+  }
+
+  if (!hasCalories && !hasProtein) return null;
+
+  return {
+    calories: hasCalories ? Math.round(caloriesSum) : 0,
+    protein: hasProtein ? Math.round(proteinSum) : 0,
+  };
 }
 
 export function useCreateNutritionPlan() {
