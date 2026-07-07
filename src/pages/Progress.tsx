@@ -124,14 +124,14 @@ export default function Progress() {
           <div className="animate-fade-in-slide">
             {/* Date Navigator */}
             <div className="flex items-center justify-between mb-6">
-              <Button variant="ghost" size="icon" onClick={handlePreviousDay}>
+              <Button variant="ghost" size="icon" onClick={handlePreviousDay} aria-label="Previous day">
                 <ChevronLeft className="w-5 h-5" />
               </Button>
               <div className="text-center">
                 <p className="font-semibold">Today</p>
                 <p className="text-sm text-muted-foreground">{formatDayLabel(new Date())}</p>
               </div>
-              <Button variant="ghost" size="icon" disabled>
+              <Button variant="ghost" size="icon" disabled aria-label="Next day">
                 <ChevronRight className="w-5 h-5" />
               </Button>
             </div>
@@ -223,14 +223,14 @@ export default function Progress() {
           <div className="animate-fade-in-slide space-y-6">
             {/* Week Navigator */}
             <div className="flex items-center justify-between">
-              <Button variant="ghost" size="icon" onClick={handlePreviousWeek}>
+              <Button variant="ghost" size="icon" onClick={handlePreviousWeek} aria-label="Previous week">
                 <ChevronLeft className="w-5 h-5" />
               </Button>
               <div className="text-center">
                 <p className="font-semibold">This Week</p>
                 <p className="text-sm text-muted-foreground">{formatWeekRangeLabel()}</p>
               </div>
-              <Button variant="ghost" size="icon" disabled>
+              <Button variant="ghost" size="icon" disabled aria-label="Next week">
                 <ChevronRight className="w-5 h-5" />
               </Button>
             </div>
