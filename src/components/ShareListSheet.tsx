@@ -23,9 +23,9 @@ export function ShareListSheet({ open, onClose, shareCode, listName }: ShareList
       await navigator.clipboard.writeText(shareCode);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-      toast.success("Código copiado!");
+      toast.success("Code copied!");
     } catch {
-      toast.error("Não foi possível copiar");
+      toast.error("Couldn't copy the code");
     }
   };
 
@@ -36,14 +36,14 @@ export function ShareListSheet({ open, onClose, shareCode, listName }: ShareList
       {
         onSuccess: ({ alreadyJoined }) => {
           if (alreadyJoined) {
-            toast.info("Já tens acesso a esta lista");
+            toast.info("You already have access to this list");
           } else {
-            toast.success("Lista adicionada com sucesso!");
+            toast.success("List added successfully!");
           }
           setJoinCode("");
           onClose();
         },
-        onError: (err: Error) => toast.error(err.message || "Código inválido"),
+        onError: (err: Error) => toast.error(err.message || "Invalid code"),
       }
     );
   };
@@ -52,14 +52,14 @@ export function ShareListSheet({ open, onClose, shareCode, listName }: ShareList
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
       <SheetContent side="bottom" className="rounded-t-2xl">
         <SheetHeader className="mb-6">
-          <SheetTitle>Partilhar lista de compras</SheetTitle>
+          <SheetTitle>Share shopping list</SheetTitle>
         </SheetHeader>
 
         <div className="space-y-6 pb-6">
           {/* Share section */}
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Partilha este código com o André para que ele possa ver e fazer check na lista em tempo real.
+              Share this code with someone so they can view and check off items on this list in real time.
             </p>
 
             <div className="flex items-center gap-2 p-4 bg-muted rounded-xl">
@@ -75,7 +75,7 @@ export function ShareListSheet({ open, onClose, shareCode, listName }: ShareList
             </div>
 
             <p className="text-xs text-muted-foreground text-center">
-              O André abre o PlateCheck → "Juntar-me a uma lista" → insere o código
+              They open PlateCheck → "Join a list" → enter the code
             </p>
           </div>
 
@@ -84,16 +84,16 @@ export function ShareListSheet({ open, onClose, shareCode, listName }: ShareList
               <div className="w-full border-t border-border" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">ou</span>
+              <span className="bg-background px-2 text-muted-foreground">or</span>
             </div>
           </div>
 
           {/* Join section */}
           <div className="space-y-3">
-            <p className="text-sm font-medium">Juntar-me a uma lista</p>
+            <p className="text-sm font-medium">Join a list</p>
             <div className="flex gap-2">
               <Input
-                placeholder="Código (ex: AB12CD)"
+                placeholder="Code (e.g. AB12CD)"
                 value={joinCode}
                 onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
                 maxLength={6}

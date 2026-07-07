@@ -3,10 +3,10 @@ import { cn } from "@/lib/utils";
 import { WeeklyPlanEntry, MealType } from "@/hooks/use-weekly-plan";
 
 const MEAL_CONFIG: Record<MealType, { icon: string; label: string; priority: "high" | "normal" | "low" }> = {
-  dinner:    { icon: "🌙", label: "Jantar",           priority: "high" },
-  lunch:     { icon: "☀️",  label: "Almoço",           priority: "normal" },
-  breakfast: { icon: "🌅", label: "Pequeno-almoço",   priority: "normal" },
-  snack:     { icon: "🍎", label: "Lanche",            priority: "low" },
+  dinner:    { icon: "🌙", label: "Dinner",    priority: "high" },
+  lunch:     { icon: "☀️",  label: "Lunch",     priority: "normal" },
+  breakfast: { icon: "🌅", label: "Breakfast", priority: "normal" },
+  snack:     { icon: "🍎", label: "Snack",     priority: "low" },
 };
 
 interface MealSlotCardProps {
@@ -63,7 +63,7 @@ export function MealSlotCard({ mealType, entry, onAdd, onEdit, onDelete }: MealS
               )}
             >
               <Plus className="w-3.5 h-3.5" />
-              Adicionar
+              Add
             </button>
           ) : (
             <div className="flex items-center gap-1 flex-shrink-0">

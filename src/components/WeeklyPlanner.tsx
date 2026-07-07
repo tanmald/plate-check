@@ -37,8 +37,8 @@ function formatWeekRange(weekStartDate: string): string {
   const end = new Date(weekStartDate + "T00:00:00");
   end.setDate(end.getDate() + 6);
 
-  const startStr = start.toLocaleDateString("pt-PT", { day: "numeric", month: "short" });
-  const endStr = end.toLocaleDateString("pt-PT", { day: "numeric", month: "short" });
+  const startStr = start.toLocaleDateString("en-US", { day: "numeric", month: "short" });
+  const endStr = end.toLocaleDateString("en-US", { day: "numeric", month: "short" });
   return `${startStr} – ${endStr}`;
 }
 
@@ -91,10 +91,10 @@ export function WeeklyPlanner({ onShoppingListGenerated }: WeeklyPlannerProps) {
       },
       {
         onSuccess: () => {
-          toast.success("Refeição guardada");
+          toast.success("Meal saved");
           setEditState(null);
         },
-        onError: () => toast.error("Erro ao guardar. Tenta de novo."),
+        onError: () => toast.error("Failed to save. Please try again."),
       }
     );
   };
@@ -103,15 +103,15 @@ export function WeeklyPlanner({ onShoppingListGenerated }: WeeklyPlannerProps) {
     deleteEntry.mutate(
       { entryId: entry.id, weekStartDate },
       {
-        onSuccess: () => toast.success("Refeição removida"),
-        onError: () => toast.error("Erro ao remover"),
+        onSuccess: () => toast.success("Meal removed"),
+        onError: () => toast.error("Failed to remove"),
       }
     );
   };
 
   const handleGenerateShoppingList = () => {
     if (!plan || plan.entries.length === 0) {
-      toast.error("Adiciona pelo menos uma refeição antes de gerar a lista");
+      toast.error("Add at least one meal before generating the list");
       return;
     }
 
@@ -123,10 +123,10 @@ export function WeeklyPlanner({ onShoppingListGenerated }: WeeklyPlannerProps) {
       },
       {
         onSuccess: () => {
-          toast.success("Lista de compras gerada!");
+          toast.success("Shopping list generated!");
           onShoppingListGenerated?.();
         },
-        onError: () => toast.error("Erro ao gerar a lista. Tenta de novo."),
+        onError: () => toast.error("Failed to generate the list. Please try again."),
       }
     );
   };
@@ -147,7 +147,7 @@ export function WeeklyPlanner({ onShoppingListGenerated }: WeeklyPlannerProps) {
         <div className="text-center">
           <p className="text-sm font-medium">{formatWeekRange(weekStartDate)}</p>
           {weekStartDate === currentWeekStart && (
-            <p className="text-xs text-primary">Esta semana</p>
+            <p className="text-xs text-primary">This week</p>
           )}
         </div>
         <button
@@ -208,7 +208,7 @@ export function WeeklyPlanner({ onShoppingListGenerated }: WeeklyPlannerProps) {
                 onClick={() => setShowSnacks(false)}
                 className="text-xs text-muted-foreground hover:text-foreground transition-colors w-full text-center py-1"
               >
-                Ocultar lanches
+                Hide snacks
               </button>
             </div>
           ) : (
@@ -216,7 +216,7 @@ export function WeeklyPlanner({ onShoppingListGenerated }: WeeklyPlannerProps) {
               onClick={() => setShowSnacks(true)}
               className="text-xs text-muted-foreground hover:text-foreground transition-colors w-full text-center py-1"
             >
-              + Ver lanches
+              + Show snacks
             </button>
           )}
         </div>
@@ -227,7 +227,7 @@ export function WeeklyPlanner({ onShoppingListGenerated }: WeeklyPlannerProps) {
         <div className="pt-2 border-t border-border">
           <div className="flex items-center justify-between mb-3">
             <p className="text-xs text-muted-foreground">
-              {totalMeals} {totalMeals === 1 ? "refeição" : "refeições"} em {totalDays} {totalDays === 1 ? "dia" : "dias"}
+              {totalMeals} {totalMeals === 1 ? "meal" : "meals"} across {totalDays} {totalDays === 1 ? "day" : "days"}
             </p>
           </div>
           <Button
@@ -238,12 +238,12 @@ export function WeeklyPlanner({ onShoppingListGenerated }: WeeklyPlannerProps) {
             {generateList.isPending ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                A gerar lista...
+                Generating list...
               </>
             ) : (
               <>
                 <ShoppingCart className="w-4 h-4 mr-2" />
-                Gerar lista de compras
+                Generate shopping list
               </>
             )}
           </Button>

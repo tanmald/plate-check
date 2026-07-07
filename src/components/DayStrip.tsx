@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { WeeklyPlanEntry } from "@/hooks/use-weekly-plan";
 
-const DAY_LABELS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
+const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 interface DayStripProps {
   weekStartDate: string;

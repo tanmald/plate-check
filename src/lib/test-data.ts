@@ -358,14 +358,14 @@ export const mockWeeklyPlan = {
   id: "mock-weekly-plan-id",
   weekStartDate: "2026-03-30",
   entries: [
-    { id: "we1", dayOfWeek: 0, mealType: "dinner", mealName: "Salmão grelhado com quinoa e brócolos", ingredients: ["salmão 200g", "quinoa 80g", "brócolos 150g", "azeite", "limão"] },
-    { id: "we2", dayOfWeek: 1, mealType: "dinner", mealName: "Frango com batata-doce e espinafres", ingredients: ["peito de frango 200g", "batata-doce 200g", "espinafres", "alho", "azeite"] },
-    { id: "we3", dayOfWeek: 2, mealType: "lunch", mealName: "Burrata com tomate e manjericão", ingredients: ["burrata 125g", "tomate 200g", "manjericão", "azeite", "flor de sal"] },
-    { id: "we4", dayOfWeek: 2, mealType: "dinner", mealName: "Tofu grelhado com legumes salteados", ingredients: ["tofu firme 200g", "courgette", "pimentos vermelhos", "molho de soja", "gengibre"] },
-    { id: "we5", dayOfWeek: 3, mealType: "dinner", mealName: "Bacalhau assado com grão", ingredients: ["bacalhau 200g", "grão de bico 150g", "cebola", "alho", "azeite", "coentros"] },
-    { id: "we6", dayOfWeek: 4, mealType: "dinner", mealName: "Hambúrguer de peru na air fryer", ingredients: ["hambúrguer de peru 150g", "alface", "tomate", "pão integral"] },
-    { id: "we7", dayOfWeek: 5, mealType: "lunch", mealName: "Salada de atum com ovo", ingredients: ["atum ao natural 120g", "ovo 2 un", "alface", "pepino", "tomate cherry", "azeite"] },
-    { id: "we8", dayOfWeek: 5, mealType: "dinner", mealName: "Esparguete de courgette com pesto", ingredients: ["courgette 2 un", "pesto verde 50g", "parmesão", "tomate cherry"] },
+    { id: "we1", dayOfWeek: 0, mealType: "dinner", mealName: "Grilled salmon with quinoa and broccoli", ingredients: ["salmon 200g", "quinoa 80g", "broccoli 150g", "olive oil", "lemon"] },
+    { id: "we2", dayOfWeek: 1, mealType: "dinner", mealName: "Chicken with sweet potato and spinach", ingredients: ["chicken breast 200g", "sweet potato 200g", "spinach", "garlic", "olive oil"] },
+    { id: "we3", dayOfWeek: 2, mealType: "lunch", mealName: "Burrata with tomato and basil", ingredients: ["burrata 125g", "tomato 200g", "basil", "olive oil", "sea salt"] },
+    { id: "we4", dayOfWeek: 2, mealType: "dinner", mealName: "Grilled tofu with sautéed vegetables", ingredients: ["firm tofu 200g", "zucchini", "red peppers", "soy sauce", "ginger"] },
+    { id: "we5", dayOfWeek: 3, mealType: "dinner", mealName: "Roasted cod with chickpeas", ingredients: ["cod 200g", "chickpeas 150g", "onion", "garlic", "olive oil", "cilantro"] },
+    { id: "we6", dayOfWeek: 4, mealType: "dinner", mealName: "Air fryer turkey burger", ingredients: ["turkey burger 150g", "lettuce", "tomato", "whole wheat bun"] },
+    { id: "we7", dayOfWeek: 5, mealType: "lunch", mealName: "Tuna salad with egg", ingredients: ["tuna in water 120g", "egg 2 units", "lettuce", "cucumber", "cherry tomato", "olive oil"] },
+    { id: "we8", dayOfWeek: 5, mealType: "dinner", mealName: "Zucchini pasta with pesto", ingredients: ["zucchini 2 units", "green pesto 50g", "parmesan", "cherry tomato"] },
   ],
 };
 
@@ -374,33 +374,33 @@ export const mockWeeklyPlan = {
 export const mockShoppingList = {
   id: "mock-shopping-list-id",
   weekStartDate: "2026-03-30",
-  name: "Lista da semana",
+  name: "Weekly list",
   shareCode: "AB12CD",
   collaboratorIds: [],
 };
 
 export const mockShoppingItems = [
-  // Peixe & Marisco
-  { id: "si1", listId: "mock-shopping-list-id", name: "Salmão", category: "Peixe & Marisco", quantity: "200g", checked: false, sourceDays: ["Segunda"], sortOrder: 0 },
-  { id: "si2", listId: "mock-shopping-list-id", name: "Bacalhau", category: "Peixe & Marisco", quantity: "200g", checked: false, sourceDays: ["Quinta"], sortOrder: 1 },
-  { id: "si3", listId: "mock-shopping-list-id", name: "Atum ao natural", category: "Peixe & Marisco", quantity: "120g", checked: false, sourceDays: ["Sábado"], sortOrder: 2 },
-  // Carnes
-  { id: "si4", listId: "mock-shopping-list-id", name: "Peito de frango", category: "Carnes", quantity: "200g", checked: false, sourceDays: ["Terça"], sortOrder: 3 },
-  { id: "si5", listId: "mock-shopping-list-id", name: "Hambúrguer de peru", category: "Carnes", quantity: "150g", checked: false, sourceDays: ["Sexta"], sortOrder: 4 },
-  // Legumes
-  { id: "si6", listId: "mock-shopping-list-id", name: "Brócolos", category: "Legumes", quantity: "150g", checked: false, sourceDays: ["Segunda"], sortOrder: 5 },
-  { id: "si7", listId: "mock-shopping-list-id", name: "Batata-doce", category: "Legumes", quantity: "200g", checked: false, sourceDays: ["Terça"], sortOrder: 6 },
-  { id: "si8", listId: "mock-shopping-list-id", name: "Espinafres", category: "Legumes", quantity: null, checked: false, sourceDays: ["Terça"], sortOrder: 7 },
-  { id: "si9", listId: "mock-shopping-list-id", name: "Courgette", category: "Legumes", quantity: "3 un", checked: true, sourceDays: ["Quarta", "Sábado"], sortOrder: 8 },
-  { id: "si10", listId: "mock-shopping-list-id", name: "Tomate", category: "Legumes", quantity: "500g", checked: false, sourceDays: ["Quarta", "Sexta", "Sábado"], sortOrder: 9 },
-  // Leguminosas & Cereais
-  { id: "si11", listId: "mock-shopping-list-id", name: "Quinoa", category: "Cereais & Leguminosas", quantity: "80g", checked: false, sourceDays: ["Segunda"], sortOrder: 10 },
-  { id: "si12", listId: "mock-shopping-list-id", name: "Grão de bico", category: "Cereais & Leguminosas", quantity: "150g", checked: false, sourceDays: ["Quinta"], sortOrder: 11 },
-  // Lacticínios
-  { id: "si13", listId: "mock-shopping-list-id", name: "Burrata", category: "Lacticínios", quantity: "125g", checked: false, sourceDays: ["Quarta"], sortOrder: 12 },
-  // Outros
-  { id: "si14", listId: "mock-shopping-list-id", name: "Tofu firme", category: "Outros", quantity: "200g", checked: false, sourceDays: ["Quarta"], sortOrder: 13 },
-  { id: "si15", listId: "mock-shopping-list-id", name: "Pão integral", category: "Outros", quantity: "1 un", checked: true, sourceDays: ["Sexta"], sortOrder: 14 },
+  // Fish & Seafood
+  { id: "si1", listId: "mock-shopping-list-id", name: "Salmon", category: "Fish & Seafood", quantity: "200g", checked: false, sourceDays: ["Monday"], sortOrder: 0 },
+  { id: "si2", listId: "mock-shopping-list-id", name: "Cod", category: "Fish & Seafood", quantity: "200g", checked: false, sourceDays: ["Thursday"], sortOrder: 1 },
+  { id: "si3", listId: "mock-shopping-list-id", name: "Tuna in water", category: "Fish & Seafood", quantity: "120g", checked: false, sourceDays: ["Saturday"], sortOrder: 2 },
+  // Meat
+  { id: "si4", listId: "mock-shopping-list-id", name: "Chicken breast", category: "Meat", quantity: "200g", checked: false, sourceDays: ["Tuesday"], sortOrder: 3 },
+  { id: "si5", listId: "mock-shopping-list-id", name: "Turkey burger", category: "Meat", quantity: "150g", checked: false, sourceDays: ["Friday"], sortOrder: 4 },
+  // Vegetables
+  { id: "si6", listId: "mock-shopping-list-id", name: "Broccoli", category: "Vegetables", quantity: "150g", checked: false, sourceDays: ["Monday"], sortOrder: 5 },
+  { id: "si7", listId: "mock-shopping-list-id", name: "Sweet potato", category: "Vegetables", quantity: "200g", checked: false, sourceDays: ["Tuesday"], sortOrder: 6 },
+  { id: "si8", listId: "mock-shopping-list-id", name: "Spinach", category: "Vegetables", quantity: null, checked: false, sourceDays: ["Tuesday"], sortOrder: 7 },
+  { id: "si9", listId: "mock-shopping-list-id", name: "Zucchini", category: "Vegetables", quantity: "3 units", checked: true, sourceDays: ["Wednesday", "Saturday"], sortOrder: 8 },
+  { id: "si10", listId: "mock-shopping-list-id", name: "Tomato", category: "Vegetables", quantity: "500g", checked: false, sourceDays: ["Wednesday", "Friday", "Saturday"], sortOrder: 9 },
+  // Grains & Legumes
+  { id: "si11", listId: "mock-shopping-list-id", name: "Quinoa", category: "Grains & Legumes", quantity: "80g", checked: false, sourceDays: ["Monday"], sortOrder: 10 },
+  { id: "si12", listId: "mock-shopping-list-id", name: "Chickpeas", category: "Grains & Legumes", quantity: "150g", checked: false, sourceDays: ["Thursday"], sortOrder: 11 },
+  // Dairy
+  { id: "si13", listId: "mock-shopping-list-id", name: "Burrata", category: "Dairy", quantity: "125g", checked: false, sourceDays: ["Wednesday"], sortOrder: 12 },
+  // Other
+  { id: "si14", listId: "mock-shopping-list-id", name: "Firm tofu", category: "Other", quantity: "200g", checked: false, sourceDays: ["Wednesday"], sortOrder: 13 },
+  { id: "si15", listId: "mock-shopping-list-id", name: "Whole wheat bread", category: "Other", quantity: "1 unit", checked: true, sourceDays: ["Friday"], sortOrder: 14 },
 ];
 
 // ─── Profile ───────────────────────────────────────────────────────────────────

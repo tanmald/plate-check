@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/use-auth";
 import { isTestUser, mockShoppingList, mockShoppingItems } from "@/lib/test-data";
+import { guessCategory } from "@/lib/ingredient-categories";
 
 export interface ShoppingListItem {
   id: string;
@@ -126,7 +127,7 @@ interface GenerateListInput {
   entries: Array<{ mealName: string; ingredients: string[]; dayOfWeek: number }>;
 }
 
-const DAY_NAMES = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
+const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 export function useGenerateShoppingList() {
   const { user } = useAuth();
@@ -145,7 +146,7 @@ export function useGenerateShoppingList() {
       const ingredientMap = new Map<string, { quantity: string | null; sourceDays: string[] }>();
 
       for (const entry of input.entries) {
-        const dayName = DAY_NAMES[entry.dayOfWeek] ?? `Dia ${entry.dayOfWeek}`;
+        const dayName = DAY_NAMES[entry.dayOfWeek] ?? `Day ${entry.dayOfWeek}`;
         for (const raw of entry.ingredients) {
           // Normalise: lowercase, trim
           const key = raw.toLowerCase().trim();
@@ -167,7 +168,7 @@ export function useGenerateShoppingList() {
             user_id: user.id,
             weekly_plan_id: input.weeklyPlanId || null,
             week_start_date: input.weekStartDate,
-            name: `Lista da semana de ${formatWeekDate(input.weekStartDate)}`,
+            name: `Shopping list for week of ${formatWeekDate(input.weekStartDate)}`,
           },
           { onConflict: "user_id,week_start_date" }
         )
@@ -185,7 +186,7 @@ export function useGenerateShoppingList() {
         return {
           list_id: list.id,
           name,
-          category: "Outros", // category will be set by the Edge Function; fallback here
+          category: guessCategory(name),
           quantity: quantity || meta.quantity,
           source_days: meta.sourceDays,
           sort_order: idx,
@@ -353,7 +354,7 @@ export function useJoinShoppingList() {
     mutationFn: async ({ shareCode }: { shareCode: string }) => {
       if (isTestUser(user?.email)) {
         await new Promise((r) => setTimeout(r, 500));
-        throw new Error("Partilha não disponível no modo de teste");
+        throw new Error("Sharing isn't available in test mode");
       }
 
       if (!user?.id) throw new Error("Not authenticated");
@@ -365,7 +366,7 @@ export function useJoinShoppingList() {
         .maybeSingle();
 
       if (findError) throw findError;
-      if (!list) throw new Error("Código inválido. Verifica e tenta de novo.");
+      if (!list) throw new Error("Invalid code. Check it and try again.");
 
       if (list.collaborator_ids?.includes(user.id)) {
         return { alreadyJoined: true };
@@ -388,8 +389,8 @@ export function useJoinShoppingList() {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function parseIngredient(raw: string): { name: string; quantity: string | null } {
-  // Try to split "salmão 200g" → name="salmão", quantity="200g"
-  const match = raw.match(/^(.+?)\s+(\d+\s*(?:g|kg|ml|l|un|un\.|unidade|colher|c\.s\.|cs)\.?)$/i);
+  // Try to split "salmon 200g" → name="salmon", quantity="200g"
+  const match = raw.match(/^(.+?)\s+(\d+\s*(?:g|kg|ml|l|oz|lb|unit|units|tbsp|tsp|cup|cups)\.?)$/i);
   if (match) {
     return { name: match[1].trim(), quantity: match[2].trim() };
   }
@@ -398,5 +399,5 @@ function parseIngredient(raw: string): { name: string; quantity: string | null }
 
 function formatWeekDate(weekStartDate: string): string {
   const date = new Date(weekStartDate + "T00:00:00");
-  return date.toLocaleDateString("pt-PT", { day: "numeric", month: "short" });
+  return date.toLocaleDateString("en-US", { day: "numeric", month: "short" });
 }
