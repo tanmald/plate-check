@@ -12,3 +12,7 @@ export const supabase = createClient(url, key);
 
 // Export a flag to check if Supabase is properly configured
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabasePublishableKey);
+
+// The resolved project URL (placeholder when unconfigured), for building
+// direct links to edge functions outside the supabase-js client.
+export const resolvedSupabaseUrl = url;

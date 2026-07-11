@@ -17,8 +17,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Copy, Check, HeartPulse, ChevronDown, Loader2 } from "lucide-react";
 import { useIngestToken, useGenerateIngestToken } from "@/hooks/use-health";
+import { resolvedSupabaseUrl } from "@/lib/supabase";
 
-const INGEST_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ingest-health`;
+const INGEST_URL = `${resolvedSupabaseUrl}/functions/v1/ingest-health`;
 
 function CopyField({ value, label }: { value: string; label: string }) {
   const [copied, setCopied] = useState(false);
