@@ -25,9 +25,6 @@ const CORS_HEADERS = {
 const MAX_BODY_BYTES = 5 * 1024 * 1024;
 const SAMPLE_UPSERT_BATCH = 500;
 
-// deno-lint-ignore no-explicit-any
-type Db = ReturnType<typeof createClient<any>>;
-
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -99,76 +96,6 @@ function dbRowToDaily(row: Record<string, unknown>): DailyHealth {
   };
 }
 
-async function recomputeDay(supabase: Db, userId: string, date: string): Promise<void> {
-  const { data: sampleRows, error: samplesError } = await supabase
-    .from("health_samples")
-    .select("metric, recorded_at, local_date, qty, payload, units")
-    .eq("user_id", userId)
-    .eq("local_date", date);
-  if (samplesError) throw samplesError;
-
-  const day = aggregateDay(date, (sampleRows ?? []).map(dbRowToSample));
-
-  // Trailing history strictly before the scored day, oldest first.
-  const { data: historyRows, error: historyError } = await supabase
-    .from("health_daily")
-    .select("*")
-    .eq("user_id", userId)
-    .lt("date", date)
-    .order("date", { ascending: false })
-    .limit(60);
-  if (historyError) throw historyError;
-
-  const history = (historyRows ?? []).map(dbRowToDaily).reverse();
-  const baselines = computeBaselines(history);
-
-  const recovery = computeRecoveryScore(day, baselines);
-  const sleep = computeSleepScore(day, baselines);
-  const strain = computeStrainScore(day, baselines);
-
-  const wristTempDelta =
-    typeof day.wristTemp === "number" && baselines.wristTemp
-      ? day.wristTemp - baselines.wristTemp.mean
-      : null;
-
-  const { error: upsertError } = await supabase.from("health_daily").upsert(
-    {
-      user_id: userId,
-      date,
-      hrv_ms: day.hrvMs ?? null,
-      resting_hr: day.restingHr ?? null,
-      respiratory_rate: day.respiratoryRate ?? null,
-      wrist_temp: day.wristTemp ?? null,
-      wrist_temp_delta: wristTempDelta,
-      spo2: day.spo2 ?? null,
-      sleep_start: day.sleepStart ?? null,
-      sleep_end: day.sleepEnd ?? null,
-      sleep_duration_min: day.sleepDurationMin ?? null,
-      sleep_deep_min: day.sleepDeepMin ?? null,
-      sleep_rem_min: day.sleepRemMin ?? null,
-      sleep_core_min: day.sleepCoreMin ?? null,
-      sleep_awake_min: day.sleepAwakeMin ?? null,
-      sleep_efficiency: day.sleepEfficiency ?? null,
-      steps: day.steps ?? null,
-      active_energy_kcal: day.activeEnergyKcal ?? null,
-      exercise_minutes: day.exerciseMinutes ?? null,
-      stand_hours: day.standHours ?? null,
-      vo2_max: day.vo2Max ?? null,
-      workouts: day.workouts ?? [],
-      recovery_score: recovery.score,
-      sleep_score: sleep.score,
-      strain_score: strain.score,
-      score_detail: {
-        recovery: recovery.components,
-        sleep: sleep.components,
-        strain: strain.components,
-      },
-    },
-    { onConflict: "user_id,date" },
-  );
-  if (upsertError) throw upsertError;
-}
-
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: CORS_HEADERS });
@@ -190,7 +117,78 @@ Deno.serve(async (req: Request) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase: Db = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Closes over `supabase` so its type can be inferred rather than named.
+    async function recomputeDay(userId: string, date: string): Promise<void> {
+      const { data: sampleRows, error: samplesError } = await supabase
+        .from("health_samples")
+        .select("metric, recorded_at, local_date, qty, payload, units")
+        .eq("user_id", userId)
+        .eq("local_date", date);
+      if (samplesError) throw samplesError;
+
+      const day = aggregateDay(date, (sampleRows ?? []).map(dbRowToSample));
+
+      // Trailing history strictly before the scored day, oldest first.
+      const { data: historyRows, error: historyError } = await supabase
+        .from("health_daily")
+        .select("*")
+        .eq("user_id", userId)
+        .lt("date", date)
+        .order("date", { ascending: false })
+        .limit(60);
+      if (historyError) throw historyError;
+
+      const history = (historyRows ?? []).map(dbRowToDaily).reverse();
+      const baselines = computeBaselines(history);
+
+      const recovery = computeRecoveryScore(day, baselines);
+      const sleep = computeSleepScore(day, baselines);
+      const strain = computeStrainScore(day, baselines);
+
+      const wristTempDelta =
+        typeof day.wristTemp === "number" && baselines.wristTemp
+          ? day.wristTemp - baselines.wristTemp.mean
+          : null;
+
+      const { error: upsertError } = await supabase.from("health_daily").upsert(
+        {
+          user_id: userId,
+          date,
+          hrv_ms: day.hrvMs ?? null,
+          resting_hr: day.restingHr ?? null,
+          respiratory_rate: day.respiratoryRate ?? null,
+          wrist_temp: day.wristTemp ?? null,
+          wrist_temp_delta: wristTempDelta,
+          spo2: day.spo2 ?? null,
+          sleep_start: day.sleepStart ?? null,
+          sleep_end: day.sleepEnd ?? null,
+          sleep_duration_min: day.sleepDurationMin ?? null,
+          sleep_deep_min: day.sleepDeepMin ?? null,
+          sleep_rem_min: day.sleepRemMin ?? null,
+          sleep_core_min: day.sleepCoreMin ?? null,
+          sleep_awake_min: day.sleepAwakeMin ?? null,
+          sleep_efficiency: day.sleepEfficiency ?? null,
+          steps: day.steps ?? null,
+          active_energy_kcal: day.activeEnergyKcal ?? null,
+          exercise_minutes: day.exerciseMinutes ?? null,
+          stand_hours: day.standHours ?? null,
+          vo2_max: day.vo2Max ?? null,
+          workouts: day.workouts ?? [],
+          recovery_score: recovery.score,
+          sleep_score: sleep.score,
+          strain_score: strain.score,
+          score_detail: {
+            recovery: recovery.components,
+            sleep: sleep.components,
+            strain: strain.components,
+          },
+        },
+        { onConflict: "user_id,date" },
+      );
+      if (upsertError) throw upsertError;
+    }
 
     const tokenHash = await sha256Hex(apiKey);
     const { data: token } = await supabase
@@ -233,7 +231,7 @@ Deno.serve(async (req: Request) => {
     // Recompute affected days oldest-first so later days see fresh history.
     const dates = [...new Set(samples.map((s) => s.localDate))].sort();
     for (const date of dates) {
-      await recomputeDay(supabase, userId, date);
+      await recomputeDay(userId, date);
     }
 
     console.log(
