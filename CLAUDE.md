@@ -307,7 +307,6 @@ const { data } = await supabase.from('table').select('*');
 
 See `docs/APP_REVIEW.md` for the full list with file:line references. Highlights:
 
-- **Camera capture** - Simulated (not integrated with device camera API)
 - **Plan parsing** - Real GPT-4o (`parse-nutrition-plan` edge function), not a mock — despite what older docs say
 - **No automated tests** - Manual testing only
 - **Test user auth bypass** - Must be gated behind `import.meta.env.DEV`; verify this is in place before deploying

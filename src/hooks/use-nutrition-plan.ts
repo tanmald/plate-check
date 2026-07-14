@@ -202,12 +202,13 @@ export function getNextUnloggedTemplate(
 /**
  * Rough daily targets derived from the plan's own templates: the midpoint
  * of each template's calorie range summed, and protein summed. Returns null
- * when the plan carries no numeric calorie/protein data at all, so callers
- * can show "no data" instead of a fabricated default.
+ * when the plan carries no numeric calorie/protein data at all; a field the
+ * plan has no data for comes back undefined (not 0), so callers can render
+ * "no data" instead of a fabricated zero.
  */
 export function computeDailyTargets(
   templates: MealTemplate[]
-): { calories: number; protein: number } | null {
+): { calories?: number; protein?: number } | null {
   const loggable = templates.filter(isLoggableTemplate);
 
   let caloriesSum = 0;

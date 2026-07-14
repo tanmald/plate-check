@@ -36,7 +36,7 @@ export default function Progress() {
   const { data: weeklyData = [], isLoading: weeklyLoading } = useWeeklyProgress();
   const { data: planData } = useNutritionPlan();
   const { data: mealTypeAdherence = [], isLoading: mealTypeLoading } = useAdherenceByMealType();
-  const { data: lastWeekAverage = 0, isLoading: lastWeekLoading } = usePreviousWeekAverage();
+  const { data: lastWeekAverage = null, isLoading: lastWeekLoading } = usePreviousWeekAverage();
 
   const isLoading = mealsLoading || dailyLoading || weeklyLoading || mealTypeLoading || lastWeekLoading;
 
@@ -69,7 +69,9 @@ export default function Progress() {
   const weeklyAverage = Math.round(weeklyData.reduce((acc, d) => acc + d.score, 0) / (weeklyData.length || 1));
   const onPlanDays = weeklyData.filter((d) => getScoreStatus(d.score) === "high").length;
   const offPlanPercentage = Math.round(((7 - onPlanDays) / 7) * 100);
-  const trend = weeklyAverage - lastWeekAverage;
+  // null = no prior-week data — hide the trend chip rather than show a
+  // meaningless "+X% vs last week" against a fabricated zero.
+  const trend = lastWeekAverage == null ? null : weeklyAverage - lastWeekAverage;
 
   const handlePreviousDay = () => {
     toast.info("Previous day navigation coming soon");
@@ -240,13 +242,15 @@ export default function Progress() {
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base">Daily Adherence</CardTitle>
-                  <div className={cn(
-                    "flex items-center gap-1 text-sm font-medium",
-                    trend >= 0 ? "text-success" : "text-destructive"
-                  )}>
-                    {trend >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-                    {trend >= 0 ? "+" : ""}{trend}% vs last week
-                  </div>
+                  {trend != null && (
+                    <div className={cn(
+                      "flex items-center gap-1 text-sm font-medium",
+                      trend >= 0 ? "text-success" : "text-destructive"
+                    )}>
+                      {trend >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+                      {trend >= 0 ? "+" : ""}{trend}% vs last week
+                    </div>
+                  )}
                 </div>
               </CardHeader>
               <CardContent>

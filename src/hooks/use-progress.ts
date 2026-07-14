@@ -237,25 +237,29 @@ export function useAdherenceByMealType() {
   });
 }
 
-/** Average daily_progress score for the 7-day window before the current one. */
+/**
+ * Average daily_progress score for the 7-day window before the current one.
+ * Returns null when there is no prior-week data at all, so callers can hide
+ * the "vs last week" trend instead of comparing against a fabricated 0.
+ */
 export function usePreviousWeekAverage() {
   const { user } = useAuth();
 
   return useQuery({
     queryKey: ["previous-week-average", user?.id],
-    queryFn: async (): Promise<number> => {
+    queryFn: async (): Promise<number | null> => {
       if (isTestUser(user?.email)) {
         return mockPreviousWeekAverage;
       }
 
-      if (!user?.id) return 0;
+      if (!user?.id) return null;
       return calculatePreviousWeekAverage(user.id);
     },
     enabled: !!user,
   });
 }
 
-async function calculatePreviousWeekAverage(userId: string): Promise<number> {
+async function calculatePreviousWeekAverage(userId: string): Promise<number | null> {
   const endDate = new Date();
   endDate.setDate(endDate.getDate() - 7);
   const startDate = new Date();
@@ -268,7 +272,7 @@ async function calculatePreviousWeekAverage(userId: string): Promise<number> {
     .gte("date", startDate.toISOString().split("T")[0])
     .lte("date", endDate.toISOString().split("T")[0]);
 
-  if (error || !data || data.length === 0) return 0;
+  if (error || !data || data.length === 0) return null;
 
   const sum = data.reduce((acc, day) => acc + (day.average_score || 0), 0);
   return Math.round(sum / data.length);
