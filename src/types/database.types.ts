@@ -132,6 +132,7 @@ export type Database = {
           detected_foods: Json | null
           detection_confidence: number | null
           id: string
+          local_date: string | null
           logged_at: string | null
           meal_type: string
           notes: string | null
@@ -149,6 +150,7 @@ export type Database = {
           detected_foods?: Json | null
           detection_confidence?: number | null
           id?: string
+          local_date?: string | null
           logged_at?: string | null
           meal_type: string
           notes?: string | null
@@ -166,6 +168,7 @@ export type Database = {
           detected_foods?: Json | null
           detection_confidence?: number | null
           id?: string
+          local_date?: string | null
           logged_at?: string | null
           meal_type?: string
           notes?: string | null

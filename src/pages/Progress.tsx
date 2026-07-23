@@ -128,7 +128,7 @@ export default function Progress() {
                   <Link
                     key={meal.id}
                     to="/meal-result"
-                    state={{ mealType: meal.type }}
+                    state={{ mealType: meal.type, mealLogId: meal.id }}
                     className="block animate-fade-up"
                     style={{ animationDelay: `${(idx + 2) * 100}ms` }}
                   >

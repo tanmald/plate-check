@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/use-auth";
 import { isTestUser, mockWeeklyData, mockDailyStats } from "@/lib/test-data";
+import { getLocalDateString, parseLocalDateString } from "@/lib/date";
 
 export interface DailyStats {
   dailyScore: number;
@@ -21,7 +22,7 @@ export interface WeeklyDataPoint {
 
 export function useDailyProgress(date?: string) {
   const { user } = useAuth();
-  const today = date || new Date().toISOString().split("T")[0];
+  const today = date || getLocalDateString();
 
   return useQuery({
     queryKey: ["daily-progress", user?.id, today],
@@ -54,7 +55,7 @@ export function useDailyProgress(date?: string) {
       }
 
       return {
-        dailyScore: data.daily_adherence_score || 0,
+        dailyScore: data.average_score || 0,
         streak: await calculateStreak(user.id),
         weeklyAverage: await calculateWeeklyAverage(user.id),
         mealsLogged: data.meals_logged || 0,
@@ -79,7 +80,7 @@ export function useWeeklyProgress() {
       // Fetch real data from database
       if (!user?.id) return [];
 
-      // Get last 7 days
+      // Get last 7 days (local calendar days)
       const endDate = new Date();
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - 6);
@@ -88,20 +89,20 @@ export function useWeeklyProgress() {
         .from("daily_progress")
         .select("*")
         .eq("user_id", user.id)
-        .gte("date", startDate.toISOString().split("T")[0])
-        .lte("date", endDate.toISOString().split("T")[0])
+        .gte("date", getLocalDateString(startDate))
+        .lte("date", getLocalDateString(endDate))
         .order("date", { ascending: true });
 
       if (error) throw error;
 
       // Create array for all 7 days (fill missing days with 0)
       const weeklyData: WeeklyDataPoint[] = [];
-      const todayStr = endDate.toISOString().split("T")[0];
+      const todayStr = getLocalDateString(endDate);
 
       for (let i = 0; i < 7; i++) {
         const date = new Date(startDate);
         date.setDate(date.getDate() + i);
-        const dateStr = date.toISOString().split("T")[0];
+        const dateStr = getLocalDateString(date);
 
         const dayData = data?.find((d) => d.date === dateStr);
         const dayName = date.toLocaleDateString("en-US", { weekday: "long" });
@@ -110,7 +111,7 @@ export function useWeeklyProgress() {
         weeklyData.push({
           day: dayName,
           shortDay: shortDayName,
-          score: dayData?.daily_adherence_score || 0,
+          score: dayData?.average_score || 0,
           mealsLogged: dayData?.meals_logged || 0,
           isToday: dateStr === todayStr,
         });
@@ -125,9 +126,9 @@ export function useWeeklyProgress() {
 async function calculateStreak(userId: string): Promise<number> {
   const { data, error } = await supabase
     .from("daily_progress")
-    .select("date, daily_adherence_score")
+    .select("date, average_score")
     .eq("user_id", userId)
-    .gte("daily_adherence_score", 70) // Alignment threshold
+    .gte("average_score", 70) // Alignment threshold
     .order("date", { ascending: false })
     .limit(30);
 
@@ -138,8 +139,9 @@ async function calculateStreak(userId: string): Promise<number> {
   today.setHours(0, 0, 0, 0);
 
   for (const day of data) {
-    const dayDate = new Date(day.date);
-    dayDate.setHours(0, 0, 0, 0);
+    // day.date is a DATE string (YYYY-MM-DD); parse it as local, not UTC,
+    // to avoid an off-by-one day shift depending on the user's timezone.
+    const dayDate = parseLocalDateString(day.date);
 
     const expectedDate = new Date(today);
     expectedDate.setDate(expectedDate.getDate() - streak);
@@ -161,13 +163,13 @@ async function calculateWeeklyAverage(userId: string): Promise<number> {
 
   const { data, error } = await supabase
     .from("daily_progress")
-    .select("daily_adherence_score")
+    .select("average_score")
     .eq("user_id", userId)
-    .gte("date", startDate.toISOString().split("T")[0])
-    .lte("date", endDate.toISOString().split("T")[0]);
+    .gte("date", getLocalDateString(startDate))
+    .lte("date", getLocalDateString(endDate));
 
   if (error || !data || data.length === 0) return 0;
 
-  const sum = data.reduce((acc, day) => acc + (day.daily_adherence_score || 0), 0);
+  const sum = data.reduce((acc, day) => acc + (day.average_score || 0), 0);
   return Math.round(sum / data.length);
 }

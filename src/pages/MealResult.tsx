@@ -7,7 +7,7 @@ import { AlignmentScore } from "@/components/AlignmentScore";
 import { FoodItemEditor } from "@/components/FoodItemEditor";
 import { AddFoodSheet } from "@/components/AddFoodSheet";
 import { cn } from "@/lib/utils";
-import { MealLogResult } from "@/hooks/use-meals";
+import { MealLogResult, useMealLog } from "@/hooks/use-meals";
 import {
   getScoreBreakdown,
   generateFoodId,
@@ -51,9 +51,20 @@ export default function MealResult() {
   const analysisResult = location.state?.analysisResult as MealLogResult | undefined;
   const photoPreview = location.state?.photoPreview as string | undefined;
   const mealLogId = (location.state?.mealLogId || analysisResult?.mealLogId) as string | undefined;
+  const isTest = isTestUser(user?.email);
 
-  const result = analysisResult || mockResult;
-  const missingRequired: string[] = analysisResult?.missingRequired ?? [];
+  // Tapping a previously logged meal (from Home/Progress) only gives us the
+  // mealLogId — fetch its stored analysis rather than showing fake data.
+  const { data: savedMealLog, isLoading: savedMealLogLoading } = useMealLog(
+    !analysisResult ? mealLogId : undefined
+  );
+
+  const effectiveResult = analysisResult ?? savedMealLog ?? (isTest ? mockResult : undefined);
+  const isLoadingSavedMeal = !analysisResult && !isTest && !!mealLogId && savedMealLogLoading;
+  const notFound = !analysisResult && !isTest && !isLoadingSavedMeal && !savedMealLog;
+
+  const result = effectiveResult ?? mockResult;
+  const missingRequired: string[] = effectiveResult?.missingRequired ?? [];
 
   const [editableFoods, setEditableFoods] = useState<EditableFood[]>([]);
   const [hasChanges, setHasChanges] = useState(false);
@@ -61,7 +72,7 @@ export default function MealResult() {
 
   useEffect(() => {
     const initialFoods: EditableFood[] = (
-      analysisResult?.detectedFoods || mockResult.detectedFoods
+      effectiveResult?.detectedFoods || mockResult.detectedFoods
     ).map((food) => ({
       id: generateFoodId(),
       name: food.name,
@@ -70,12 +81,12 @@ export default function MealResult() {
       category: food.category || "Other",
     }));
     setEditableFoods(initialFoods);
-  }, [analysisResult]);
+  }, [effectiveResult]);
 
   useEffect(() => {
     posthog.capture('meal result viewed', {
       meal_type: mealType,
-      has_real_data: !!analysisResult,
+      has_real_data: !!analysisResult || !!savedMealLog,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -119,8 +130,8 @@ export default function MealResult() {
     setHasChanges(true);
   };
 
-  const suggestions = analysisResult
-    ? analysisResult.suggestedSwaps.map((swap) => ({
+  const suggestions = effectiveResult && effectiveResult !== mockResult
+    ? effectiveResult.suggestedSwaps.map((swap) => ({
         food: swap.original,
         replacement: Array.isArray(swap.suggested) ? swap.suggested.join(", ") : swap.suggested,
         reason: swap.reason,
@@ -161,6 +172,27 @@ export default function MealResult() {
 
   const confidenceInfo = getConfidenceLabel(result.confidence);
   const activeFoodsCount = editableFoods.filter((f) => !f.isDeleted).length;
+
+  if (isLoadingSavedMeal) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-sm text-muted-foreground">
+          {t("mealResult.loading", "Loading meal...")}
+        </p>
+      </div>
+    );
+  }
+
+  if (notFound) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 px-4 text-center">
+        <p className="text-sm text-muted-foreground">
+          {t("mealResult.not_found", "We couldn't find this meal.")}
+        </p>
+        <Button onClick={() => navigate("/")}>{t("common.back", "Back")}</Button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pb-6 md:pb-0">
