@@ -137,7 +137,7 @@ export default function Home() {
                     <Link
                       key={meal.id}
                       to="/meal-result"
-                      state={{ mealType: meal.type }}
+                      state={{ mealType: meal.type, mealLogId: meal.id }}
                       className="block animate-fade-up"
                       style={{ animationDelay: `${(idx + 3) * 100}ms` }}
                     >
