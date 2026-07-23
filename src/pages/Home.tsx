@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { AdherenceScore, getScoreStatus } from "@/components/AdherenceScore";
+import { AdherenceScore, getScoreStatus, getScoreColor } from "@/components/AdherenceScore";
 import { MealCard } from "@/components/MealCard";
 import { BottomNav } from "@/components/BottomNav";
 import { HomePageSkeleton } from "@/components/PageSkeletons";
@@ -10,7 +10,27 @@ import { useAuth, useUserProfile } from "@/hooks/use-auth";
 import { useTodayMeals } from "@/hooks/use-meals";
 import { useNutritionPlan, getLoggableMealCount, getNextUnloggedTemplate } from "@/hooks/use-nutrition-plan";
 import { useDailyProgress } from "@/hooks/use-progress";
-import { Flame, TrendingUp, Calendar, Camera, Info } from "lucide-react";
+import { useWellnessScore } from "@/hooks/use-health";
+import { cn } from "@/lib/utils";
+import type { LucideIcon } from "lucide-react";
+import {
+  Flame,
+  TrendingUp,
+  Calendar,
+  Camera,
+  Info,
+  Utensils,
+  HeartPulse,
+  Moon,
+  Zap,
+} from "lucide-react";
+
+const WELLNESS_CHIPS: Array<{ key: "nutrition" | "recovery" | "sleep" | "activity"; icon: LucideIcon; label: string }> = [
+  { key: "nutrition", icon: Utensils, label: "Nutrition" },
+  { key: "recovery", icon: HeartPulse, label: "Recovery" },
+  { key: "sleep", icon: Moon, label: "Sleep" },
+  { key: "activity", icon: Zap, label: "Activity" },
+];
 
 // Get time-based greeting
 function getGreeting(): string {
@@ -34,17 +54,18 @@ export default function Home() {
   const { data: meals = [], isLoading: mealsLoading } = useTodayMeals();
   const { data: planData, isLoading: planLoading } = useNutritionPlan();
   const { data: dailyStats, isLoading: statsLoading } = useDailyProgress();
+  const wellness = useWellnessScore();
 
   const hasPlan = planData?.hasPlan || false;
   const plan = planData?.plan;
-  const dailyScore = dailyStats?.dailyScore || 0;
+  const wellnessScore = wellness.score ?? 0;
   const streak = dailyStats?.streak || 0;
   const weeklyAverage = dailyStats?.weeklyAverage || 0;
   const mealsLogged = dailyStats?.mealsLogged || 0;
   const totalMeals = getLoggableMealCount(plan) ?? dailyStats?.totalMeals ?? 4;
   const nextMealSuggestion = getNextUnloggedTemplate(plan, meals);
 
-  const isLoading = mealsLoading || planLoading || statsLoading;
+  const isLoading = mealsLoading || planLoading || statsLoading || wellness.isLoading;
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -111,18 +132,39 @@ export default function Home() {
                         </div>
                       </div>
                     </div>
-                    
-                    <AdherenceScore score={dailyScore} size="md" />
+
+                    <AdherenceScore score={wellnessScore} size="md" />
                   </div>
                 </div>
-                
+
+                {/* Wellness breakdown */}
+                <div className="grid grid-cols-4 gap-1 px-2 py-3 border-t border-border">
+                  {WELLNESS_CHIPS.map(({ key, icon: Icon, label }) => {
+                    const entry = wellness.breakdown.find((b) => b.key === key);
+                    const colorClass = entry ? getScoreColor(entry.score) : "text-muted-foreground";
+                    return (
+                      <Link
+                        key={key}
+                        to="/health"
+                        className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-muted/50 transition-colors"
+                      >
+                        <Icon className={cn("w-4 h-4", colorClass)} />
+                        <span className={cn("text-sm font-semibold", colorClass)}>{entry?.score ?? "–"}</span>
+                        <span className="text-[10px] text-muted-foreground text-center leading-tight">
+                          {label}
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </div>
+
                 {/* Meal progress */}
                 <div className="p-4 border-t border-border">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-medium">Meals logged today</span>
                     <span className="text-sm text-muted-foreground">{mealsLogged} of {totalMeals}</span>
                   </div>
-                  <Progress value={(mealsLogged / totalMeals) * 100} status={getScoreStatus(dailyScore)} />
+                  <Progress value={(mealsLogged / totalMeals) * 100} status={getScoreStatus(wellnessScore)} />
                 </div>
               </CardContent>
             </Card>

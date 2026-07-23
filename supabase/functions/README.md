@@ -67,6 +67,42 @@ Parses an uploaded nutrition plan document into meal templates. PDF text is extr
 
 Categorizes a list of meal descriptions into a shopping list (used by the "Esta Semana" → "Compras" flow). `gpt-4o-mini`, no DB writes.
 
+### 4. ingest-health
+
+Webhook receiver for the [Health Auto Export](https://github.com/Lybron/health-auto-export) iOS app. Unlike the other functions, this one does **not** use Supabase JWT auth (`verify_jwt = false` in `config.toml`) — Health Auto Export can't attach a JWT, so it authenticates via a per-user API key sent in the `x-api-key` header instead (generated in Settings → Health Sync, stored hashed in `health_ingest_tokens`).
+
+Parses the metrics/workouts payload, upserts raw samples into `health_samples` (idempotent — safe to resend overlapping windows), and recomputes `health_daily` (aggregates plus recovery/sleep/strain scores) for every affected day using `supabase/functions/_shared/health-scoring.ts`.
+
+**Endpoint:** `POST https://<your-project-ref>.supabase.co/functions/v1/ingest-health`
+
+**Headers:** `x-api-key: <token from Settings>`
+
+**Request Body:** the Health Auto Export "API Export" payload, e.g.:
+```json
+{
+  "data": {
+    "metrics": [
+      { "name": "heart_rate_variability", "units": "ms", "data": [{ "date": "2026-07-11 05:47:00 +0100", "qty": 64.1 }] }
+    ],
+    "workouts": [
+      { "name": "Outdoor Run", "start": "2026-07-11 18:10:00 +0100", "end": "2026-07-11 18:52:00 +0100" }
+    ]
+  }
+}
+```
+
+**Response:**
+```json
+{ "samplesUpserted": 16, "daysRecomputed": 1, "dates": ["2026-07-11"] }
+```
+
+A checked-in fixture at `ingest-health/fixture.json` covers a duplicate point (overlapping resend) and a sleep session crossing midnight — useful for a local curl test:
+```bash
+curl -X POST http://localhost:54321/functions/v1/ingest-health \
+  -H "x-api-key: YOUR_TOKEN" \
+  -d @supabase/functions/ingest-health/fixture.json
+```
+
 ## Development
 
 ### Local Testing
@@ -75,6 +111,7 @@ Categorizes a list of meal descriptions into a shopping list (used by the "Esta 
 supabase functions serve analyze-meal
 supabase functions serve parse-nutrition-plan
 supabase functions serve extract-ingredients
+supabase functions serve ingest-health
 ```
 
 ```bash
@@ -117,16 +154,23 @@ supabase secrets list
 supabase/functions/
 ├── .env.example
 ├── README.md                    # This file
+├── _shared/
+│   ├── health-scoring.ts       # Pure scoring module shared with the frontend
+│   └── health-scoring.test.ts
 ├── analyze-meal/
-│   └── index.ts
+│   └── index.ts                # Meal analysis function
 ├── parse-nutrition-plan/
-│   └── index.ts
-└── extract-ingredients/
-    └── index.ts
+│   └── index.ts                # Plan parsing function
+├── extract-ingredients/
+│   └── index.ts                # Weekly meal plan → shopping list ingredients
+└── ingest-health/
+    ├── index.ts                 # Health Auto Export webhook receiver
+    └── fixture.json             # Sample payload for local curl testing
 ```
 
 ## Notes
 
 - All functions use the Deno runtime (not Node.js).
 - `SUPABASE_URL` / `SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` are auto-injected by Supabase — don't set them yourself.
-- JWT authentication is enabled by default on all functions.
+- CORS is configured for all origins (tighten for production).
+- JWT authentication is enabled by default on all functions, except `ingest-health` (see above).

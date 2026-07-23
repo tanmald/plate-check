@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { BottomNav } from "@/components/BottomNav";
 import { LogoutDialog } from "@/components/LogoutDialog";
 import { DeletePlanDialog } from "@/components/DeletePlanDialog";
+import { HealthSyncSection } from "@/components/settings/HealthSyncSection";
 import { toast } from "sonner";
 import {
   User,
@@ -169,6 +170,8 @@ export default function Settings() {
 
         {/* Plan Management */}
         {renderMenuSection(planItems, "Plan Management")}
+
+        <HealthSyncSection />
 
         {/* Privacy & Data */}
         {renderMenuSection(privacyItems, "Privacy & Data")}

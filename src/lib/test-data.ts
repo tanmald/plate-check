@@ -413,3 +413,55 @@ export const mockProfile = {
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
 };
+
+// ─── Health tracking mock data ─────────────────────────────────────────────
+
+function daysAgoIso(n: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return d.toISOString().split("T")[0];
+}
+
+export const mockHealthDaily = {
+  date: daysAgoIso(0),
+  recoveryScore: 72,
+  sleepScore: 81,
+  strainScore: 45,
+  hrvMs: 62,
+  restingHr: 51,
+  respiratoryRate: 14.2,
+  wristTemp: 34.6,
+  wristTempDelta: 0.1,
+  spo2: 97,
+  sleepStart: null as string | null,
+  sleepEnd: null as string | null,
+  sleepDurationMin: 445,
+  sleepDeepMin: 82,
+  sleepRemMin: 98,
+  sleepCoreMin: 245,
+  sleepAwakeMin: 20,
+  sleepEfficiency: 0.96,
+  steps: 8400,
+  activeEnergyKcal: 420,
+  exerciseMinutes: 28,
+  standHours: 10,
+  vo2Max: 44.2,
+  workouts: [{ name: "Outdoor Run", duration: 32 }] as Array<Record<string, unknown>>,
+  scoreDetail: null as Record<string, unknown> | null,
+};
+
+export const mockHealthTrends = [
+  { ...mockHealthDaily, date: daysAgoIso(6), recoveryScore: 65, sleepScore: 70, strainScore: 60, hrvMs: 55, restingHr: 54, steps: 5200, activeEnergyKcal: 380, exerciseMinutes: 15 },
+  { ...mockHealthDaily, date: daysAgoIso(5), recoveryScore: 70, sleepScore: 76, strainScore: 50, hrvMs: 59, restingHr: 52, steps: 7100, activeEnergyKcal: 410, exerciseMinutes: 20 },
+  { ...mockHealthDaily, date: daysAgoIso(4), recoveryScore: 58, sleepScore: 62, strainScore: 78, hrvMs: 48, restingHr: 56, steps: 11200, activeEnergyKcal: 610, exerciseMinutes: 55 },
+  { ...mockHealthDaily, date: daysAgoIso(3), recoveryScore: 75, sleepScore: 85, strainScore: 40, hrvMs: 64, restingHr: 50, steps: 6800, activeEnergyKcal: 390, exerciseMinutes: 18 },
+  { ...mockHealthDaily, date: daysAgoIso(2), recoveryScore: 80, sleepScore: 88, strainScore: 35, hrvMs: 67, restingHr: 49, steps: 5900, activeEnergyKcal: 350, exerciseMinutes: 12 },
+  { ...mockHealthDaily, date: daysAgoIso(1), recoveryScore: 66, sleepScore: 72, strainScore: 68, hrvMs: 56, restingHr: 53, steps: 9800, activeEnergyKcal: 520, exerciseMinutes: 40 },
+  { ...mockHealthDaily, date: daysAgoIso(0) },
+];
+
+export const mockIngestToken = {
+  tokenPrefix: "a1b2c3d4",
+  createdAt: `${daysAgoIso(9)}T08:00:00.000Z`,
+  lastUsedAt: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
+};

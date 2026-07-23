@@ -135,7 +135,8 @@ _Effort: 3.1 + 3.3 ≈ 1 week (UI only). 3.2 depends on the Capacitor decision. 
 
 ## Explicit non-goals (for now)
 
-- **CGM / wearable integration** — Bevel's moat, not our job. Adherence-to-plan doesn't need glucose data.
+- **CGM integration** — needs a licensed glucose data feed (Dexcom/Libre); adherence-to-plan doesn't need it. Still not our job.
+- ~~Wearable integration~~ — **superseded.** Apple Watch data (HRV, sleep, activity) now feeds a Recovery/Sleep/Activity score alongside nutrition adherence, ingested via the Health Auto Export webhook (`ingest-health` edge function) and combined into a wellness score on `/health`. See the health tracking migration and `supabase/functions/_shared/health-scoring.ts` for the scoring model.
 - **Licensed food database** (barcode search) — high cost, low adherence value; revisit at Phase 4.5.
 - **Generic macro-goal tracking without a plan** — that's MyFitnessPal's crowded market; the prescribed plan is the moat.
 - **Social feeds** — Challenges (see [FEATURE_CHALLENGES.md](./FEATURE_CHALLENGES.md)) covers motivation without a feed.

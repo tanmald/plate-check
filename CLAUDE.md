@@ -9,6 +9,7 @@ npm run dev          # Start dev server (http://localhost:8080)
 npm run build        # Build for production
 npm run build:dev    # Build in development mode
 npm run lint         # Run ESLint on all TypeScript files
+npm run test         # Run vitest (currently: health-scoring unit tests)
 npm run preview      # Preview production build locally
 ```
 
@@ -92,6 +93,7 @@ Router setup in `App.tsx` uses React Router v6 with protected routes:
 - `/plan` - Plan management (tabs: Meu Plano / Esta Semana / Compras)
 - `/plan/template/:templateId` - Create (`new`) or edit a meal template
 - `/progress` - Progress tracking (tabs: daily/weekly)
+- `/health` - Recovery/sleep/activity detail, linked from the Home wellness breakdown
 - `/settings` - User settings
 - `/settings/profile` - Profile editing
 - `*` - 404 Not Found
@@ -100,7 +102,7 @@ Router setup in `App.tsx` uses React Router v6 with protected routes:
 
 ```
 src/
-├── pages/               # Route-level components (13 pages + NotFound)
+├── pages/               # Route-level components (14 pages + NotFound)
 │   ├── Landing.tsx      # Marketing page
 │   ├── Auth.tsx         # Sign up / sign in / forgot password
 │   ├── AuthCallback.tsx # Supabase email-confirmation callback
@@ -112,6 +114,7 @@ src/
 │   ├── Plan.tsx         # Plan management shell (tabs + 4 view-states)
 │   ├── EditMealTemplate.tsx # Create/edit a single meal template
 │   ├── Progress.tsx     # Progress tracking with tabs
+│   ├── Health.tsx       # Recovery/sleep/activity detail, linked from Home's wellness breakdown
 │   ├── Settings.tsx     # User settings
 │   ├── EditProfile.tsx  # Profile editing
 │   └── NotFound.tsx     # 404 page
@@ -131,22 +134,26 @@ src/
 │   ├── DailyTargetsCard.tsx  # Calories/protein/meals derived from the plan's templates
 │   ├── MealTemplateCard.tsx  # Single template display (active plan)
 │   ├── WeeklyPlanner.tsx     # "Esta Semana" tab
-│   └── ShoppingListView.tsx  # "Compras" tab
+│   ├── ShoppingListView.tsx  # "Compras" tab
+│   ├── settings/              # HealthSyncSection (Settings page)
+│   └── health/                # MetricCard, HealthTrendChart (Health page)
 │
 ├── hooks/
 │   ├── use-mobile.tsx        # Viewport detection (375px breakpoint)
 │   ├── use-meals.ts          # Fetch/create meal logs, per-meal detail
 │   ├── use-nutrition-plan.ts # Fetch/create plans + template-derived helpers (getLoggableMealCount, getUnloggedTemplates, computeDailyTargets)
-│   └── use-progress.ts       # Daily/weekly progress, per-meal-type adherence, previous-week average
+│   ├── use-progress.ts       # Daily/weekly progress, per-meal-type adherence, previous-week average
+│   └── use-health.ts         # Wellness/recovery/sleep/activity scores, ingest token management
 │
 ├── contexts/
 │   └── AuthContext.tsx       # Global auth state + test user logic
 │
 ├── lib/
-│   ├── utils.ts        # cn() utility for classname merging
-│   ├── supabase.ts     # Supabase client singleton
-│   ├── scoring.ts       # Deterministic food-breakdown scoring (client-side re-score after edits)
-│   └── test-data.ts    # Mock data (mockMeals, mockPlan, mockWeeklyData, ...)
+│   ├── utils.ts           # cn() utility for classname merging
+│   ├── supabase.ts        # Supabase client singleton
+│   ├── scoring.ts         # Deterministic food-breakdown scoring (client-side re-score after edits)
+│   ├── health-scoring.ts  # Re-export of supabase/functions/_shared/health-scoring.ts
+│   └── test-data.ts       # Mock data (mockMeals, mockPlan, mockWeeklyData, mockHealthDaily, ...)
 │
 ├── types/
 │   ├── database.types.ts     # Supabase auto-generated types
@@ -261,8 +268,17 @@ Supabase PostgreSQL tables actually in use:
 - `daily_progress` - Daily adherence aggregates, written by the `update_daily_progress` DB trigger
 - `weekly_progress` - Exists but has no writer; the weekly view is computed client-side in `use-progress.ts` from `daily_progress` instead
 - `weekly_meal_plans` / `weekly_plan_entries` / `shopping_lists` / `shopping_list_items` - Back the "Esta Semana"/"Compras" tabs
+- `health_ingest_tokens` - Per-user API keys (hashed) for the Health Auto Export webhook
+- `health_samples` - Raw Apple Health data points ingested from the watch
+- `health_daily` - Per-day health aggregates plus computed recovery/sleep/strain scores
 
 Migrations in `supabase/migrations/`. `src/types/database.types.ts` is generated from these — regenerate it (`supabase gen types typescript`) whenever a migration changes a table this app reads from.
+
+### Health & Wellness Scoring
+
+Apple Watch data (HRV, sleep, activity) arrives via the [Health Auto Export](https://github.com/Lybron/health-auto-export) iOS app, which POSTs to the `ingest-health` edge function (see `supabase/functions/README.md`). Recovery, sleep, and strain scores are computed at ingest time; the combined wellness score (nutrition + recovery + sleep + activity) is computed client-side in `useWellnessScore()` (`src/hooks/use-health.ts`) so it stays current as meals are logged.
+
+**The canonical scoring implementation lives in `supabase/functions/_shared/health-scoring.ts`** — a pure, dependency-free module with no imports, so both the Deno edge runtime and the Vite frontend can consume it. `src/lib/health-scoring.ts` is only a re-export; edit the `_shared` copy, not the re-export. Covered by `npm run test`.
 
 ## Development Patterns
 

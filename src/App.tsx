@@ -14,6 +14,7 @@ import MealResult from "./pages/MealResult";
 import Plan from "./pages/Plan";
 import EditMealTemplate from "./pages/EditMealTemplate";
 import Progress from "./pages/Progress";
+import Health from "./pages/Health";
 import Settings from "./pages/Settings";
 import EditProfile from "./pages/EditProfile";
 import Onboarding from "./pages/Onboarding";
@@ -83,6 +84,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Progress />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/health"
+              element={
+                <ProtectedRoute>
+                  <Health />
                 </ProtectedRoute>
               }
             />
