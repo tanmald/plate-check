@@ -46,8 +46,16 @@ export function useUpdateMealLog() {
 
       return { success: true };
     },
-    onSuccess: () => {
+    onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ["meals"] });
+      // The corrected score changes everything derived from this log: the
+      // stored per-meal detail, the day/week aggregates, and the per-meal-type
+      // breakdown. Invalidating only ["meals"] left all of those stale.
+      queryClient.invalidateQueries({ queryKey: ["meal-log-detail", id] });
+      queryClient.invalidateQueries({ queryKey: ["daily-progress"] });
+      queryClient.invalidateQueries({ queryKey: ["weekly-progress"] });
+      queryClient.invalidateQueries({ queryKey: ["adherence-by-meal-type"] });
+      queryClient.invalidateQueries({ queryKey: ["previous-week-average"] });
     },
   });
 }

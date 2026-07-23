@@ -320,7 +320,6 @@ See `/supabase/migrations/` for full schema.
 
 See `docs/APP_REVIEW.md` for the full, current list with file:line references. Highlights:
 
-- **Camera capture** simulated (not integrated with device camera API)
 - **Plan parsing** is a real GPT-4o call (`parse-nutrition-plan`), not a mock
 - **No automated tests** configured yet
 - **Test user auth bypass** must be gated behind `import.meta.env.DEV` — verify before deploying

@@ -4,11 +4,13 @@ import { useAuth } from "@/hooks/use-auth";
 import { isTestUser, mockMeals, mockAnalysisResult } from "@/lib/test-data";
 import { uploadMealPhoto } from "@/lib/storage";
 import { analyzeMeal, AnalyzeMealResponse } from "@/lib/api";
-import { confidenceLabelToNumeric, numericToConfidenceLabel } from "@/lib/scoring";
+import { confidenceLabelToNumeric, numericToConfidenceLabel, type EditableFood } from "@/lib/scoring";
 
 // Extended response type that includes the meal log ID for corrections
 export interface MealLogResult extends AnalyzeMealResponse {
     mealLogId?: string;
+    /** Signed URL for the stored meal photo, when reopening a saved meal. */
+    photoUrl?: string;
 }
 
 export interface Meal {
@@ -64,6 +66,24 @@ export function useMeals(date?: string) {
 
           if (error) throw error;
 
+          // photo_path is a storage path in a PRIVATE bucket, not a URL —
+          // rendering it in an <img> yields a broken image. Sign all paths in
+          // one batch call and map path → temporary URL.
+          const photoPaths = (data || [])
+                  .map((m) => m.photo_path)
+                  .filter((p): p is string => !!p);
+          const signedUrlByPath = new Map<string, string>();
+          if (photoPaths.length > 0) {
+                  const { data: signed } = await supabase.storage
+                          .from("meal-photos")
+                          .createSignedUrls(photoPaths, 3600);
+                  for (const entry of signed ?? []) {
+                          if (entry.signedUrl && entry.path) {
+                                  signedUrlByPath.set(entry.path, entry.signedUrl);
+                          }
+                  }
+          }
+
           // Transform database format to app format
           return (data || []).map((meal) => ({
                     id: meal.id,
@@ -76,7 +96,7 @@ export function useMeals(date?: string) {
                                 minute: "2-digit",
                     }),
                     score: meal.adherence_score || 0,
-                    imageUrl: meal.photo_path || undefined,
+                    imageUrl: meal.photo_path ? signedUrlByPath.get(meal.photo_path) : undefined,
                     foods: meal.detected_foods || [],
                     feedback: (meal.scoring_result as { feedback?: string } | null)?.feedback || undefined,
           }));
@@ -192,7 +212,7 @@ export function useMealLogDetail(mealLogId?: string) {
 
       const { data, error } = await supabase
         .from("meal_logs")
-        .select("id, adherence_score, scoring_result, detection_confidence")
+        .select("id, adherence_score, scoring_result, detection_confidence, user_corrections, photo_path")
         .eq("id", mealLogId)
         .single();
 
@@ -205,14 +225,41 @@ export function useMealLogDetail(mealLogId?: string) {
         missingRequired?: string[];
       };
 
+      // adherence_score reflects user corrections (when any), but
+      // scoring_result keeps the ORIGINAL AI detection as an audit record.
+      // Prefer the corrected food list so the reopened meal shows the same
+      // foods the corrected score was computed from.
+      const corrections = (data.user_corrections as { corrections?: EditableFood[] } | null)
+        ?.corrections;
+      const detectedFoods = corrections?.length
+        ? corrections
+            .filter((f) => !f.isDeleted)
+            .map((f) => ({
+              name: f.name,
+              matched: f.matched,
+              matchType: f.matchType,
+              category: f.category,
+              confidence: 1, // user-confirmed
+            }))
+        : scoringResult.detectedFoods ?? [];
+
+      let photoUrl: string | undefined;
+      if (data.photo_path) {
+        const { data: signed } = await supabase.storage
+          .from("meal-photos")
+          .createSignedUrl(data.photo_path, 3600);
+        photoUrl = signed?.signedUrl;
+      }
+
       return {
         mealLogId: data.id,
         score: data.adherence_score ?? 0,
-        detectedFoods: scoringResult.detectedFoods ?? [],
+        detectedFoods,
         missingRequired: scoringResult.missingRequired ?? [],
         feedback: scoringResult.feedback ?? "",
         confidence: numericToConfidenceLabel(data.detection_confidence),
         suggestedSwaps: scoringResult.suggestedSwaps ?? [],
+        photoUrl,
       };
     },
     enabled: !!mealLogId && !isTestUser(user?.email),

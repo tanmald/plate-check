@@ -82,6 +82,9 @@ export default function MealResult() {
       category: food.category || "Other",
     }));
     setEditableFoods(initialFoods);
+    // A new `result` identity means a different meal (or a freshly refetched
+    // one) — any in-progress edit state from a prior result no longer applies.
+    setHasChanges(false);
   }, [result]);
 
   // Track meal result viewed
@@ -202,6 +205,10 @@ export default function MealResult() {
 
   const confidenceInfo = getConfidenceLabel(result.confidence);
   const activeFoodsCount = editableFoods.filter((f) => !f.isDeleted).length;
+  // photoPreview (a blob: URL from the /log flow) takes priority; when
+  // reopening a saved meal there's no blob, so fall back to the signed URL
+  // useMealLogDetail fetched for the stored photo.
+  const displayPhotoUrl = photoPreview || result.photoUrl;
 
   return (
     <div className="min-h-screen bg-background pb-32">
@@ -230,10 +237,10 @@ export default function MealResult() {
 
       <main className="px-4 py-6 space-y-6 max-w-lg mx-auto">
         {/* Photo Preview */}
-        {photoPreview && (
+        {displayPhotoUrl && (
           <div className="w-full aspect-[4/3] rounded-2xl overflow-hidden card-shadow">
             <img
-              src={photoPreview}
+              src={displayPhotoUrl}
               alt="Meal photo"
               className="w-full h-full object-cover"
             />
