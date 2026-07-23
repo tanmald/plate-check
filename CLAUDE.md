@@ -9,6 +9,7 @@ npm run dev          # Start dev server (http://localhost:8080)
 npm run build        # Build for production
 npm run build:dev    # Build in development mode
 npm run lint         # Run ESLint on all TypeScript files
+npm run test         # Run vitest (currently: health-scoring unit tests)
 npm run preview      # Preview production build locally
 ```
 
@@ -43,13 +44,13 @@ See `src/contexts/AuthContext.tsx` for the authentication logic.
 
 ### Three-Tier Scoring System
 
-Adherence scores (0-100) are classified into three tiers used consistently throughout the app:
-- **High (≥70):** "On track" → success/green theme
+Adherence scores (0-100) are classified into three tiers, with a single source of truth so labels and colors never disagree:
+- **High (≥70):** success/green theme — labeled "On track", or "Great match!" at ≥90
 - **Medium (40-69):** "Needs attention" → warning/yellow theme
 - **Low (<40):** "Off plan" → destructive/red theme
 
-Helper functions in `src/components/AdherenceScore.tsx`:
-- `getScoreStatus(score)` - Returns tier classification
+Helper functions in `src/components/AdherenceScore.tsx` (import these rather than re-deriving thresholds locally):
+- `getScoreStatus(score)` - Returns tier classification (`"high" | "medium" | "low"`)
 - `getScoreColor(score)` - Returns Tailwind color class
 - `getScoreLabel(score)` - Returns user-friendly label
 
@@ -63,72 +64,96 @@ Several routes implement complex multi-step flows:
 3. Show loading state
 4. Navigate to `/meal-result` with `mealType` in router state
 
-**Plan Import Flow** (`/plan`):
-1. Empty state → upload form
-2. Importing state → OCR processing
-3. Review state → confirm parsed meals
-4. Active state → view current plan
+**Plan Import Flow** (`/plan`, "Meu Plano" tab), each state its own component (`src/components/Plan*State.tsx`):
+1. `PlanEmptyState` → upload form
+2. `PlanImportingState` → AI parsing in progress
+3. `PlanReviewState` → confirm parsed meal templates
+4. `PlanActiveState` → view/edit the current plan; "Replace Plan" re-enters the empty state without losing `hasPlan` elsewhere in the app
 
-**Onboarding Flow** (`/onboarding`):
-1. Welcome → signup → photo upload → parsing → review → complete
+**Onboarding** (`/onboarding`, unauthenticated only): a single choice screen — Import a plan / Create one manually / Skip — not a multi-step signup flow. Actual signup/signin lives at `/auth`.
 
 Patterns: Use `useNavigate()` with state object: `navigate('/page', { state: { key: value } })` and `useLocation().state` to access.
 
 ### Routing Architecture
 
 Router setup in `App.tsx` uses React Router v6 with protected routes:
-- Unauthenticated: `/onboarding` only
-- Authenticated: All other routes wrapped with `<ProtectedRoute>`
-- `<ProtectedRoute>` checks `AuthContext` and redirects to onboarding if not authenticated
+- Unauthenticated: `/landing`, `/auth`, `/auth/callback`, `/auth/reset-password`, `/onboarding`
+- Authenticated: all other routes wrapped with `<ProtectedRoute>`
+- `<ProtectedRoute>` checks `AuthContext` and redirects to **`/landing`** (not `/onboarding`) if not authenticated
 
 **Route List:**
+- `/landing` - Marketing page (redirects to `/` if already authed)
+- `/auth` - Sign up / sign in / forgot password (`?mode=signin` jumps straight to sign-in)
+- `/auth/callback` - Supabase email-confirmation callback
+- `/auth/reset-password` - Password reset
+- `/onboarding` - Import plan / create manually / skip (unauthenticated only)
 - `/` - Home (daily dashboard with meal cards)
 - `/log` - Meal logging flow
 - `/meal-result` - AI analysis results
-- `/plan` - Plan management
+- `/plan` - Plan management (tabs: Meu Plano / Esta Semana / Compras)
+- `/plan/template/:templateId` - Create (`new`) or edit a meal template
 - `/progress` - Progress tracking (tabs: daily/weekly)
+- `/health` - Recovery/sleep/activity detail, linked from the Home wellness breakdown
 - `/settings` - User settings
 - `/settings/profile` - Profile editing
-- `/onboarding` - Multi-step onboarding
 - `*` - 404 Not Found
 
 ## Project Structure
 
 ```
 src/
-├── pages/               # Route-level components (8 pages + NotFound)
-│   ├── Home.tsx        # Daily dashboard
-│   ├── Log.tsx         # 3-step meal logging flow
-│   ├── MealResult.tsx  # AI analysis display
-│   ├── Plan.tsx        # Plan management
-│   ├── Progress.tsx    # Progress tracking with tabs
-│   ├── Settings.tsx    # User settings
-│   ├── EditProfile.tsx # Profile editing
-│   ├── Onboarding.tsx  # Multi-step onboarding
-│   └── NotFound.tsx    # 404 page
+├── pages/               # Route-level components (14 pages + NotFound)
+│   ├── Landing.tsx      # Marketing page
+│   ├── Auth.tsx         # Sign up / sign in / forgot password
+│   ├── AuthCallback.tsx # Supabase email-confirmation callback
+│   ├── ResetPassword.tsx # Password reset
+│   ├── Onboarding.tsx   # Import / create manually / skip (single screen)
+│   ├── Home.tsx         # Daily dashboard
+│   ├── Log.tsx          # 3-step meal logging flow
+│   ├── MealResult.tsx   # AI analysis display (real data via mealLogId, or test-mode fixture)
+│   ├── Plan.tsx         # Plan management shell (tabs + 4 view-states)
+│   ├── EditMealTemplate.tsx # Create/edit a single meal template
+│   ├── Progress.tsx     # Progress tracking with tabs
+│   ├── Health.tsx       # Recovery/sleep/activity detail, linked from Home's wellness breakdown
+│   ├── Settings.tsx     # User settings
+│   ├── EditProfile.tsx  # Profile editing
+│   └── NotFound.tsx     # 404 page
 │
 ├── components/
-│   ├── ui/             # 51 shadcn-ui components (auto-generated)
-│   ├── AdherenceScore.tsx    # Score display + tier helpers
+│   ├── ui/                   # shadcn-ui components (auto-generated)
+│   ├── AdherenceScore.tsx    # Score display + canonical tier helpers (see Three-Tier Scoring System)
 │   ├── BottomNav.tsx         # Fixed bottom navigation
 │   ├── MealCard.tsx          # Meal display component
-│   ├── WeeklyChart.tsx       # Recharts visualization
-│   ├── ProtectedRoute.tsx    # Route guard wrapper
-│   └── LogoutDialog.tsx      # Logout confirmation
+│   ├── WeeklyChart.tsx       # Weekly bar chart
+│   ├── ProtectedRoute.tsx    # Route guard wrapper (redirects to /landing)
+│   ├── LogoutDialog.tsx      # Logout confirmation
+│   ├── PlanEmptyState.tsx    # Plan tab: no plan yet
+│   ├── PlanImportingState.tsx # Plan tab: AI parsing in progress
+│   ├── PlanReviewState.tsx   # Plan tab: confirm parsed templates
+│   ├── PlanActiveState.tsx   # Plan tab: active plan view
+│   ├── DailyTargetsCard.tsx  # Calories/protein/meals derived from the plan's templates
+│   ├── MealTemplateCard.tsx  # Single template display (active plan)
+│   ├── WeeklyPlanner.tsx     # "Esta Semana" tab
+│   ├── ShoppingListView.tsx  # "Compras" tab
+│   ├── settings/              # HealthSyncSection (Settings page)
+│   └── health/                # MetricCard, HealthTrendChart (Health page)
 │
 ├── hooks/
 │   ├── use-mobile.tsx        # Viewport detection (375px breakpoint)
-│   ├── use-meals.ts          # Fetch meal data
-│   ├── use-nutrition-plan.ts # Fetch plan data
-│   └── use-progress.ts       # Fetch progress/stats
+│   ├── use-meals.ts          # Fetch/create meal logs, per-meal detail
+│   ├── use-nutrition-plan.ts # Fetch/create plans + template-derived helpers (getLoggableMealCount, getUnloggedTemplates, computeDailyTargets)
+│   ├── use-progress.ts       # Daily/weekly progress, per-meal-type adherence, previous-week average
+│   └── use-health.ts         # Wellness/recovery/sleep/activity scores, ingest token management
 │
 ├── contexts/
 │   └── AuthContext.tsx       # Global auth state + test user logic
 │
 ├── lib/
-│   ├── utils.ts        # cn() utility for classname merging
-│   ├── supabase.ts     # Supabase client singleton
-│   └── test-data.ts    # Mock data (mockMeals, mockPlan, mockWeeklyData)
+│   ├── utils.ts           # cn() utility for classname merging
+│   ├── supabase.ts        # Supabase client singleton
+│   ├── scoring.ts         # Deterministic food-breakdown scoring (client-side re-score after edits)
+│   ├── health-scoring.ts  # Re-export of supabase/functions/_shared/health-scoring.ts
+│   └── test-data.ts       # Mock data (mockMeals, mockPlan, mockWeeklyData, mockHealthDaily, ...)
 │
 ├── types/
 │   ├── database.types.ts     # Supabase auto-generated types
@@ -235,15 +260,25 @@ Configuration in `eslint.config.js`:
 
 ## Database Schema
 
-Supabase PostgreSQL tables:
+Supabase PostgreSQL tables actually in use:
 - `user_profiles` - User information
-- `nutrition_plans` - Uploaded plans
-- `meal_templates` - Parsed meal templates
-- `meal_logs` - Logged meals with AI analysis
-- `daily_progress` - Daily adherence scores
-- `weekly_progress` - Weekly aggregations
+- `nutrition_plans` - Uploaded plans (one `is_active` plan per user)
+- `meal_templates` - Parsed meal templates (the live plan model — `meal_slots`/`meal_options`/`meal_constraints`/`meal_references` also exist in the schema but nothing reads or writes them; treat as dead)
+- `meal_logs` - Logged meals with AI analysis (`status` must reach `'scored'` with `scored_at` set for the `update_daily_progress` trigger to fire)
+- `daily_progress` - Daily adherence aggregates, written by the `update_daily_progress` DB trigger
+- `weekly_progress` - Exists but has no writer; the weekly view is computed client-side in `use-progress.ts` from `daily_progress` instead
+- `weekly_meal_plans` / `weekly_plan_entries` / `shopping_lists` / `shopping_list_items` - Back the "Esta Semana"/"Compras" tabs
+- `health_ingest_tokens` - Per-user API keys (hashed) for the Health Auto Export webhook
+- `health_samples` - Raw Apple Health data points ingested from the watch
+- `health_daily` - Per-day health aggregates plus computed recovery/sleep/strain scores
 
-Migrations in `supabase/migrations/`
+Migrations in `supabase/migrations/`. `src/types/database.types.ts` is generated from these — regenerate it (`supabase gen types typescript`) whenever a migration changes a table this app reads from.
+
+### Health & Wellness Scoring
+
+Apple Watch data (HRV, sleep, activity) arrives via the [Health Auto Export](https://github.com/Lybron/health-auto-export) iOS app, which POSTs to the `ingest-health` edge function (see `supabase/functions/README.md`). Recovery, sleep, and strain scores are computed at ingest time; the combined wellness score (nutrition + recovery + sleep + activity) is computed client-side in `useWellnessScore()` (`src/hooks/use-health.ts`) so it stays current as meals are logged.
+
+**The canonical scoring implementation lives in `supabase/functions/_shared/health-scoring.ts`** — a pure, dependency-free module with no imports, so both the Deno edge runtime and the Vite frontend can consume it. `src/lib/health-scoring.ts` is only a re-export; edit the `_shared` copy, not the re-export. Covered by `npm run test`.
 
 ## Development Patterns
 
@@ -286,15 +321,14 @@ const { data } = await supabase.from('table').select('*');
 
 ## Known Limitations (MVP)
 
-These are documented in `docs/DEVELOPMENT.md`:
+See `docs/APP_REVIEW.md` for the full list with file:line references. Highlights:
 
-- **Camera capture** - Simulated (not integrated with device camera API)
-- **OCR plan parsing** - Mock implementation only
+- **Plan parsing** - Real GPT-4o (`parse-nutrition-plan` edge function), not a mock — despite what older docs say
 - **No automated tests** - Manual testing only
-- **Test user auth bypass** - Disabled in production needed
+- **Test user auth bypass** - Must be gated behind `import.meta.env.DEV`; verify this is in place before deploying
 - **localStorage sessions** - XSS vulnerability (should use httpOnly cookies)
-- **Date navigation** - prev/next buttons not functional
-- **No macro tracking** - Only adherence scores
+- **Date navigation** - prev/next buttons in Progress are still not functional
+- **No macro tracking beyond daily targets** - `DailyTargetsCard` shows calories/protein derived from the plan's templates, but there's no per-meal macro logging
 
 ## Common Debugging
 

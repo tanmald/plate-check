@@ -5,6 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useNutritionPlan } from "@/hooks/use-nutrition-plan";
 import { useUpdateMealTemplate, useCreateMealTemplate } from "@/hooks/use-update-meal-template";
 import { toast } from "sonner";
@@ -42,6 +52,7 @@ export default function EditMealTemplate() {
   const [newFoodName, setNewFoodName] = useState("");
   const [newFoodCategory, setNewFoodCategory] = useState<FoodCategory>("allowed");
   const [hasChanges, setHasChanges] = useState(false);
+  const [showDiscardDialog, setShowDiscardDialog] = useState(false);
 
   // Find the template (only in edit mode)
   const template = !isCreateMode
@@ -232,12 +243,15 @@ export default function EditMealTemplate() {
 
   const handleBack = () => {
     if (hasChanges) {
-      if (confirm(t("editTemplate.discard_confirm"))) {
-        navigate("/plan");
-      }
+      setShowDiscardDialog(true);
     } else {
       navigate("/plan");
     }
+  };
+
+  const handleDiscard = () => {
+    setShowDiscardDialog(false);
+    navigate("/plan");
   };
 
   const isPending = updateTemplate.isPending || createTemplate.isPending;
@@ -321,7 +335,7 @@ export default function EditMealTemplate() {
         </div>
       </header>
 
-      <main className="px-4 py-6 space-y-6 max-w-2xl mx-auto">
+      <main className="px-4 py-6 space-y-6 max-w-lg mx-auto">
         {/* Template Icon & Name */}
         <Card className="card-shadow animate-fade-up">
           <CardContent className="p-4 space-y-4">
@@ -563,6 +577,26 @@ export default function EditMealTemplate() {
           </Button>
         </div>
       </main>
+
+      <AlertDialog open={showDiscardDialog} onOpenChange={setShowDiscardDialog}>
+        <AlertDialogContent className="max-w-[90vw] rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("editTemplate.discard_dialog_title")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("editTemplate.discard_dialog_desc")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row gap-3">
+            <AlertDialogCancel className="flex-1 m-0">{t("editTemplate.keep_editing")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDiscard}
+              className="flex-1 bg-destructive hover:bg-destructive/90"
+            >
+              {t("editTemplate.discard")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

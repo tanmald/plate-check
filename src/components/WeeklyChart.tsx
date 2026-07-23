@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { getScoreStatus } from "@/components/AdherenceScore";
 
 interface DayData {
   day: string;
@@ -12,12 +13,16 @@ interface WeeklyChartProps {
   data: DayData[];
 }
 
-const getBarColor = (score: number) => {
-  if (score >= 70) return "bg-success";
-  if (score >= 40) return "bg-warning";
-  if (score > 0) return "bg-destructive";
-  return "bg-muted";
+const STATUS_BG_CLASS: Record<ReturnType<typeof getScoreStatus>, string> = {
+  high: "bg-success",
+  medium: "bg-warning",
+  low: "bg-destructive",
 };
+
+// A 0 score means "no meals logged" here, not "very bad" — keep that
+// distinct from the destructive-red low tier.
+const getBarColor = (score: number) =>
+  score > 0 ? STATUS_BG_CLASS[getScoreStatus(score)] : "bg-muted";
 
 export function WeeklyChart({ data }: WeeklyChartProps) {
   const maxScore = 100;

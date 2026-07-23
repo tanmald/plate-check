@@ -1,16 +1,37 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { AlignmentScore, getScoreStatus } from "@/components/AlignmentScore";
+import { AdherenceScore, getScoreStatus, getScoreColor } from "@/components/AdherenceScore";
 import { MealCard } from "@/components/MealCard";
+import { BottomNav } from "@/components/BottomNav";
 import { HomePageSkeleton } from "@/components/PageSkeletons";
 import { useAuth, useUserProfile } from "@/hooks/use-auth";
 import { useTodayMeals } from "@/hooks/use-meals";
-import { useNutritionPlan } from "@/hooks/use-nutrition-plan";
+import { useNutritionPlan, getLoggableMealCount, getNextUnloggedTemplate } from "@/hooks/use-nutrition-plan";
 import { useDailyProgress } from "@/hooks/use-progress";
-import { Flame, TrendingUp, Calendar, Camera, Info } from "lucide-react";
-import { useTranslation } from "react-i18next";
+import { useWellnessScore } from "@/hooks/use-health";
+import { cn } from "@/lib/utils";
+import type { LucideIcon } from "lucide-react";
+import {
+  Flame,
+  TrendingUp,
+  Calendar,
+  Camera,
+  Info,
+  Utensils,
+  HeartPulse,
+  Moon,
+  Zap,
+} from "lucide-react";
+
+const WELLNESS_CHIPS: Array<{ key: "nutrition" | "recovery" | "sleep" | "activity"; icon: LucideIcon }> = [
+  { key: "nutrition", icon: Utensils },
+  { key: "recovery", icon: HeartPulse },
+  { key: "sleep", icon: Moon },
+  { key: "activity", icon: Zap },
+];
 
 function getGreeting(t: (key: string) => string): string {
   const hour = new Date().getHours();
@@ -19,25 +40,38 @@ function getGreeting(t: (key: string) => string): string {
   return t("home.greeting_evening");
 }
 
+function formatTodayLabel(locale: string): string {
+  return new Date().toLocaleDateString(locale, {
+    weekday: "long",
+    month: "short",
+    day: "numeric",
+  });
+}
+
 export default function Home() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const { profile } = useUserProfile();
   const { data: meals = [], isLoading: mealsLoading } = useTodayMeals();
   const { data: planData, isLoading: planLoading } = useNutritionPlan();
   const { data: dailyStats, isLoading: statsLoading } = useDailyProgress();
+  const wellness = useWellnessScore();
 
   const hasPlan = planData?.hasPlan || false;
-  const dailyScore = dailyStats?.dailyScore || 0;
+  const plan = planData?.plan;
+  const wellnessScore = wellness.score ?? 0;
   const streak = dailyStats?.streak || 0;
   const weeklyAverage = dailyStats?.weeklyAverage || 0;
   const mealsLogged = dailyStats?.mealsLogged || 0;
-  const totalMeals = dailyStats?.totalMeals || 4;
+  const totalMeals = getLoggableMealCount(plan) ?? dailyStats?.totalMeals ?? 4;
+  const nextMealSuggestion = getNextUnloggedTemplate(plan, meals);
 
-  const isLoading = mealsLoading || planLoading || statsLoading;
+  const isLoading = mealsLoading || planLoading || statsLoading || wellness.isLoading;
+
+  const dateLocale = i18n.language?.startsWith("pt") ? "pt-PT" : "en-US";
 
   return (
-    <div className="min-h-screen bg-background pb-6 md:pb-0">
+    <div className="min-h-screen bg-background pb-24">
       {/* Header */}
       <header className="bg-card border-b border-border safe-top">
         <div className="px-4 py-4">
@@ -55,7 +89,7 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="px-4 py-6 space-y-6 max-w-2xl mx-auto">
+      <main className="px-4 py-6 space-y-6 max-w-lg mx-auto">
         {isLoading ? (
           <HomePageSkeleton />
         ) : !hasPlan ? (
@@ -86,7 +120,7 @@ export default function Home() {
                         <p className="text-sm text-muted-foreground uppercase tracking-wide">{t("home.todays_adherence")}</p>
                         <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
                           <Calendar className="w-4 h-4" />
-                          Sunday, Jan 5
+                          {formatTodayLabel(dateLocale)}
                         </p>
                       </div>
 
@@ -102,8 +136,29 @@ export default function Home() {
                       </div>
                     </div>
 
-                    <AlignmentScore score={dailyScore} size="md" />
+                    <AdherenceScore score={wellnessScore} size="md" />
                   </div>
+                </div>
+
+                {/* Wellness breakdown */}
+                <div className="grid grid-cols-4 gap-1 px-2 py-3 border-t border-border">
+                  {WELLNESS_CHIPS.map(({ key, icon: Icon }) => {
+                    const entry = wellness.breakdown.find((b) => b.key === key);
+                    const colorClass = entry ? getScoreColor(entry.score) : "text-muted-foreground";
+                    return (
+                      <Link
+                        key={key}
+                        to="/health"
+                        className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-muted/50 transition-colors"
+                      >
+                        <Icon className={cn("w-4 h-4", colorClass)} />
+                        <span className={cn("text-sm font-semibold", colorClass)}>{entry?.score ?? "–"}</span>
+                        <span className="text-[10px] text-muted-foreground text-center leading-tight">
+                          {t(`home.wellness_${key}`)}
+                        </span>
+                      </Link>
+                    );
+                  })}
                 </div>
 
                 {/* Meal progress */}
@@ -112,7 +167,7 @@ export default function Home() {
                     <span className="text-sm font-medium">{t("home.meals_logged")}</span>
                     <span className="text-sm text-muted-foreground">{t("home.meals_of", { logged: mealsLogged, total: totalMeals })}</span>
                   </div>
-                  <Progress value={(mealsLogged / totalMeals) * 100} status={getScoreStatus(dailyScore)} />
+                  <Progress value={(mealsLogged / totalMeals) * 100} status={getScoreStatus(wellnessScore)} />
                 </div>
               </CardContent>
             </Card>
@@ -137,7 +192,7 @@ export default function Home() {
                     <Link
                       key={meal.id}
                       to="/meal-result"
-                      state={{ mealType: meal.type }}
+                      state={{ mealLogId: meal.id, mealType: meal.type }}
                       className="block animate-fade-up"
                       style={{ animationDelay: `${(idx + 3) * 100}ms` }}
                     >
@@ -149,19 +204,29 @@ export default function Home() {
             )}
 
             {/* Next meal suggestion */}
-            <Card className="card-shadow border-l-4 border-l-accent animate-fade-up animate-delay-300 hover-lift">
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  <div className="text-2xl">🍽️</div>
-                  <div>
-                    <h3 className="font-semibold text-sm">{t("home.dinner_suggestion")}</h3>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {t("home.dinner_suggestion_desc")}
-                    </p>
+            {nextMealSuggestion && (
+              <Card className="card-shadow border-l-4 border-l-accent animate-fade-up animate-delay-300 hover-lift">
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="text-2xl">{nextMealSuggestion.icon}</div>
+                    <div>
+                      <h3 className="font-semibold text-sm">
+                        {t("home.next_meal_suggestion", { name: nextMealSuggestion.name })}
+                      </h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {nextMealSuggestion.allowedFoods.length > 0
+                          ? t("home.next_meal_suggestion_allowed", {
+                              foods: nextMealSuggestion.allowedFoods.slice(0, 3).join(", "),
+                            })
+                          : t("home.next_meal_suggestion_required", {
+                              foods: nextMealSuggestion.requiredFoods.join(", "),
+                            })}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
           </>
         )}
 
@@ -172,6 +237,7 @@ export default function Home() {
         </div>
       </main>
 
+      <BottomNav />
     </div>
   );
 }

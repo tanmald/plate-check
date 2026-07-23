@@ -11,9 +11,9 @@ interface DailyTargetsCardProps {
 }
 
 export function DailyTargetsCard({
-  calories = 1800,
-  protein = 120,
-  meals = 4,
+  calories,
+  protein,
+  meals,
   className,
 }: DailyTargetsCardProps) {
   const { t } = useTranslation();
@@ -31,7 +31,7 @@ export function DailyTargetsCard({
               <Flame className="w-6 h-6 text-accent" />
             </div>
             <p className="text-2xl font-bold text-foreground">
-              <AnimatedNumber value={calories} duration={1200} />
+              {calories != null ? <AnimatedNumber value={calories} duration={1200} /> : "–"}
             </p>
             <p className="text-xs text-muted-foreground">{t("dailyTargets.calories")}</p>
           </div>
@@ -42,7 +42,7 @@ export function DailyTargetsCard({
               <Dumbbell className="w-6 h-6 text-primary" />
             </div>
             <p className="text-2xl font-bold text-foreground">
-              <AnimatedNumber value={protein} duration={1200} suffix="g" />
+              {protein != null ? <AnimatedNumber value={protein} duration={1200} suffix="g" /> : "–"}
             </p>
             <p className="text-xs text-muted-foreground">{t("dailyTargets.protein")}</p>
           </div>
@@ -53,7 +53,7 @@ export function DailyTargetsCard({
               <UtensilsCrossed className="w-6 h-6 text-success" />
             </div>
             <p className="text-2xl font-bold text-foreground">
-              <AnimatedNumber value={meals} duration={800} />
+              {meals != null ? <AnimatedNumber value={meals} duration={800} /> : "–"}
             </p>
             <p className="text-xs text-muted-foreground">{t("dailyTargets.meals")}</p>
           </div>

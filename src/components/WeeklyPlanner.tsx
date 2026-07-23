@@ -31,13 +31,13 @@ function getNextWeek(dateStr: string): string {
   return d.toISOString().split("T")[0];
 }
 
-function formatWeekRange(weekStartDate: string): string {
+function formatWeekRange(weekStartDate: string, locale: string): string {
   const start = new Date(weekStartDate + "T00:00:00");
   const end = new Date(weekStartDate + "T00:00:00");
   end.setDate(end.getDate() + 6);
 
-  const startStr = start.toLocaleDateString("pt-PT", { day: "numeric", month: "short" });
-  const endStr = end.toLocaleDateString("pt-PT", { day: "numeric", month: "short" });
+  const startStr = start.toLocaleDateString(locale, { day: "numeric", month: "short" });
+  const endStr = end.toLocaleDateString(locale, { day: "numeric", month: "short" });
   return `${startStr} – ${endStr}`;
 }
 
@@ -51,7 +51,8 @@ interface WeeklyPlannerProps {
 }
 
 export function WeeklyPlanner({ onShoppingListGenerated }: WeeklyPlannerProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const dateLocale = i18n.language?.startsWith("pt") ? "pt-PT" : "en-US";
   const today = new Date();
   const currentWeekStart = getWeekStartDate(today);
 
@@ -140,7 +141,7 @@ export function WeeklyPlanner({ onShoppingListGenerated }: WeeklyPlannerProps) {
           <ChevronLeft className="w-5 h-5" />
         </button>
         <div className="text-center">
-          <p className="text-sm font-medium">{formatWeekRange(weekStartDate)}</p>
+          <p className="text-sm font-medium">{formatWeekRange(weekStartDate, dateLocale)}</p>
           {weekStartDate === currentWeekStart && (
             <p className="text-xs text-primary">{t("weeklyPlanner.this_week")}</p>
           )}
@@ -216,10 +217,12 @@ export function WeeklyPlanner({ onShoppingListGenerated }: WeeklyPlannerProps) {
         <div className="pt-2 border-t border-border">
           <div className="flex items-center justify-between mb-3">
             <p className="text-xs text-muted-foreground">
-              {totalMeals} {totalMeals === 1 ? t("weeklyPlanner.meal_singular") : t("weeklyPlanner.meal_plural")}{" "}
-              {totalDays === 1
-                ? `${t("weeklyPlanner.day_singular") === "dia" ? "em" : "in"} ${totalDays} ${t("weeklyPlanner.day_singular")}`
-                : `${t("weeklyPlanner.day_singular") === "dia" ? "em" : "in"} ${totalDays} ${t("weeklyPlanner.day_plural")}`}
+              {t("weeklyPlanner.meals_summary", {
+                meals: totalMeals,
+                mealLabel: totalMeals === 1 ? t("weeklyPlanner.meal_singular") : t("weeklyPlanner.meal_plural"),
+                days: totalDays,
+                dayLabel: totalDays === 1 ? t("weeklyPlanner.day_singular") : t("weeklyPlanner.day_plural"),
+              })}
             </p>
           </div>
           <Button

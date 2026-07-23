@@ -21,14 +21,13 @@ export async function uploadMealPhoto(file: File): Promise<{ path: string; url: 
 
   if (error) throw error;
 
-  // Get public URL (note: bucket is private, so this URL requires auth)
-  const { data: urlData } = supabase.storage
-    .from('meal-photos')
-    .getPublicUrl(data.path);
+  // The bucket is private — a public URL is unreadable by anyone without a
+  // session (including OpenAI Vision), so hand back a signed URL instead.
+  const url = await getMealPhotoSignedUrl(data.path);
 
   return {
     path: data.path,
-    url: urlData.publicUrl,
+    url,
   };
 }
 

@@ -12,11 +12,9 @@ import { guessCategory } from "@/lib/ingredient-categories";
 import { useTranslation } from "react-i18next";
 
 const MOCK_INGREDIENTS: Record<string, string[]> = {
-  "salmão": ["salmão 200g", "quinoa 80g", "brócolos 150g", "azeite", "limão"],
-  "frango": ["peito de frango 200g", "batata-doce 200g", "espinafres", "alho"],
-  "bacalhau": ["bacalhau 200g", "grão de bico 150g", "cebola", "azeite", "coentros"],
   "salmon": ["salmon 200g", "quinoa 80g", "broccoli 150g", "olive oil", "lemon"],
   "chicken": ["chicken breast 200g", "sweet potato 200g", "spinach", "garlic"],
+  "cod": ["cod 200g", "chickpeas 150g", "onion", "olive oil", "cilantro"],
 };
 
 interface MealPlanEditSheetProps {
@@ -64,7 +62,7 @@ export function MealPlanEditSheet({
       if (isTestUser(user?.email)) {
         await new Promise((r) => setTimeout(r, 1200));
         const lowerName = mealName.toLowerCase();
-        let mockResult = ["ingrediente 1", "ingrediente 2", "azeite"];
+        let mockResult = ["ingredient 1", "ingredient 2", "olive oil"];
         for (const [key, value] of Object.entries(MOCK_INGREDIENTS)) {
           if (lowerName.includes(key)) {
             mockResult = value;

@@ -191,6 +191,15 @@ export const mockDailyStats = {
   totalMeals: 4,
 };
 
+export const mockAdherenceByMealType = [
+  { type: "breakfast" as const, averageScore: 92, mealsLogged: 6 },
+  { type: "lunch" as const, averageScore: 78, mealsLogged: 6 },
+  { type: "dinner" as const, averageScore: 71, mealsLogged: 5 },
+  { type: "snack" as const, averageScore: 85, mealsLogged: 4 },
+];
+
+export const mockPreviousWeekAverage = 78;
+
 // Mock data matching Edge Function response format (AnalyzeMealResponse)
 export const mockAnalysisResult = {
   score: 80,
@@ -349,14 +358,14 @@ export const mockWeeklyPlan = {
   id: "mock-weekly-plan-id",
   weekStartDate: "2026-03-30",
   entries: [
-    { id: "we1", dayOfWeek: 0, mealType: "dinner", mealName: "Salmão grelhado com quinoa e brócolos", ingredients: ["salmão 200g", "quinoa 80g", "brócolos 150g", "azeite", "limão"] },
-    { id: "we2", dayOfWeek: 1, mealType: "dinner", mealName: "Frango com batata-doce e espinafres", ingredients: ["peito de frango 200g", "batata-doce 200g", "espinafres", "alho", "azeite"] },
-    { id: "we3", dayOfWeek: 2, mealType: "lunch", mealName: "Burrata com tomate e manjericão", ingredients: ["burrata 125g", "tomate 200g", "manjericão", "azeite", "flor de sal"] },
-    { id: "we4", dayOfWeek: 2, mealType: "dinner", mealName: "Tofu grelhado com legumes salteados", ingredients: ["tofu firme 200g", "courgette", "pimentos vermelhos", "molho de soja", "gengibre"] },
-    { id: "we5", dayOfWeek: 3, mealType: "dinner", mealName: "Bacalhau assado com grão", ingredients: ["bacalhau 200g", "grão de bico 150g", "cebola", "alho", "azeite", "coentros"] },
-    { id: "we6", dayOfWeek: 4, mealType: "dinner", mealName: "Hambúrguer de peru na air fryer", ingredients: ["hambúrguer de peru 150g", "alface", "tomate", "pão integral"] },
-    { id: "we7", dayOfWeek: 5, mealType: "lunch", mealName: "Salada de atum com ovo", ingredients: ["atum ao natural 120g", "ovo 2 un", "alface", "pepino", "tomate cherry", "azeite"] },
-    { id: "we8", dayOfWeek: 5, mealType: "dinner", mealName: "Esparguete de courgette com pesto", ingredients: ["courgette 2 un", "pesto verde 50g", "parmesão", "tomate cherry"] },
+    { id: "we1", dayOfWeek: 0, mealType: "dinner", mealName: "Grilled salmon with quinoa and broccoli", ingredients: ["salmon 200g", "quinoa 80g", "broccoli 150g", "olive oil", "lemon"] },
+    { id: "we2", dayOfWeek: 1, mealType: "dinner", mealName: "Chicken with sweet potato and spinach", ingredients: ["chicken breast 200g", "sweet potato 200g", "spinach", "garlic", "olive oil"] },
+    { id: "we3", dayOfWeek: 2, mealType: "lunch", mealName: "Burrata with tomato and basil", ingredients: ["burrata 125g", "tomato 200g", "basil", "olive oil", "sea salt"] },
+    { id: "we4", dayOfWeek: 2, mealType: "dinner", mealName: "Grilled tofu with sautéed vegetables", ingredients: ["firm tofu 200g", "zucchini", "red peppers", "soy sauce", "ginger"] },
+    { id: "we5", dayOfWeek: 3, mealType: "dinner", mealName: "Roasted cod with chickpeas", ingredients: ["cod 200g", "chickpeas 150g", "onion", "garlic", "olive oil", "cilantro"] },
+    { id: "we6", dayOfWeek: 4, mealType: "dinner", mealName: "Air fryer turkey burger", ingredients: ["turkey burger 150g", "lettuce", "tomato", "whole wheat bun"] },
+    { id: "we7", dayOfWeek: 5, mealType: "lunch", mealName: "Tuna salad with egg", ingredients: ["tuna in water 120g", "egg 2 units", "lettuce", "cucumber", "cherry tomato", "olive oil"] },
+    { id: "we8", dayOfWeek: 5, mealType: "dinner", mealName: "Zucchini pasta with pesto", ingredients: ["zucchini 2 units", "green pesto 50g", "parmesan", "cherry tomato"] },
   ],
 };
 
@@ -365,33 +374,33 @@ export const mockWeeklyPlan = {
 export const mockShoppingList = {
   id: "mock-shopping-list-id",
   weekStartDate: "2026-03-30",
-  name: "Lista da semana",
+  name: "Weekly list",
   shareCode: "AB12CD",
   collaboratorIds: [],
 };
 
 export const mockShoppingItems = [
-  // Peixe & Marisco
-  { id: "si1", listId: "mock-shopping-list-id", name: "Salmão", category: "Peixe & Marisco", quantity: "200g", checked: false, sourceDays: ["Segunda"], sortOrder: 0 },
-  { id: "si2", listId: "mock-shopping-list-id", name: "Bacalhau", category: "Peixe & Marisco", quantity: "200g", checked: false, sourceDays: ["Quinta"], sortOrder: 1 },
-  { id: "si3", listId: "mock-shopping-list-id", name: "Atum ao natural", category: "Peixe & Marisco", quantity: "120g", checked: false, sourceDays: ["Sábado"], sortOrder: 2 },
-  // Carnes
-  { id: "si4", listId: "mock-shopping-list-id", name: "Peito de frango", category: "Carnes", quantity: "200g", checked: false, sourceDays: ["Terça"], sortOrder: 3 },
-  { id: "si5", listId: "mock-shopping-list-id", name: "Hambúrguer de peru", category: "Carnes", quantity: "150g", checked: false, sourceDays: ["Sexta"], sortOrder: 4 },
-  // Legumes
-  { id: "si6", listId: "mock-shopping-list-id", name: "Brócolos", category: "Legumes", quantity: "150g", checked: false, sourceDays: ["Segunda"], sortOrder: 5 },
-  { id: "si7", listId: "mock-shopping-list-id", name: "Batata-doce", category: "Legumes", quantity: "200g", checked: false, sourceDays: ["Terça"], sortOrder: 6 },
-  { id: "si8", listId: "mock-shopping-list-id", name: "Espinafres", category: "Legumes", quantity: null, checked: false, sourceDays: ["Terça"], sortOrder: 7 },
-  { id: "si9", listId: "mock-shopping-list-id", name: "Courgette", category: "Legumes", quantity: "3 un", checked: true, sourceDays: ["Quarta", "Sábado"], sortOrder: 8 },
-  { id: "si10", listId: "mock-shopping-list-id", name: "Tomate", category: "Legumes", quantity: "500g", checked: false, sourceDays: ["Quarta", "Sexta", "Sábado"], sortOrder: 9 },
-  // Leguminosas & Cereais
-  { id: "si11", listId: "mock-shopping-list-id", name: "Quinoa", category: "Cereais & Leguminosas", quantity: "80g", checked: false, sourceDays: ["Segunda"], sortOrder: 10 },
-  { id: "si12", listId: "mock-shopping-list-id", name: "Grão de bico", category: "Cereais & Leguminosas", quantity: "150g", checked: false, sourceDays: ["Quinta"], sortOrder: 11 },
-  // Lacticínios
-  { id: "si13", listId: "mock-shopping-list-id", name: "Burrata", category: "Lacticínios", quantity: "125g", checked: false, sourceDays: ["Quarta"], sortOrder: 12 },
-  // Outros
-  { id: "si14", listId: "mock-shopping-list-id", name: "Tofu firme", category: "Outros", quantity: "200g", checked: false, sourceDays: ["Quarta"], sortOrder: 13 },
-  { id: "si15", listId: "mock-shopping-list-id", name: "Pão integral", category: "Outros", quantity: "1 un", checked: true, sourceDays: ["Sexta"], sortOrder: 14 },
+  // Fish & Seafood
+  { id: "si1", listId: "mock-shopping-list-id", name: "Salmon", category: "Fish & Seafood", quantity: "200g", checked: false, sourceDays: ["Monday"], sortOrder: 0 },
+  { id: "si2", listId: "mock-shopping-list-id", name: "Cod", category: "Fish & Seafood", quantity: "200g", checked: false, sourceDays: ["Thursday"], sortOrder: 1 },
+  { id: "si3", listId: "mock-shopping-list-id", name: "Tuna in water", category: "Fish & Seafood", quantity: "120g", checked: false, sourceDays: ["Saturday"], sortOrder: 2 },
+  // Meat
+  { id: "si4", listId: "mock-shopping-list-id", name: "Chicken breast", category: "Meat", quantity: "200g", checked: false, sourceDays: ["Tuesday"], sortOrder: 3 },
+  { id: "si5", listId: "mock-shopping-list-id", name: "Turkey burger", category: "Meat", quantity: "150g", checked: false, sourceDays: ["Friday"], sortOrder: 4 },
+  // Vegetables
+  { id: "si6", listId: "mock-shopping-list-id", name: "Broccoli", category: "Vegetables", quantity: "150g", checked: false, sourceDays: ["Monday"], sortOrder: 5 },
+  { id: "si7", listId: "mock-shopping-list-id", name: "Sweet potato", category: "Vegetables", quantity: "200g", checked: false, sourceDays: ["Tuesday"], sortOrder: 6 },
+  { id: "si8", listId: "mock-shopping-list-id", name: "Spinach", category: "Vegetables", quantity: null, checked: false, sourceDays: ["Tuesday"], sortOrder: 7 },
+  { id: "si9", listId: "mock-shopping-list-id", name: "Zucchini", category: "Vegetables", quantity: "3 units", checked: true, sourceDays: ["Wednesday", "Saturday"], sortOrder: 8 },
+  { id: "si10", listId: "mock-shopping-list-id", name: "Tomato", category: "Vegetables", quantity: "500g", checked: false, sourceDays: ["Wednesday", "Friday", "Saturday"], sortOrder: 9 },
+  // Grains & Legumes
+  { id: "si11", listId: "mock-shopping-list-id", name: "Quinoa", category: "Grains & Legumes", quantity: "80g", checked: false, sourceDays: ["Monday"], sortOrder: 10 },
+  { id: "si12", listId: "mock-shopping-list-id", name: "Chickpeas", category: "Grains & Legumes", quantity: "150g", checked: false, sourceDays: ["Thursday"], sortOrder: 11 },
+  // Dairy
+  { id: "si13", listId: "mock-shopping-list-id", name: "Burrata", category: "Dairy", quantity: "125g", checked: false, sourceDays: ["Wednesday"], sortOrder: 12 },
+  // Other
+  { id: "si14", listId: "mock-shopping-list-id", name: "Firm tofu", category: "Other", quantity: "200g", checked: false, sourceDays: ["Wednesday"], sortOrder: 13 },
+  { id: "si15", listId: "mock-shopping-list-id", name: "Whole wheat bread", category: "Other", quantity: "1 unit", checked: true, sourceDays: ["Friday"], sortOrder: 14 },
 ];
 
 // ─── Profile ───────────────────────────────────────────────────────────────────
@@ -403,4 +412,56 @@ export const mockProfile = {
   avatar_url: null,
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
+};
+
+// ─── Health tracking mock data ─────────────────────────────────────────────
+
+function daysAgoIso(n: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return d.toISOString().split("T")[0];
+}
+
+export const mockHealthDaily = {
+  date: daysAgoIso(0),
+  recoveryScore: 72,
+  sleepScore: 81,
+  strainScore: 45,
+  hrvMs: 62,
+  restingHr: 51,
+  respiratoryRate: 14.2,
+  wristTemp: 34.6,
+  wristTempDelta: 0.1,
+  spo2: 97,
+  sleepStart: null as string | null,
+  sleepEnd: null as string | null,
+  sleepDurationMin: 445,
+  sleepDeepMin: 82,
+  sleepRemMin: 98,
+  sleepCoreMin: 245,
+  sleepAwakeMin: 20,
+  sleepEfficiency: 0.96,
+  steps: 8400,
+  activeEnergyKcal: 420,
+  exerciseMinutes: 28,
+  standHours: 10,
+  vo2Max: 44.2,
+  workouts: [{ name: "Outdoor Run", duration: 32 }] as Array<Record<string, unknown>>,
+  scoreDetail: null as Record<string, unknown> | null,
+};
+
+export const mockHealthTrends = [
+  { ...mockHealthDaily, date: daysAgoIso(6), recoveryScore: 65, sleepScore: 70, strainScore: 60, hrvMs: 55, restingHr: 54, steps: 5200, activeEnergyKcal: 380, exerciseMinutes: 15 },
+  { ...mockHealthDaily, date: daysAgoIso(5), recoveryScore: 70, sleepScore: 76, strainScore: 50, hrvMs: 59, restingHr: 52, steps: 7100, activeEnergyKcal: 410, exerciseMinutes: 20 },
+  { ...mockHealthDaily, date: daysAgoIso(4), recoveryScore: 58, sleepScore: 62, strainScore: 78, hrvMs: 48, restingHr: 56, steps: 11200, activeEnergyKcal: 610, exerciseMinutes: 55 },
+  { ...mockHealthDaily, date: daysAgoIso(3), recoveryScore: 75, sleepScore: 85, strainScore: 40, hrvMs: 64, restingHr: 50, steps: 6800, activeEnergyKcal: 390, exerciseMinutes: 18 },
+  { ...mockHealthDaily, date: daysAgoIso(2), recoveryScore: 80, sleepScore: 88, strainScore: 35, hrvMs: 67, restingHr: 49, steps: 5900, activeEnergyKcal: 350, exerciseMinutes: 12 },
+  { ...mockHealthDaily, date: daysAgoIso(1), recoveryScore: 66, sleepScore: 72, strainScore: 68, hrvMs: 56, restingHr: 53, steps: 9800, activeEnergyKcal: 520, exerciseMinutes: 40 },
+  { ...mockHealthDaily, date: daysAgoIso(0) },
+];
+
+export const mockIngestToken = {
+  tokenPrefix: "a1b2c3d4",
+  createdAt: `${daysAgoIso(9)}T08:00:00.000Z`,
+  lastUsedAt: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
 };

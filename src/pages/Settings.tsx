@@ -1,12 +1,15 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuth, useUserProfile } from "@/hooks/use-auth";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { BottomNav } from "@/components/BottomNav";
 import { LogoutDialog } from "@/components/LogoutDialog";
 import { DeletePlanDialog } from "@/components/DeletePlanDialog";
+import { HealthSyncSection } from "@/components/settings/HealthSyncSection";
 import { toast } from "sonner";
 import {
   User,
@@ -29,7 +32,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useTranslation } from "react-i18next";
 
 const LANGUAGES = [
   { code: "en", label: "English" },
@@ -58,15 +60,35 @@ export default function Settings() {
     custom?: React.ReactNode;
   };
 
-  const handleEditProfile = () => navigate("/settings/profile");
-  const handleViewPlan = () => navigate("/plan");
-  const handleExportData = () => toast.info(`${t("settings.export_plan")} — ${t("settings.coming_soon")}`);
-  const handleReplacePlan = () => setDeletePlanDialogOpen(true);
-  const handlePrivacySettings = () => toast.info(`${t("settings.privacy_settings")} — ${t("settings.coming_soon")}`);
-  const handleDeleteData = () => toast.info(`${t("settings.delete_data")} — ${t("settings.coming_soon")}`);
-  const handleHelpSupport = () => toast.info(`${t("settings.help_support")} — ${t("settings.coming_soon")}`);
+  const handleEditProfile = () => {
+    navigate("/settings/profile");
+  };
 
-  const currentLang = LANGUAGES.find(l => l.code === i18n.language) ? i18n.language : "en";
+  const handleViewPlan = () => {
+    navigate("/plan");
+  };
+
+  const handleExportData = () => {
+    toast.info(t("settings.export_coming_soon"));
+  };
+
+  const handleReplacePlan = () => {
+    setDeletePlanDialogOpen(true);
+  };
+
+  const handlePrivacySettings = () => {
+    toast.info(t("settings.privacy_coming_soon"));
+  };
+
+  const handleDeleteData = () => {
+    toast.info(t("settings.delete_coming_soon"));
+  };
+
+  const handleHelpSupport = () => {
+    toast.info(t("settings.help_coming_soon"));
+  };
+
+  const currentLang = LANGUAGES.find((l) => l.code === i18n.language) ? i18n.language : "en";
 
   const accountItems: MenuItem[] = [
     { icon: User, label: t("settings.edit_profile"), action: true, onClick: handleEditProfile },
@@ -111,32 +133,49 @@ export default function Settings() {
       </CardHeader>
       <CardContent className="p-0">
         <div className="divide-y divide-border">
-          {items.map((item) => (
-            <div
-              key={item.label}
-              className={`flex items-center justify-between px-4 py-3 ${item.action ? 'cursor-pointer hover:bg-muted/50 transition-colors' : ''}`}
-              onClick={item.custom ? undefined : item.onClick}
-            >
-              <div className="flex items-center gap-3">
-                <item.icon className={`w-5 h-5 ${item.danger ? 'text-destructive' : 'text-muted-foreground'}`} />
-                <span className={`font-medium ${item.danger ? 'text-destructive' : ''}`}>{item.label}</span>
+          {items.map((item) => {
+            const rowContent = (
+              <>
+                <div className="flex items-center gap-3">
+                  <item.icon className={`w-5 h-5 ${item.danger ? 'text-destructive' : 'text-muted-foreground'}`} />
+                  <span className={`font-medium ${item.danger ? 'text-destructive' : ''}`}>{item.label}</span>
+                </div>
+                {item.custom ? (
+                  item.custom
+                ) : item.toggle ? (
+                  <Switch checked={item.value} onCheckedChange={item.onChange} />
+                ) : (
+                  <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                )}
+              </>
+            );
+
+            if (item.action) {
+              return (
+                <button
+                  key={item.label}
+                  type="button"
+                  onClick={item.onClick}
+                  className="flex items-center justify-between w-full px-4 py-3 text-left cursor-pointer hover:bg-muted/50 transition-colors"
+                >
+                  {rowContent}
+                </button>
+              );
+            }
+
+            return (
+              <div key={item.label} className="flex items-center justify-between px-4 py-3">
+                {rowContent}
               </div>
-              {item.custom ? (
-                item.custom
-              ) : item.toggle ? (
-                <Switch checked={item.value} onCheckedChange={item.onChange} />
-              ) : (
-                <ChevronRight className="w-5 h-5 text-muted-foreground" />
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       </CardContent>
     </Card>
   );
 
   return (
-    <div className="min-h-screen bg-background pb-6 md:pb-0">
+    <div className="min-h-screen bg-background pb-24">
       {/* Header */}
       <header className="bg-card border-b border-border safe-top">
         <div className="px-4 py-4">
@@ -145,7 +184,7 @@ export default function Settings() {
         </div>
       </header>
 
-      <main className="px-4 py-6 space-y-6 max-w-2xl mx-auto">
+      <main className="px-4 py-6 space-y-6 max-w-lg mx-auto">
         {/* User Info */}
         <Card className="card-shadow">
           <CardContent className="p-4">
@@ -161,8 +200,15 @@ export default function Settings() {
           </CardContent>
         </Card>
 
+        {/* Account Settings */}
         {renderMenuSection(accountItems, t("settings.account"))}
+
+        {/* Plan Management */}
         {renderMenuSection(planItems, t("settings.plan_management"))}
+
+        <HealthSyncSection />
+
+        {/* Privacy & Data */}
         {renderMenuSection(privacyItems, t("settings.privacy_data"))}
 
         {/* App Info */}
@@ -198,8 +244,17 @@ export default function Settings() {
         </Button>
       </main>
 
-      <LogoutDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen} />
-      <DeletePlanDialog open={deletePlanDialogOpen} onOpenChange={setDeletePlanDialogOpen} />
+      <LogoutDialog
+        open={logoutDialogOpen}
+        onOpenChange={setLogoutDialogOpen}
+      />
+
+      <DeletePlanDialog
+        open={deletePlanDialogOpen}
+        onOpenChange={setDeletePlanDialogOpen}
+      />
+
+      <BottomNav />
     </div>
   );
 }
