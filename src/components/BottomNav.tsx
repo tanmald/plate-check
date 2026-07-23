@@ -22,7 +22,7 @@ const NAV_ITEMS: NavItem[] = [
 const CenterNavIcon = ({ icon: Icon, isActive }: { icon: LucideIcon; isActive: boolean }) => (
   <div
     className={cn(
-      "w-14 h-14 rounded-full bg-success flex items-center justify-center shadow-lg transition-all animate-pulse",
+      "w-14 h-14 rounded-full bg-success flex items-center justify-center shadow-lg transition-all motion-safe:animate-pulse",
       isActive && "ring-2 ring-success ring-offset-2 ring-offset-card"
     )}
   >

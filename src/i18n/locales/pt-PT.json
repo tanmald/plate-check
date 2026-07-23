@@ -12,7 +12,15 @@
     "loading": "A carregar...",
     "wellness_note": "Apoio ao bem-estar, não conselho médico",
     "error_connection": "Verifica a tua ligação e tenta novamente.",
-    "or": "ou"
+    "or": "ou",
+    "coming_soon": "Brevemente",
+    "day_monday": "Segunda-feira",
+    "day_tuesday": "Terça-feira",
+    "day_wednesday": "Quarta-feira",
+    "day_thursday": "Quinta-feira",
+    "day_friday": "Sexta-feira",
+    "day_saturday": "Sábado",
+    "day_sunday": "Domingo"
   },
   "nav": {
     "home": "Início",
@@ -36,7 +44,14 @@
     "todays_meals": "Refeições de Hoje",
     "view_all": "Ver tudo",
     "dinner_suggestion": "Sugestão de jantar",
-    "dinner_suggestion_desc": "Com base no teu plano, considera salmão grelhado com quinoa e legumes assados."
+    "dinner_suggestion_desc": "Com base no teu plano, considera salmão grelhado com quinoa e legumes assados.",
+    "wellness_nutrition": "Nutrição",
+    "wellness_recovery": "Recuperação",
+    "wellness_sleep": "Sono",
+    "wellness_activity": "Atividade",
+    "next_meal_suggestion": "Sugestão para {{name}}",
+    "next_meal_suggestion_allowed": "Com base no teu plano, considera: {{foods}}.",
+    "next_meal_suggestion_required": "Com base no teu plano, procura incluir: {{foods}}."
   },
   "log": {
     "title": "Registar Refeição",
@@ -100,7 +115,8 @@
     "error_parse": "Erro ao processar o plano. Tenta novamente.",
     "error_save": "Erro ao guardar o plano. Tenta novamente.",
     "error_no_plan": "Nenhum plano para confirmar",
-    "success_confirmed": "Plano confirmado com sucesso!"
+    "success_confirmed": "Plano confirmado com sucesso!",
+    "edit_plan_aria": "Editar plano"
   },
   "progress": {
     "title": "Progresso",
@@ -130,7 +146,19 @@
     "insight_weekly_1_title": "Rotina matinal consistente",
     "insight_weekly_1_desc": "Pequenos-almoços consistentes durante toda a semana",
     "insight_weekly_2_title": "Sexta-feira fora do plano",
-    "insight_weekly_2_desc": "Refeição social - marcado como excepção"
+    "insight_weekly_2_desc": "Refeição social - marcado como excepção",
+    "previous_day": "Dia anterior",
+    "next_day": "Dia seguinte",
+    "previous_week": "Semana anterior",
+    "next_week": "Semana seguinte",
+    "insight_meal_on_track": "{{name}} esteve no caminho certo ({{score}}%)",
+    "insight_default_positive": "Combinou bem com o teu plano",
+    "insight_meal_needs_attention": "{{name}} precisa de atenção ({{score}}%)",
+    "insight_default_negative": "Vê o detalhe para perceber o que baixou a pontuação",
+    "adherence_by_meal_empty": "Regista refeições esta semana para veres a adesão por tipo de refeição.",
+    "insight_best_day": "Melhor dia: {{day}} ({{score}}%)",
+    "meals_logged_count": "{{count}} refeições registadas",
+    "insight_worst_day": "{{day}} precisa de atenção ({{score}}%)"
   },
   "settings": {
     "title": "Definições",
@@ -153,7 +181,32 @@
     "made_with": "Feito com ❤️ para uma melhor nutrição",
     "disclaimer": "A PlateCheck é uma ferramenta de apoio ao bem-estar e não é um dispositivo médico. Não fornece diagnóstico médico, tratamento nem recomendações clínicas. Consulta sempre o teu profissional de saúde.",
     "coming_soon": "em breve",
-    "no_email": "Sem email"
+    "no_email": "Sem email",
+    "export_coming_soon": "Exportação de dados brevemente",
+    "privacy_coming_soon": "Definições de privacidade brevemente",
+    "delete_coming_soon": "Eliminação de dados brevemente",
+    "help_coming_soon": "Ajuda e suporte brevemente",
+    "health_sync": {
+      "title": "Sincronização de Saúde",
+      "description": "Liga a app Health Auto Export para trazer os teus dados do Apple Watch (VFC, sono, atividade) para o PlateCheck.",
+      "active_token": "Token ativo: {{prefix}}…",
+      "generate": "Gerar Token de Sincronização",
+      "regenerate": "Regenerar Token",
+      "generate_error": "Não foi possível gerar um token. Tenta novamente.",
+      "setup_guide": "Guia de configuração",
+      "setup_step_1": "Instala a app \"Health Auto Export\" da App Store.",
+      "setup_step_2": "Em Automations, cria uma nova automação REST API.",
+      "setup_step_3": "Cola o URL do endpoint abaixo e adiciona o cabeçalho indicado, usando o teu token como valor.",
+      "setup_step_4": "Ativa as métricas que queres sincronizar e define para correr automaticamente (a cada hora é um bom padrão).",
+      "endpoint_label": "URL do endpoint",
+      "header_label": "Nome do cabeçalho (valor = o teu token)",
+      "token_ready_title": "O teu token de sincronização",
+      "token_ready_desc": "Copia-o agora — por segurança, não voltará a ser mostrado. Cola-o como valor do cabeçalho x-api-key na Health Auto Export.",
+      "token_label": "Token",
+      "token_saved": "Já copiei",
+      "copied": "Copiado para a área de transferência",
+      "copy_error": "Não foi possível copiar"
+    }
   },
   "mealResult": {
     "title": "Análise da Refeição",
@@ -168,11 +221,11 @@
     "confidence_low": "Baixa confiança",
     "score_breakdown": "Detalhes da pontuação",
     "missing_penalty": "(obrigatório em falta)",
-    "off_plan_penalty": "(não alinhado)",
+    "off_plan_penalty": "(fora do plano)",
     "required_on_plate": "Obrigatório — no prato",
     "allowed_on_plate": "Permitido — no prato",
     "required_missing": "Obrigatório — em falta",
-    "not_aligned_label": "Não alinhado",
+    "not_aligned_label": "Fora do plano",
     "all_matched": "Todos os alimentos detectados correspondem ao teu plano",
     "detected_foods": "Alimentos Detectados",
     "items_count": "({{count}} itens)",
@@ -183,7 +236,8 @@
     "analysis_confidence": "Confiança da análise: {{confidence}}. Os resultados podem variar consoante a qualidade da foto.",
     "wellness_disclaimer": "A PlateCheck é uma ferramenta de bem-estar, não um dispositivo médico. Os resultados são estimativas baseadas na análise da foto e não devem substituir o conselho de um profissional de saúde qualificado.",
     "save_meal": "Guardar Refeição",
-    "saving": "A guardar..."
+    "saving": "A guardar...",
+    "loading_meal": "A carregar refeição…"
   },
   "editProfile": {
     "title": "Editar Perfil",
@@ -497,7 +551,11 @@
     "success_created": "Template criado com sucesso",
     "error_create": "Erro ao criar o template",
     "success_updated": "Template actualizado com sucesso",
-    "error_update": "Erro ao actualizar o template"
+    "error_update": "Erro ao actualizar o template",
+    "discard_dialog_title": "Descartar alterações?",
+    "discard_dialog_desc": "Tens alterações por guardar. Tens a certeza que queres sair?",
+    "keep_editing": "Continuar a editar",
+    "discard": "Descartar"
   },
   "landing": {
     "sign_in": "Iniciar sessão",
@@ -545,5 +603,41 @@
     "title": "404",
     "subtitle": "Página não encontrada",
     "back_home": "Voltar ao Início"
+  },
+  "score": {
+    "great": "Ótima combinação!",
+    "on_track": "No caminho certo",
+    "needs_attention": "Precisa de atenção",
+    "off_plan": "Fora do plano"
+  },
+  "health": {
+    "title": "Saúde",
+    "subtitle": "Recuperação, sono e atividade do teu Apple Watch",
+    "empty_title": "Liga o teu Apple Watch",
+    "empty_desc": "Sincroniza os dados do Apple Health para veres as tuas pontuações de recuperação, sono e atividade junto da tua nutrição.",
+    "empty_cta": "Configurar sincronização de saúde",
+    "calibrating": "A calibrar as tuas referências — {{count}} de {{total}} dias sincronizados. As pontuações aparecem assim que houver histórico suficiente.",
+    "calibrating_short": "A calibrar…",
+    "recovery": "Recuperação",
+    "sleep": "Sono",
+    "activity": "Atividade",
+    "trends": "Tendências",
+    "hrv": "VFC",
+    "resting_hr": "FC em repouso",
+    "respiratoryRate": "Frequência respiratória",
+    "wristTemp": "Temperatura do pulso",
+    "duration": "Duração",
+    "efficiency": "Eficiência",
+    "deep": "Sono profundo",
+    "rem": "Sono REM",
+    "consistency": "Consistência de deitar",
+    "steps": "Passos",
+    "active_energy": "Energia ativa",
+    "exercise_minutes": "Min. de exercício",
+    "vo2_max": "VO2 máx.",
+    "workout": "Treino",
+    "minutes": "{{count}} min",
+    "baseline_short": "{{value}} referência",
+    "vs_baseline": "{{value}} referência"
   }
 }

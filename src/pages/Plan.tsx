@@ -1,24 +1,29 @@
 import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { MealTemplateCard } from "@/components/MealTemplateCard";
-import { FoodTagGroup } from "@/components/FoodTagGroup";
-import { DailyTargetsCard } from "@/components/DailyTargetsCard";
+import { BottomNav } from "@/components/BottomNav";
 import { PlanPageSkeleton } from "@/components/PageSkeletons";
+import { PlanEmptyState } from "@/components/PlanEmptyState";
+import { PlanImportingState } from "@/components/PlanImportingState";
+import { PlanReviewState } from "@/components/PlanReviewState";
+import { PlanActiveState } from "@/components/PlanActiveState";
 import { EditPlanSheet } from "@/components/EditPlanSheet";
 import { DeletePlanDialog } from "@/components/DeletePlanDialog";
-import { useNutritionPlan, useImportNutritionPlan, useConfirmNutritionPlan } from "@/hooks/use-nutrition-plan";
+import {
+  useNutritionPlan,
+  useImportNutritionPlan,
+  useConfirmNutritionPlan,
+  computeDailyTargets,
+} from "@/hooks/use-nutrition-plan";
 import { ParsePlanResponse } from "@/lib/api";
 import { toast } from "sonner";
-import { Upload, FileText, ChevronRight, Plus, Edit2, Image, File, Info, Loader2, AlertCircle, Clock, Zap, ArrowRight, Check, CalendarDays, ShoppingCart } from "lucide-react";
+import { CalendarDays, FileText, Loader2, ShoppingCart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { WeeklyPlanner } from "@/components/WeeklyPlanner";
 import { ShoppingListView } from "@/components/ShoppingListView";
 import { getWeekStartDate } from "@/hooks/use-weekly-plan";
-import { useAuth } from "@/hooks/use-auth";
 import posthog from "@/lib/posthog";
-import { useTranslation } from "react-i18next";
 
 type ViewState = "empty" | "importing" | "review" | "active";
 type PlanTab = "plan" | "week" | "shopping";
@@ -26,9 +31,9 @@ type PlanTab = "plan" | "week" | "shopping";
 export default function Plan() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { user } = useAuth();
   const { data: planData, isLoading } = useNutritionPlan();
   const [viewState, setViewState] = useState<ViewState>("empty");
+  const [isReplacingPlan, setIsReplacingPlan] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [parsedPlan, setParsedPlan] = useState<ParsePlanResponse | null>(null);
   const [editPlanOpen, setEditPlanOpen] = useState(false);
@@ -42,6 +47,8 @@ export default function Plan() {
 
   const hasPlan = planData?.hasPlan || false;
   const plan = planData?.plan;
+  const dailyTargets = plan ? computeDailyTargets(plan.templates) : null;
+  const showUploadFlow = !hasPlan || isReplacingPlan;
 
   const handleImportStart = () => {
     fileInputRef.current?.click();
@@ -55,7 +62,10 @@ export default function Plan() {
       {
         onSuccess: (result) => {
           posthog.capture('nutrition plan imported', {
+            plan_name: result.planName,
+            confidence: result.confidence,
             template_count: result.mealTemplates.length,
+            warnings_count: result.warnings.length,
           });
           setParsedPlan(result);
           setViewState("review");
@@ -79,10 +89,12 @@ export default function Plan() {
     confirmPlan.mutate(parsedPlan, {
       onSuccess: () => {
         posthog.capture('nutrition plan confirmed', {
+          plan_name: parsedPlan.planName,
           template_count: parsedPlan.mealTemplates.length,
         });
         toast.success(t("plan.success_confirmed"));
         setViewState("active");
+        setIsReplacingPlan(false);
         setParsedPlan(null);
       },
       onError: (error) => {
@@ -92,8 +104,9 @@ export default function Plan() {
     });
   };
 
-  const handleEditPlan = () => {
-    setEditPlanOpen(true);
+  const handleReplacePlan = () => {
+    setIsReplacingPlan(true);
+    setViewState("empty");
   };
 
   const handleEditTemplate = (templateId: string) => {
@@ -105,7 +118,7 @@ export default function Plan() {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-6 md:pb-0">
+    <div className="min-h-screen bg-background pb-24">
       {/* Hidden file input */}
       <input
         ref={fileInputRef}
@@ -126,10 +139,10 @@ export default function Plan() {
           {/* Tab bar */}
           <div className="flex gap-1 mt-3">
             {([
-              { key: "plan",     labelKey: "plan.tab_my_plan", icon: FileText },
-              { key: "week",     labelKey: "plan.tab_week",    icon: CalendarDays },
-              { key: "shopping", labelKey: "plan.tab_shopping", icon: ShoppingCart },
-            ] as { key: PlanTab; labelKey: string; icon: React.ElementType }[]).map(({ key, labelKey, icon: Icon }) => (
+              { key: "plan",     label: t("plan.tab_my_plan"), icon: FileText },
+              { key: "week",     label: t("plan.tab_week"),    icon: CalendarDays },
+              { key: "shopping", label: t("plan.tab_shopping"), icon: ShoppingCart },
+            ] as { key: PlanTab; label: string; icon: React.ElementType }[]).map(({ key, label, icon: Icon }) => (
               <button
                 key={key}
                 onClick={() => setActiveTab(key)}
@@ -141,14 +154,14 @@ export default function Plan() {
                 )}
               >
                 <Icon className="w-3.5 h-3.5" />
-                {t(labelKey)}
+                {label}
               </button>
             ))}
           </div>
         </div>
       </header>
 
-      <main className="px-4 py-6 space-y-6 max-w-2xl mx-auto">
+      <main className="px-4 py-6 space-y-6 max-w-lg mx-auto">
         {/* ── This Week tab ── */}
         {activeTab === "week" && (
           hasPlan ? (
@@ -157,7 +170,9 @@ export default function Plan() {
             <div className="text-center py-12 space-y-3">
               <CalendarDays className="w-12 h-12 text-muted-foreground mx-auto" />
               <p className="font-medium">{t("plan.no_week_plan_title")}</p>
-              <p className="text-sm text-muted-foreground">{t("plan.no_week_plan_desc")}</p>
+              <p className="text-sm text-muted-foreground">
+                {t("plan.no_week_plan_desc")}
+              </p>
               <Button variant="outline" size="sm" onClick={() => setActiveTab("plan")}>
                 {t("plan.go_to_my_plan")}
               </Button>
@@ -173,7 +188,9 @@ export default function Plan() {
             <div className="text-center py-12 space-y-3">
               <ShoppingCart className="w-12 h-12 text-muted-foreground mx-auto" />
               <p className="font-medium">{t("plan.no_shopping_title")}</p>
-              <p className="text-sm text-muted-foreground">{t("plan.no_shopping_desc")}</p>
+              <p className="text-sm text-muted-foreground">
+                {t("plan.no_shopping_desc")}
+              </p>
               <Button variant="outline" size="sm" onClick={() => setActiveTab("plan")}>
                 {t("plan.go_to_my_plan")}
               </Button>
@@ -186,323 +203,33 @@ export default function Plan() {
           <div className="flex items-center justify-center min-h-[400px]">
             <Loader2 className="w-8 h-8 text-primary animate-spin" />
           </div>
-        ) : activeTab === "plan" && !hasPlan && viewState === "empty" ? (
-          /* Empty State */
-          <Card className="card-shadow animate-fade-up">
-            <CardContent className="p-8 text-center">
-              <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <FileText className="w-10 h-10 text-primary" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">{t("plan.no_plan_title")}</h3>
-              <p className="text-muted-foreground text-sm mb-6">
-                {t("plan.no_plan_desc")}
-              </p>
-
-              <div className="space-y-3">
-                <Button size="lg" className="w-full" onClick={handleImportStart}>
-                  <Upload className="w-5 h-5 mr-2" />
-                  {t("plan.upload_plan")}
-                </Button>
-
-                <div className="flex gap-2 justify-center">
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <File className="w-3 h-3" /> PDF
-                  </div>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <FileText className="w-3 h-3" /> Word
-                  </div>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Image className="w-3 h-3" /> Image
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        ) : activeTab === "plan" && showUploadFlow && viewState === "empty" ? (
+          <PlanEmptyState onImportStart={handleImportStart} />
         ) : activeTab === "plan" && viewState === "importing" ? (
-          /* Importing State */
-          <div className="flex flex-col items-center justify-center min-h-[400px] gap-6 animate-fade-up">
-            <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center">
-              <Loader2 className="w-12 h-12 text-primary animate-spin" />
-            </div>
-            <div className="text-center">
-              <h3 className="text-xl font-semibold mb-2">{t("plan.parsing_title")}</h3>
-              <p className="text-muted-foreground">{t("plan.parsing_desc")}</p>
-            </div>
-          </div>
+          <PlanImportingState />
         ) : activeTab === "plan" && viewState === "review" && parsedPlan ? (
-          /* Review State */
-          <>
-            <Card className="card-shadow border-2 border-primary/20 bg-primary/5 animate-fade-up">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
-                    <FileText className="w-5 h-5 text-primary-foreground" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">{t("plan.parsed_success")}</h3>
-                    <p className="text-sm text-muted-foreground">{t("plan.parsed_review")}</p>
-                  </div>
-                </div>
-
-                <div className="p-3 bg-card rounded-lg space-y-2">
-                  <div>
-                    <p className="text-sm font-medium">{parsedPlan.planName}</p>
-                    <p className="text-xs text-muted-foreground">{t("plan.uploaded_plan")}</p>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs">
-                    <span className={cn(
-                      "px-2 py-1 rounded-full",
-                      parsedPlan.confidence === "high" ? "bg-success/20 text-success" :
-                      parsedPlan.confidence === "medium" ? "bg-warning/20 text-warning" :
-                      "bg-muted text-muted-foreground"
-                    )}>
-                      {parsedPlan.confidence} {t("plan.confidence")}
-                    </span>
-                    <span className="text-muted-foreground">
-                      {t("plan.templates_count", { count: parsedPlan.mealTemplates.length })}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Warnings */}
-                {parsedPlan.warnings.length > 0 && (
-                  <div className="mt-3 p-3 bg-warning/10 border border-warning/20 rounded-lg">
-                    <div className="flex items-start gap-2">
-                      <AlertCircle className="w-4 h-4 text-warning mt-0.5" />
-                      <div className="space-y-1">
-                        {parsedPlan.warnings.map((warning, idx) => (
-                          <p key={idx} className="text-xs text-warning">{warning}</p>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Templates to confirm - Review state with simpler card display */}
-            <div className="space-y-3">
-              {parsedPlan.mealTemplates.map((template, idx) => (
-                <Card key={template.id} className="card-shadow animate-fade-up" style={{ animationDelay: `${idx * 100}ms` }}>
-                  <CardContent className="p-4">
-                    {/* Header with badges */}
-                    <div className="flex items-start gap-3 mb-3">
-                      <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center">
-                        <span className="text-2xl">{template.icon}</span>
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="font-semibold">{template.name}</h3>
-                          {template.isOptional && (
-                            <span className="px-2 py-0.5 bg-warning/20 text-warning text-xs rounded-full font-medium">
-                              {t("plan.optional_badge")}
-                            </span>
-                          )}
-                          {template.isPreWorkout && (
-                            <span className="px-2 py-0.5 bg-accent/20 text-accent text-xs rounded-full font-medium flex items-center gap-1">
-                              <Zap className="w-3 h-3" />
-                              {t("plan.pre_workout_badge")}
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                          {template.scheduledTime && (
-                            <span className="flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              {template.scheduledTime}
-                            </span>
-                          )}
-                          {template.calories && <span>{template.calories}</span>}
-                          {template.protein && <span>• {template.protein}</span>}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Reference to another meal */}
-                    {template.referencesMeal && (
-                      <div className="mb-3 p-2 bg-muted/50 rounded-lg flex items-center gap-2 text-sm">
-                        <ArrowRight className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-muted-foreground">{t("plan.same_rules_as")}</span>
-                        <span className="font-medium">{template.referencesMeal}</span>
-                      </div>
-                    )}
-
-                    <div className="space-y-3">
-                      {/* Options section */}
-                      {template.options && template.options.length > 0 && (
-                        <div>
-                          <p className="text-xs text-muted-foreground mb-2 uppercase tracking-wide font-medium">
-                            {t("plan.option_label")}
-                          </p>
-                          <div className="space-y-2">
-                            {template.options.map((option) => (
-                              <div key={option.number} className="p-3 border border-border rounded-lg bg-card">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className="w-5 h-5 bg-primary/10 text-primary rounded-full flex items-center justify-center text-xs font-medium">
-                                    {option.number}
-                                  </span>
-                                  <span className="font-medium text-sm">{option.description}</span>
-                                </div>
-                                <div className="flex flex-wrap gap-1 ml-7">
-                                  {option.foods.map((food, foodIdx) => (
-                                    <span key={foodIdx} className="px-2 py-0.5 bg-primary/10 text-primary rounded text-xs">
-                                      {food}
-                                    </span>
-                                  ))}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Required foods */}
-                      {template.requiredFoods.length > 0 && (
-                        <div>
-                          <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wide font-medium">{t("plan.required_label")}</p>
-                          <div className="flex flex-wrap gap-1">
-                            {template.requiredFoods.map((food, foodIdx) => (
-                              <span key={foodIdx} className="inline-flex items-center gap-1 px-2 py-1 bg-primary text-primary-foreground rounded-full text-xs font-medium">
-                                <Check className="w-3 h-3" />
-                                {food}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Allowed foods */}
-                      {template.allowedFoods.length > 0 && (
-                        <div>
-                          <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wide font-medium">{t("plan.allowed_label")}</p>
-                          <div className="flex flex-wrap gap-1">
-                            {template.allowedFoods.slice(0, 5).map((food, foodIdx) => (
-                              <span key={foodIdx} className="px-2 py-1 bg-secondary text-secondary-foreground border border-border rounded-full text-xs">
-                                {food}
-                              </span>
-                            ))}
-                            {template.allowedFoods.length > 5 && (
-                              <span className="px-2 py-1 text-muted-foreground text-xs">
-                                {t("plan.more_items", { count: template.allowedFoods.length - 5 })}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Optional add-ons */}
-                      {template.optionalAddons && template.optionalAddons.length > 0 && (
-                        <div>
-                          <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wide font-medium">{t("plan.optional_addons")}</p>
-                          <div className="flex flex-wrap gap-1">
-                            {template.optionalAddons.map((food, foodIdx) => (
-                              <span key={foodIdx} className="inline-flex items-center gap-1 px-2 py-1 bg-muted/50 text-muted-foreground rounded-full text-xs border border-dashed border-muted-foreground/30">
-                                <Plus className="w-3 h-3" />
-                                {food}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            <Button
-              size="xl"
-              className="w-full"
-              onClick={handleConfirmPlan}
-              disabled={confirmPlan.isPending}
-            >
-              {confirmPlan.isPending ? (
-                <>
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  {t("plan.saving")}
-                </>
-              ) : (
-                t("plan.confirm_plan")
-              )}
-            </Button>
-          </>
+          <PlanReviewState
+            parsedPlan={parsedPlan}
+            onConfirm={handleConfirmPlan}
+            isConfirming={confirmPlan.isPending}
+          />
         ) : activeTab === "plan" && hasPlan && plan ? (
-          /* Active Plan State */
-          <>
-            {/* Current Plan Info */}
-            <Card className="card-shadow animate-fade-up">
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-3">
-                    <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
-                      <FileText className="w-6 h-6 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold">{plan.name}</h3>
-                      <p className="text-sm text-muted-foreground">{plan.source}</p>
-                      <p className="text-xs text-muted-foreground mt-1">{t("plan.uploaded_at", { date: plan.uploadedAt })}</p>
-                    </div>
-                  </div>
-                  <Button variant="ghost" size="icon" onClick={handleEditPlan}>
-                    <Edit2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Meal Templates */}
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold">{t("plan.meal_templates")}</h2>
-                <Button variant="ghost" size="sm" onClick={handleAddTemplate}>
-                  <Plus className="w-4 h-4 mr-1" />
-                  {t("common.add")}
-                </Button>
-              </div>
-
-              <div className="space-y-3">
-                {plan.templates.map((template, idx) => (
-                  <MealTemplateCard
-                    key={template.id}
-                    template={template}
-                    isExpanded={selectedTemplate === template.id}
-                    onToggle={() => setSelectedTemplate(
-                      selectedTemplate === template.id ? null : template.id
-                    )}
-                    onEdit={() => handleEditTemplate(template.id)}
-                    animationDelay={idx * 100}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* Daily Targets */}
-            <DailyTargetsCard
-              calories={1800}
-              protein={120}
-              meals={plan.templates.length}
-              className="animate-fade-up animate-delay-400"
-            />
-
-            {/* Upload New Plan */}
-            <Button
-              variant="outline"
-              size="lg"
-              className="w-full animate-fade-up animate-delay-500"
-              onClick={() => setViewState("empty")}
-            >
-              <Upload className="w-5 h-5 mr-2" />
-              {t("plan.replace_plan")}
-            </Button>
-
-            {/* Trust note */}
-            <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
-              <Info className="w-3 h-3" />
-              <span>{t("common.wellness_note")}</span>
-            </div>
-          </>
+          <PlanActiveState
+            plan={plan}
+            dailyTargets={dailyTargets}
+            selectedTemplate={selectedTemplate}
+            onToggleTemplate={(templateId) =>
+              setSelectedTemplate(selectedTemplate === templateId ? null : templateId)
+            }
+            onEditTemplate={handleEditTemplate}
+            onAddTemplate={handleAddTemplate}
+            onEditPlan={() => setEditPlanOpen(true)}
+            onReplacePlan={handleReplacePlan}
+          />
         ) : null}
       </main>
+
+      <BottomNav />
 
       {/* Edit Plan Sheet */}
       {plan && (

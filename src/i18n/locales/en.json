@@ -12,7 +12,15 @@
     "loading": "Loading...",
     "wellness_note": "Wellness support, not medical advice",
     "error_connection": "Please check your connection and try again.",
-    "or": "or"
+    "or": "or",
+    "coming_soon": "Coming soon",
+    "day_monday": "Monday",
+    "day_tuesday": "Tuesday",
+    "day_wednesday": "Wednesday",
+    "day_thursday": "Thursday",
+    "day_friday": "Friday",
+    "day_saturday": "Saturday",
+    "day_sunday": "Sunday"
   },
   "nav": {
     "home": "Home",
@@ -36,7 +44,14 @@
     "todays_meals": "Today's Meals",
     "view_all": "View all",
     "dinner_suggestion": "Dinner suggestion",
-    "dinner_suggestion_desc": "Based on your plan, consider grilled salmon with quinoa and roasted vegetables."
+    "dinner_suggestion_desc": "Based on your plan, consider grilled salmon with quinoa and roasted vegetables.",
+    "wellness_nutrition": "Nutrition",
+    "wellness_recovery": "Recovery",
+    "wellness_sleep": "Sleep",
+    "wellness_activity": "Activity",
+    "next_meal_suggestion": "{{name}} suggestion",
+    "next_meal_suggestion_allowed": "Based on your plan, consider: {{foods}}.",
+    "next_meal_suggestion_required": "Based on your plan, aim for: {{foods}}."
   },
   "log": {
     "title": "Log Meal",
@@ -100,7 +115,8 @@
     "error_parse": "Failed to parse plan. Please try again.",
     "error_save": "Failed to save plan. Please try again.",
     "error_no_plan": "No plan to confirm",
-    "success_confirmed": "Plan confirmed successfully!"
+    "success_confirmed": "Plan confirmed successfully!",
+    "edit_plan_aria": "Edit plan"
   },
   "progress": {
     "title": "Progress",
@@ -130,7 +146,19 @@
     "insight_weekly_1_title": "Strong breakfast routine",
     "insight_weekly_1_desc": "Consistent morning meals all week",
     "insight_weekly_2_title": "Friday was off-plan",
-    "insight_weekly_2_desc": "Social dining - marked as exception"
+    "insight_weekly_2_desc": "Social dining - marked as exception",
+    "previous_day": "Previous day",
+    "next_day": "Next day",
+    "previous_week": "Previous week",
+    "next_week": "Next week",
+    "insight_meal_on_track": "{{name}} was on track ({{score}}%)",
+    "insight_default_positive": "Matched your plan well",
+    "insight_meal_needs_attention": "{{name}} needs attention ({{score}}%)",
+    "insight_default_negative": "Check the breakdown for what threw off the score",
+    "adherence_by_meal_empty": "Log meals this week to see your adherence by meal type.",
+    "insight_best_day": "Best day: {{day}} ({{score}}%)",
+    "meals_logged_count": "{{count}} meals logged",
+    "insight_worst_day": "{{day}} needs attention ({{score}}%)"
   },
   "settings": {
     "title": "Settings",
@@ -153,7 +181,32 @@
     "made_with": "Made with ❤️ for better nutrition",
     "disclaimer": "PlateCheck is a wellness support tool and is not a medical device. It does not provide medical diagnosis, treatment, or clinical recommendations. Always consult with your healthcare provider.",
     "coming_soon": "coming soon",
-    "no_email": "No email"
+    "no_email": "No email",
+    "export_coming_soon": "Data export coming soon",
+    "privacy_coming_soon": "Privacy settings coming soon",
+    "delete_coming_soon": "Data deletion coming soon",
+    "help_coming_soon": "Help & support coming soon",
+    "health_sync": {
+      "title": "Health Sync",
+      "description": "Connect the Health Auto Export app to bring your Apple Watch data (HRV, sleep, activity) into PlateCheck.",
+      "active_token": "Active token: {{prefix}}…",
+      "generate": "Generate Sync Token",
+      "regenerate": "Regenerate Token",
+      "generate_error": "Couldn't generate a token. Please try again.",
+      "setup_guide": "Setup guide",
+      "setup_step_1": "Install \"Health Auto Export\" from the App Store.",
+      "setup_step_2": "In Automations, create a new REST API automation.",
+      "setup_step_3": "Paste the endpoint URL below and add the header shown, using your token as the value.",
+      "setup_step_4": "Enable the metrics you want to sync and set it to run automatically (hourly is a good default).",
+      "endpoint_label": "Endpoint URL",
+      "header_label": "Header name (value = your token)",
+      "token_ready_title": "Your sync token",
+      "token_ready_desc": "Copy it now — for your security, it won't be shown again. Paste it as the value of the x-api-key header in Health Auto Export.",
+      "token_label": "Token",
+      "token_saved": "I've copied it",
+      "copied": "Copied to clipboard",
+      "copy_error": "Couldn't copy to clipboard"
+    }
   },
   "mealResult": {
     "title": "Meal Analysis",
@@ -168,11 +221,11 @@
     "confidence_low": "Low confidence",
     "score_breakdown": "Score Breakdown",
     "missing_penalty": "(missing required)",
-    "off_plan_penalty": "(not aligned)",
+    "off_plan_penalty": "(off plan)",
     "required_on_plate": "Required — on plate",
     "allowed_on_plate": "Allowed — on plate",
     "required_missing": "Required — missing",
-    "not_aligned_label": "Not aligned",
+    "not_aligned_label": "Off plan",
     "all_matched": "All detected foods match your plan",
     "detected_foods": "Detected Foods",
     "items_count": "({{count}} items)",
@@ -183,7 +236,8 @@
     "analysis_confidence": "Analysis confidence: {{confidence}}. Results may vary based on photo quality.",
     "wellness_disclaimer": "PlateCheck is a wellness tool, not a medical device. Results are estimates based on photo analysis and should not replace advice from a qualified healthcare professional.",
     "save_meal": "Save Meal",
-    "saving": "Saving..."
+    "saving": "Saving...",
+    "loading_meal": "Loading meal…"
   },
   "editProfile": {
     "title": "Edit Profile",
@@ -497,7 +551,11 @@
     "success_created": "Template created successfully",
     "error_create": "Failed to create template",
     "success_updated": "Template updated successfully",
-    "error_update": "Failed to update template"
+    "error_update": "Failed to update template",
+    "discard_dialog_title": "Discard changes?",
+    "discard_dialog_desc": "You have unsaved changes. Are you sure you want to leave?",
+    "keep_editing": "Keep editing",
+    "discard": "Discard"
   },
   "landing": {
     "sign_in": "Sign in",
@@ -545,5 +603,41 @@
     "title": "404",
     "subtitle": "Oops! Page not found",
     "back_home": "Return to Home"
+  },
+  "score": {
+    "great": "Great match!",
+    "on_track": "On track",
+    "needs_attention": "Needs attention",
+    "off_plan": "Off plan"
+  },
+  "health": {
+    "title": "Health",
+    "subtitle": "Recovery, sleep and activity from your Apple Watch",
+    "empty_title": "Connect your Apple Watch",
+    "empty_desc": "Sync Apple Health data to see your recovery, sleep and activity scores alongside your nutrition.",
+    "empty_cta": "Set up Health Sync",
+    "calibrating": "Calibrating your baselines — {{count}} of {{total}} days synced. Scores appear once we have enough history.",
+    "calibrating_short": "Calibrating…",
+    "recovery": "Recovery",
+    "sleep": "Sleep",
+    "activity": "Activity",
+    "trends": "Trends",
+    "hrv": "HRV",
+    "resting_hr": "Resting HR",
+    "respiratoryRate": "Respiratory rate",
+    "wristTemp": "Wrist temperature",
+    "duration": "Duration",
+    "efficiency": "Efficiency",
+    "deep": "Deep sleep",
+    "rem": "REM sleep",
+    "consistency": "Bedtime consistency",
+    "steps": "Steps",
+    "active_energy": "Active energy",
+    "exercise_minutes": "Exercise min",
+    "vo2_max": "VO2 max",
+    "workout": "Workout",
+    "minutes": "{{count}} min",
+    "baseline_short": "{{value}} baseline",
+    "vs_baseline": "{{value}} baseline"
   }
 }

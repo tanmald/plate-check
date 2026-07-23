@@ -1,14 +1,15 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Camera, Image, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { BottomNav } from "@/components/BottomNav";
 import { CameraView } from "@/components/CameraView";
-import { cn } from "@/lib/utils";
 import { useCreateMealLog, MealLogResult } from "@/hooks/use-meals";
 import { useAuth } from "@/hooks/use-auth";
+import { useNutritionPlan } from "@/hooks/use-nutrition-plan";
 import posthog from "@/lib/posthog";
-import { useTranslation } from "react-i18next";
 
 type Step = "select" | "capture" | "analyzing";
 
@@ -24,6 +25,7 @@ export default function Log() {
 
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const createMealLog = useCreateMealLog();
+  const { data: planData } = useNutritionPlan();
 
   const mealTypes = [
     { id: "breakfast", label: t("log.breakfast"), icon: "🌅", time: t("log.breakfast_time") },
@@ -49,10 +51,19 @@ export default function Log() {
     posthog.capture('meal photo submitted', { meal_type: selectedMealType });
 
     createMealLog.mutate(
-      { photoFile: file, mealType: selectedMealType },
+      {
+        photoFile: file,
+        mealType: selectedMealType,
+        planId: planData?.plan?.id,
+      },
       {
         onSuccess: (analysisResult) => {
-          posthog.capture('meal logged', { meal_type: selectedMealType });
+          posthog.capture('meal logged', {
+            meal_type: selectedMealType,
+            score: analysisResult.score,
+            confidence: analysisResult.confidence,
+            detected_foods_count: analysisResult.detectedFoods?.length ?? 0,
+          });
           navigate("/meal-result", {
             state: {
               mealType: selectedMealType,
@@ -90,7 +101,7 @@ export default function Log() {
   const selectedMealLabel = mealTypes.find(m => m.id === selectedMealType)?.label ?? selectedMealType ?? "";
 
   return (
-    <div className="min-h-screen bg-background pb-6 md:pb-0">
+    <div className="min-h-screen bg-background pb-24">
       {showCamera && (
         <CameraView
           onCapture={(file) => { setShowCamera(false); handleFileSelect(file); }}
@@ -130,7 +141,7 @@ export default function Log() {
         </div>
       </header>
 
-      <main className="px-4 py-6 max-w-2xl mx-auto">
+      <main className="px-4 py-6 max-w-lg mx-auto">
         {step === "select" && (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground mb-6">
@@ -236,6 +247,7 @@ export default function Log() {
         )}
       </main>
 
+      <BottomNav />
     </div>
   );
 }

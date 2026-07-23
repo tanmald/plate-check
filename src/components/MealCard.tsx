@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
-import { getScoreStatus, getScoreColor } from "./AlignmentScore";
+import { getScoreStatus, getScoreColor } from "./AdherenceScore";
 import { useTranslation } from "react-i18next";
 
 interface MealCardProps {

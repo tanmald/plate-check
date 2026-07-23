@@ -27,14 +27,16 @@ npm run preview
 
 ```
 src/
-├── pages/              # Route-level components (10 pages)
+├── pages/              # Route-level components (13 pages + NotFound — see CLAUDE.md for the full list)
+│   ├── Landing.tsx      # Marketing page (unauthenticated)
+│   ├── Auth.tsx         # Sign up / sign in / forgot password
+│   ├── Onboarding.tsx  # Import / create manually / skip (single screen, unauthenticated)
 │   ├── Home.tsx        # Daily dashboard
 │   ├── Log.tsx         # Meal logging (3-step flow)
 │   ├── MealResult.tsx  # Meal analysis results
-│   ├── Plan.tsx        # Nutrition plan management
+│   ├── Plan.tsx        # Nutrition plan management shell
 │   ├── Progress.tsx    # Daily/weekly tracking
 │   ├── Settings.tsx    # User settings
-│   ├── Onboarding.tsx  # Multi-step onboarding
 │   ├── EditProfile.tsx # Profile editing
 │   └── NotFound.tsx    # 404 page
 ├── components/         # Reusable components
@@ -104,10 +106,9 @@ Several pages implement multi-step flows with state management:
 **Log Flow** (`Log.tsx`): `select` → `capture` → `analyzing` → navigate to `/meal-result`
 - Passes `mealType` via router state
 
-**Plan Import Flow** (`Plan.tsx`): `empty` → `importing` → `review` → `active`
-- Uses `hasPlan` flag for conditional rendering
+**Plan Import Flow** (`Plan.tsx`): `empty` → `importing` → `review` → `active`, each state its own component (`PlanEmptyState`, `PlanImportingState`, `PlanReviewState`, `PlanActiveState`). "Replace Plan" re-enters `empty` via a separate `isReplacingPlan` flag rather than `hasPlan` (which stays true until a new plan is confirmed).
 
-**Onboarding Flow** (`Onboarding.tsx`): `welcome` → `signup` → `upload` → `parsing` → `review` → `complete`
+**Onboarding** (`Onboarding.tsx`): a single screen — Import a plan / Create one manually / Skip. Signup/signin is a separate flow at `/auth`.
 
 ## Key Concepts
 
@@ -159,15 +160,7 @@ const { mealType } = location.state;
 
 ### Routes
 
-- `/` - Home (daily dashboard)
-- `/log` - Meal logging flow
-- `/meal-result` - Analysis results
-- `/plan` - Plan management
-- `/progress` - Progress tracking (tabs: daily/weekly)
-- `/settings` - User settings
-- `/edit-profile` - Profile editing
-- `/onboarding` - Multi-step onboarding
-- `*` - 404 Not Found
+See CLAUDE.md's Routing Architecture section for the full, current list — unauthenticated users land on `/landing`, not `/onboarding`. Note `/settings/profile` (not `/edit-profile`) for profile editing, and `/plan/template/:templateId` for creating/editing a single meal template.
 
 ## Development Workflow
 
@@ -325,24 +318,24 @@ See `/supabase/migrations/` for full schema.
 
 ## Known Limitations (MVP)
 
-- **Camera capture** simulated (not integrated with device camera API)
-- **OCR plan parsing** uses mock implementation
+See `docs/APP_REVIEW.md` for the full, current list with file:line references. Highlights:
+
+- **Plan parsing** is a real GPT-4o call (`parse-nutrition-plan`), not a mock
 - **No automated tests** configured yet
-- **Test user auth bypass** in production (should be disabled)
+- **Test user auth bypass** must be gated behind `import.meta.env.DEV` — verify before deploying
 - **localStorage sessions** (XSS vulnerability - should use httpOnly cookies)
 - **Date navigation** not functional (prev/next buttons)
-- **No macro tracking** implemented yet
+- **Daily targets only** — `DailyTargetsCard` derives calories/protein from the plan's templates, but there's no per-meal macro logging yet
 
 ## Next Steps
 
 - [ ] Add Vitest + Testing Library
 - [ ] Implement real camera integration
-- [ ] Production OCR plan parsing
-- [ ] Remove test user bypass in production
+- [ ] Verify test user bypass is gated behind `import.meta.env.DEV` in production
 - [ ] Migrate to httpOnly cookies
-- [ ] Add macro nutrient tracking
+- [ ] Add per-meal macro nutrient tracking
 - [ ] Implement date navigation
 
 ---
 
-**Questions?** Check the main [README](../README.md) or [CLAUDE.md](../.github/CLAUDE.md) for AI-specific guidance.
+**Questions?** Check the main [README](../README.md) or [CLAUDE.md](../CLAUDE.md) for AI-specific guidance.

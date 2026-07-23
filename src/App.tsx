@@ -8,13 +8,13 @@ import { Analytics } from "@vercel/analytics/react";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { AppLayout } from "@/components/AppLayout";
 import Home from "./pages/Home";
 import Log from "./pages/Log";
 import MealResult from "./pages/MealResult";
 import Plan from "./pages/Plan";
 import EditMealTemplate from "./pages/EditMealTemplate";
 import Progress from "./pages/Progress";
+import Health from "./pages/Health";
 import Settings from "./pages/Settings";
 import EditProfile from "./pages/EditProfile";
 import Onboarding from "./pages/Onboarding";
@@ -43,7 +43,7 @@ const App = () => (
               path="/"
               element={
                 <ProtectedRoute>
-                  <AppLayout><Home /></AppLayout>
+                  <Home />
                 </ProtectedRoute>
               }
             />
@@ -51,7 +51,7 @@ const App = () => (
               path="/log"
               element={
                 <ProtectedRoute>
-                  <AppLayout><Log /></AppLayout>
+                  <Log />
                 </ProtectedRoute>
               }
             />
@@ -59,7 +59,7 @@ const App = () => (
               path="/meal-result"
               element={
                 <ProtectedRoute>
-                  <AppLayout><MealResult /></AppLayout>
+                  <MealResult />
                 </ProtectedRoute>
               }
             />
@@ -67,7 +67,7 @@ const App = () => (
               path="/plan"
               element={
                 <ProtectedRoute>
-                  <AppLayout><Plan /></AppLayout>
+                  <Plan />
                 </ProtectedRoute>
               }
             />
@@ -75,7 +75,7 @@ const App = () => (
               path="/plan/template/:templateId"
               element={
                 <ProtectedRoute>
-                  <AppLayout><EditMealTemplate /></AppLayout>
+                  <EditMealTemplate />
                 </ProtectedRoute>
               }
             />
@@ -83,7 +83,15 @@ const App = () => (
               path="/progress"
               element={
                 <ProtectedRoute>
-                  <AppLayout><Progress /></AppLayout>
+                  <Progress />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/health"
+              element={
+                <ProtectedRoute>
+                  <Health />
                 </ProtectedRoute>
               }
             />
@@ -91,7 +99,7 @@ const App = () => (
               path="/settings"
               element={
                 <ProtectedRoute>
-                  <AppLayout><Settings /></AppLayout>
+                  <Settings />
                 </ProtectedRoute>
               }
             />
@@ -99,7 +107,7 @@ const App = () => (
               path="/settings/profile"
               element={
                 <ProtectedRoute>
-                  <AppLayout><EditProfile /></AppLayout>
+                  <EditProfile />
                 </ProtectedRoute>
               }
             />

@@ -1,0 +1,89 @@
+{
+  "data": {
+    "metrics": [
+      {
+        "name": "heart_rate_variability",
+        "units": "ms",
+        "data": [
+          { "date": "2026-07-11 03:12:00 +0100", "qty": 58.4 },
+          { "date": "2026-07-11 05:47:00 +0100", "qty": 64.1 },
+          { "date": "2026-07-11 05:47:00 +0100", "qty": 64.1 }
+        ]
+      },
+      {
+        "name": "resting_heart_rate",
+        "units": "count/min",
+        "data": [{ "date": "2026-07-11 07:00:00 +0100", "qty": 51 }]
+      },
+      {
+        "name": "respiratory_rate",
+        "units": "count/min",
+        "data": [{ "date": "2026-07-11 04:30:00 +0100", "qty": 14.2 }]
+      },
+      {
+        "name": "blood_oxygen_saturation",
+        "units": "%",
+        "data": [{ "date": "2026-07-11 04:05:00 +0100", "qty": 97 }]
+      },
+      {
+        "name": "apple_sleeping_wrist_temperature",
+        "units": "degC",
+        "data": [{ "date": "2026-07-11 06:00:00 +0100", "qty": 34.6 }]
+      },
+      {
+        "name": "sleep_analysis",
+        "units": "hr",
+        "data": [
+          {
+            "date": "2026-07-10 23:12:00 +0100",
+            "sleepStart": "2026-07-10 23:12:00 +0100",
+            "sleepEnd": "2026-07-11 07:05:00 +0100",
+            "inBed": 7.9,
+            "asleep": 7.3,
+            "core": 4.4,
+            "deep": 1.3,
+            "rem": 1.6,
+            "awake": 0.5
+          }
+        ]
+      },
+      {
+        "name": "step_count",
+        "units": "count",
+        "data": [
+          { "date": "2026-07-11 09:00:00 +0100", "qty": 3200 },
+          { "date": "2026-07-11 13:00:00 +0100", "qty": 4100 },
+          { "date": "2026-07-11 18:00:00 +0100", "qty": 2900 }
+        ]
+      },
+      {
+        "name": "active_energy",
+        "units": "kcal",
+        "data": [
+          { "date": "2026-07-11 12:00:00 +0100", "qty": 210.5 },
+          { "date": "2026-07-11 19:00:00 +0100", "qty": 342.8 }
+        ]
+      },
+      {
+        "name": "apple_exercise_time",
+        "units": "min",
+        "data": [{ "date": "2026-07-11 19:00:00 +0100", "qty": 42 }]
+      },
+      {
+        "name": "vo2_max",
+        "units": "mL/min·kg",
+        "data": [{ "date": "2026-07-11 19:30:00 +0100", "qty": 44.2 }]
+      }
+    ],
+    "workouts": [
+      {
+        "name": "Outdoor Run",
+        "start": "2026-07-11 18:10:00 +0100",
+        "end": "2026-07-11 18:52:00 +0100",
+        "duration": 42,
+        "activeEnergyBurned": { "qty": 310, "units": "kcal" },
+        "avgHeartRate": { "qty": 152, "units": "count/min" }
+      }
+    ]
+  }
+}

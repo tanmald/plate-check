@@ -47,7 +47,7 @@ export function ShoppingListView({ weekStartDate }: ShoppingListViewProps) {
 
   const otherItems = items.filter((i) => !CATEGORY_ORDER.includes(i.category as IngredientCategory));
   if (otherItems.length > 0) {
-    grouped["Outros"] = [...(grouped["Outros"] ?? []), ...otherItems];
+    grouped["Other"] = [...(grouped["Other"] ?? []), ...otherItems];
   }
 
   const handleToggle = (itemId: string, checked: boolean) => {
@@ -63,7 +63,7 @@ export function ShoppingListView({ weekStartDate }: ShoppingListViewProps) {
     if (!name || !list) return;
 
     addItem.mutate(
-      { listId: list.id, name, category: "Outros", quantity: null, weekStartDate },
+      { listId: list.id, name, category: "Other", quantity: null, weekStartDate },
       {
         onSuccess: () => {
           setNewItemName("");

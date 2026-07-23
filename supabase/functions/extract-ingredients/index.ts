@@ -57,12 +57,12 @@ Deno.serve(async (req: Request) => {
 Meal: "${mealName}" (${mealType})${constraintsContext}
 
 Extract the main ingredients needed to prepare this meal for 1-2 people. Return a JSON array of ingredients with:
-- name: ingredient name in Portuguese (e.g., "salmão", "quinoa", "brócolos")
-- quantity: typical quantity for 1-2 people (e.g., "200g", "1 un", "80g", or "" if not applicable)
-- category: one of "Peixe & Marisco", "Carnes", "Legumes", "Fruta", "Lacticínios", "Cereais & Leguminosas", "Condimentos & Ervas", "Outros"
+- name: ingredient name in English (e.g., "salmon", "quinoa", "broccoli") — translate if the meal name is in another language
+- quantity: typical quantity for 1-2 people (e.g., "200g", "1 unit", "80g", or "" if not applicable)
+- category: one of "Fish & Seafood", "Meat", "Vegetables", "Fruit", "Dairy", "Grains & Legumes", "Condiments & Herbs", "Other"
 
 Return only the JSON array, no explanation. Example:
-[{"name":"salmão","quantity":"200g","category":"Peixe & Marisco"},{"name":"quinoa","quantity":"80g","category":"Cereais & Leguminosas"}]`;
+[{"name":"salmon","quantity":"200g","category":"Fish & Seafood"},{"name":"quinoa","quantity":"80g","category":"Grains & Legumes"}]`;
 
     const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
