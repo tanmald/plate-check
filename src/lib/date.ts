@@ -24,3 +24,28 @@ export function parseLocalDateString(dateStr: string): Date {
   const [year, month, day] = dateStr.split("-").map(Number);
   return new Date(year, month - 1, day);
 }
+
+/**
+ * Parse a free-form plan time (e.g. "6:00 AM", "12:30 PM") into minutes since
+ * midnight. Plan `scheduled_time` is unstructured text — it can also hold
+ * things like "upon waking", which this returns null for rather than guessing.
+ */
+export function parseTimeOfDayToMinutes(time: string | null | undefined): number | null {
+  if (!time) return null;
+  const match = time.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+  if (!match) return null;
+
+  let hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  const meridiem = match[3]?.toUpperCase();
+
+  if (meridiem === "PM" && hours !== 12) hours += 12;
+  if (meridiem === "AM" && hours === 12) hours = 0;
+
+  return hours * 60 + minutes;
+}
+
+/** Minutes since local midnight for the given moment. */
+export function getMinutesSinceMidnight(date: Date = new Date()): number {
+  return date.getHours() * 60 + date.getMinutes();
+}

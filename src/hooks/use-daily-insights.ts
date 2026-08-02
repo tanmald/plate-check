@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useTodayMeals, type Meal } from "@/hooks/use-meals";
 import { useNutritionPlan } from "@/hooks/use-nutrition-plan";
+import { getMinutesSinceMidnight, parseTimeOfDayToMinutes } from "@/lib/date";
 
 export interface PendingMeal {
   type: string;
@@ -36,15 +37,34 @@ export function useDailyInsights() {
     if (templates.length === 0) return [];
 
     const loggedTypes = new Set(meals.map((m) => m.type));
+    const nowMinutes = getMinutesSinceMidnight();
 
+    // "Up next" should mean the next thing on the clock, not just the first
+    // unlogged item in plan order — otherwise a 6am fast still gets suggested
+    // at 1pm. Meals still ahead of now (or with no parseable time, e.g. "upon
+    // waking") sort first by time; meals whose window already passed follow,
+    // in the order they were missed, so an afternoon snack or dinner outranks
+    // a stale morning slot.
     return templates
       .filter((t) => !t.isOptional && !loggedTypes.has(t.type))
-      .map((t) => ({
-        type: t.type,
-        name: t.name,
-        icon: t.icon,
-        scheduledTime: t.scheduledTime,
-      }));
+      .map((t) => {
+        const minutes = parseTimeOfDayToMinutes(t.scheduledTime);
+        return {
+          type: t.type,
+          name: t.name,
+          icon: t.icon,
+          scheduledTime: t.scheduledTime,
+          minutes,
+          isUpcoming: minutes === null || minutes >= nowMinutes,
+        };
+      })
+      .sort((a, b) => {
+        if (a.isUpcoming !== b.isUpcoming) return a.isUpcoming ? -1 : 1;
+        // Untimed meals (e.g. flexible snacks) rank after specifically-timed
+        // ones within the same group, rather than jumping the queue.
+        return (a.minutes ?? Infinity) - (b.minutes ?? Infinity);
+      })
+      .map(({ type, name, icon, scheduledTime }) => ({ type, name, icon, scheduledTime }));
   }, [templates, meals]);
 
   const insights = useMemo<DailyInsight[]>(() => {
