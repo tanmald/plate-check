@@ -110,6 +110,48 @@ export async function deleteNutritionPlan(path: string): Promise<void> {
 }
 
 /**
+ * Upload a challenge progress photo to Supabase Storage
+ * Files are stored under: challenge-photos/{userId}/{timestamp}_{filename}
+ */
+export async function uploadChallengePhoto(file: File): Promise<{ path: string; url: string }> {
+  const user = (await supabase.auth.getUser()).data.user;
+  if (!user) throw new Error('User not authenticated');
+
+  const timestamp = Date.now();
+  const filename = `${timestamp}_${file.name}`;
+  const filePath = `${user.id}/${filename}`;
+
+  const { data, error } = await supabase.storage
+    .from('challenge-photos')
+    .upload(filePath, file, {
+      cacheControl: '3600',
+      upsert: false,
+    });
+
+  if (error) throw error;
+
+  // Private bucket — hand back a signed URL, same as meal photos.
+  const url = await getChallengePhotoSignedUrl(data.path);
+
+  return {
+    path: data.path,
+    url,
+  };
+}
+
+/**
+ * Get a signed URL for a challenge progress photo (valid for 1 hour)
+ */
+export async function getChallengePhotoSignedUrl(path: string): Promise<string> {
+  const { data, error } = await supabase.storage
+    .from('challenge-photos')
+    .createSignedUrl(path, 3600); // 1 hour
+
+  if (error) throw error;
+  return data.signedUrl;
+}
+
+/**
  * List all meal photos for the current user
  */
 export async function listUserMealPhotos(): Promise<string[]> {

@@ -12,6 +12,7 @@ import { useTodayMeals } from "@/hooks/use-meals";
 import { useNutritionPlan, getLoggableMealCount, getNextUnloggedTemplate } from "@/hooks/use-nutrition-plan";
 import { useDailyProgress } from "@/hooks/use-progress";
 import { useWellnessScore } from "@/hooks/use-health";
+import { useActiveChallenge } from "@/hooks/use-challenges";
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -24,6 +25,8 @@ import {
   HeartPulse,
   Moon,
   Zap,
+  Trophy,
+  ChevronRight,
 } from "lucide-react";
 
 const WELLNESS_CHIPS: Array<{ key: "nutrition" | "recovery" | "sleep" | "activity"; icon: LucideIcon }> = [
@@ -56,6 +59,7 @@ export default function Home() {
   const { data: planData, isLoading: planLoading } = useNutritionPlan();
   const { data: dailyStats, isLoading: statsLoading } = useDailyProgress();
   const wellness = useWellnessScore();
+  const { data: activeChallenge } = useActiveChallenge();
 
   const hasPlan = planData?.hasPlan || false;
   const plan = planData?.plan;
@@ -179,6 +183,32 @@ export default function Home() {
                 {t("home.log_meal")}
               </Link>
             </Button>
+
+            {/* Active challenge banner */}
+            {activeChallenge?.enrollment.status === "active" && (
+              <Link to={`/challenges/${activeChallenge.enrollment.id}`} className="block animate-fade-up animate-delay-150">
+                <Card className="card-shadow border-l-4 border-l-primary hover-lift">
+                  <CardContent className="p-4 flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <Trophy className="w-4 h-4 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold">
+                        {t("home.challenge_banner_title", { day: activeChallenge.enrollment.currentDay })}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {t("home.challenge_banner_tasks_left", {
+                          count:
+                            activeChallenge.challenge.rules.tasks.length -
+                            Object.values(activeChallenge.todayLog?.tasks ?? {}).filter((s) => s.done).length,
+                        })}
+                      </p>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                  </CardContent>
+                </Card>
+              </Link>
+            )}
 
             {/* Today's Meals */}
             {meals.length > 0 && (

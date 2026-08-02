@@ -1,8 +1,10 @@
 import { NavLink } from "react-router-dom";
-import { Home, FileText, Camera, BarChart3, Settings } from "lucide-react";
+import { Home, FileText, Camera, BarChart3, Trophy, Settings } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "@/hooks/use-auth";
+import { useActiveChallenge } from "@/hooks/use-challenges";
 
 type NavItem = {
   to: string;
@@ -12,11 +14,12 @@ type NavItem = {
 };
 
 const NAV_ITEMS: NavItem[] = [
-  { to: "/",         icon: Home,     labelKey: "nav.home" },
-  { to: "/plan",     icon: FileText, labelKey: "nav.plan" },
-  { to: "/log",      icon: Camera,   labelKey: "nav.log",      isCenter: true },
-  { to: "/progress", icon: BarChart3,labelKey: "nav.progress" },
-  { to: "/settings", icon: Settings, labelKey: "nav.settings" },
+  { to: "/",           icon: Home,      labelKey: "nav.home" },
+  { to: "/plan",       icon: FileText,  labelKey: "nav.plan" },
+  { to: "/log",        icon: Camera,    labelKey: "nav.log",      isCenter: true },
+  { to: "/progress",   icon: BarChart3, labelKey: "nav.progress" },
+  { to: "/challenges", icon: Trophy,    labelKey: "nav.challenges" },
+  { to: "/settings",   icon: Settings,  labelKey: "nav.settings" },
 ];
 
 const CenterNavIcon = ({ icon: Icon, isActive }: { icon: LucideIcon; isActive: boolean }) => (
@@ -38,10 +41,12 @@ function NavItemContent({
   item,
   isActive,
   label,
+  showBadge,
 }: {
   item: NavItem;
   isActive: boolean;
   label: string;
+  showBadge?: boolean;
 }) {
   const { icon: Icon, isCenter } = item;
 
@@ -63,13 +68,18 @@ function NavItemContent({
 
   return (
     <>
-      <SideNavIcon icon={Icon} />
+      <div className="relative">
+        <SideNavIcon icon={Icon} />
+        {showBadge && (
+          <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-destructive" />
+        )}
+      </div>
       <span className="text-[10px] font-medium text-muted-foreground">{label}</span>
     </>
   );
 }
 
-function NavItemLink({ item }: { item: NavItem }) {
+function NavItemLink({ item, showBadge }: { item: NavItem; showBadge?: boolean }) {
   const { t } = useTranslation();
   const label = t(item.labelKey);
 
@@ -86,13 +96,22 @@ function NavItemLink({ item }: { item: NavItem }) {
         )
       }
     >
-      {({ isActive }) => <NavItemContent item={item} isActive={isActive} label={label} />}
+      {({ isActive }) => <NavItemContent item={item} isActive={isActive} label={label} showBadge={showBadge} />}
     </NavLink>
   );
 }
 
 export function BottomNav() {
-  const centerIndex = 2;
+  const { user } = useAuth();
+  // Only fires the query when a session exists — BottomNav also renders
+  // for a beat during auth transitions.
+  const { data: activeChallenge } = useActiveChallenge();
+  const hasPendingChallengeTasks =
+    !!user &&
+    activeChallenge?.enrollment.status === "active" &&
+    activeChallenge.todayLog?.allComplete === false;
+
+  const centerIndex = NAV_ITEMS.findIndex((i) => i.isCenter);
   const leftItems = NAV_ITEMS.slice(0, centerIndex);
   const centerItem = NAV_ITEMS[centerIndex];
   const rightItems = NAV_ITEMS.slice(centerIndex + 1);
@@ -110,7 +129,11 @@ export function BottomNav() {
         </div>
         <div className="flex items-center justify-around flex-1 pl-8">
           {rightItems.map((item) => (
-            <NavItemLink key={item.to} item={item} />
+            <NavItemLink
+              key={item.to}
+              item={item}
+              showBadge={item.to === "/challenges" ? hasPendingChallengeTasks : undefined}
+            />
           ))}
         </div>
       </div>

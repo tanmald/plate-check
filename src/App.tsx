@@ -14,6 +14,9 @@ import MealResult from "./pages/MealResult";
 import Plan from "./pages/Plan";
 import EditMealTemplate from "./pages/EditMealTemplate";
 import Progress from "./pages/Progress";
+import Challenges from "./pages/Challenges";
+import ChallengeDashboard from "./pages/ChallengeDashboard";
+import ChallengeHistory from "./pages/ChallengeHistory";
 import Health from "./pages/Health";
 import Settings from "./pages/Settings";
 import EditProfile from "./pages/EditProfile";
@@ -84,6 +87,30 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Progress />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/challenges"
+              element={
+                <ProtectedRoute>
+                  <Challenges />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/challenges/:enrollmentId"
+              element={
+                <ProtectedRoute>
+                  <ChallengeDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/challenges/:enrollmentId/history"
+              element={
+                <ProtectedRoute>
+                  <ChallengeHistory />
                 </ProtectedRoute>
               }
             />

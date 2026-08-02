@@ -465,3 +465,76 @@ export const mockIngestToken = {
   createdAt: `${daysAgoIso(9)}T08:00:00.000Z`,
   lastUsedAt: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
 };
+
+// ─── Challenges / 75 Hard mock data ─────────────────────────────────────────
+// Type-only import: erased at compile time, so this doesn't create a runtime
+// circular dependency with use-challenges.ts (which imports these mocks).
+import type { ActiveChallengeData, ChallengeCatalogEntry, ChallengeDailyLog } from "@/hooks/use-challenges";
+
+export const mockChallengeCatalog: ChallengeCatalogEntry[] = [
+  {
+    id: "mock-75-hard-id",
+    slug: "75-hard",
+    name: "75 Hard",
+    description:
+      "Follow a diet with zero deviations (no alcohol, no cheat meals), drink a gallon of water, complete two 45-minute workouts (one outdoors), read 10 pages of non-fiction, and take a daily progress photo — every day for 75 days. Miss anything and you restart at Day 1.",
+    durationDays: 75,
+    rules: {
+      fail_policy: "restart",
+      tasks: [
+        { key: "diet", type: "meal_adherence", label: "Follow your plan, no alcohol, no cheat meals", config: { min_meal_score: 70, all_planned_meals_logged: true } },
+        { key: "water", type: "counter", label: "Drink 3.8 L of water", config: { goal: 3800, unit: "ml", quick_add: [250, 500, 750] } },
+        { key: "workout1", type: "activity", label: "45-min workout", config: { min_minutes: 45 } },
+        { key: "workout2", type: "activity", label: "45-min workout — outdoors", config: { min_minutes: 45, outdoor_required: true } },
+        { key: "reading", type: "counter", label: "Read 10 pages of non-fiction", config: { goal: 10, unit: "pages" } },
+        { key: "photo", type: "photo", label: "Progress photo", config: {} },
+      ],
+    },
+  },
+];
+
+function mockChallengeDayLog(dayNumber: number, daysAgo: number, allComplete: boolean): ChallengeDailyLog {
+  const date = daysAgoIso(daysAgo);
+  return {
+    id: `mock-log-day-${dayNumber}`,
+    enrollmentId: "mock-enrollment-id",
+    restartCount: 0,
+    dayNumber,
+    date,
+    tasks: {
+      diet: { done: true, auto: true, meals_scored: 3, meals_required: 3, min_score: 70, no_alcohol_confirmed: true },
+      water: { done: true, value: 3800 },
+      workout1: { done: true, minutes: 50, outdoor: false },
+      workout2: { done: allComplete, minutes: allComplete ? 45 : 0, outdoor: true },
+      reading: { done: true, value: 10, book: "Atomic Habits" },
+      photo: { done: allComplete, photo_path: allComplete ? `mock/day-${dayNumber}.jpg` : undefined },
+    },
+    allComplete,
+    completedAt: allComplete ? `${date}T23:00:00.000Z` : null,
+    photoPath: allComplete ? `mock/day-${dayNumber}.jpg` : null,
+  };
+}
+
+export const mockChallengeHistory: ChallengeDailyLog[] = [
+  ...Array.from({ length: 22 }, (_, i) => mockChallengeDayLog(i + 1, 22 - i, true)),
+  mockChallengeDayLog(23, 0, false),
+];
+
+export function mockActiveChallengeData(): ActiveChallengeData {
+  return {
+    enrollment: {
+      id: "mock-enrollment-id",
+      challengeId: "mock-75-hard-id",
+      status: "active",
+      startedAt: daysAgoIso(22),
+      timezone: "UTC",
+      currentDay: 23,
+      restartCount: 0,
+      failedOnDay: null,
+      failedReason: null,
+      completedAt: null,
+    },
+    challenge: mockChallengeCatalog[0],
+    todayLog: mockChallengeHistory[22],
+  };
+}
