@@ -36,7 +36,10 @@
     "todays_meals": "Today's Meals",
     "view_all": "View all",
     "dinner_suggestion": "Dinner suggestion",
-    "dinner_suggestion_desc": "Based on your plan, consider grilled salmon with quinoa and roasted vegetables."
+    "dinner_suggestion_desc": "Based on your plan, consider grilled salmon with quinoa and roasted vegetables.",
+    "next_meal": "Up next: {{meal}}",
+    "next_meal_at": "Scheduled for {{time}}.",
+    "next_meal_desc": "You haven't logged this meal today."
   },
   "log": {
     "title": "Log Meal",
@@ -130,7 +133,20 @@
     "insight_weekly_1_title": "Strong breakfast routine",
     "insight_weekly_1_desc": "Consistent morning meals all week",
     "insight_weekly_2_title": "Friday was off-plan",
-    "insight_weekly_2_desc": "Social dining - marked as exception"
+    "insight_weekly_2_desc": "Social dining - marked as exception",
+    "insight_best_meal_title": "Good choice: {{meal}}",
+    "insight_best_meal_desc": "Scored {{score}} — {{foods}}",
+    "insight_low_meal_title": "{{meal}} fell short of the plan",
+    "insight_low_meal_desc": "Scored {{score}}. Open the meal to see what was missing.",
+    "insight_pending_meals_title": "{{count}} meals still to log",
+    "insight_pending_meals_desc": "Log them to complete your day.",
+    "no_insights": "Log a meal to see insights for your day.",
+    "meals_pending_title": "Not logged yet",
+    "insight_best_day_title": "Best day: {{day}}",
+    "insight_best_day_desc": "Scored {{score}} that day.",
+    "insight_days_on_plan_title": "{{onPlan}} of {{total}} days on plan",
+    "insight_days_on_plan_desc": "Counts days scoring 70 or above.",
+    "no_meal_breakdown": "No meals logged yet to compare."
   },
   "settings": {
     "title": "Settings",
@@ -183,7 +199,20 @@
     "analysis_confidence": "Analysis confidence: {{confidence}}. Results may vary based on photo quality.",
     "wellness_disclaimer": "PlateCheck is a wellness tool, not a medical device. Results are estimates based on photo analysis and should not replace advice from a qualified healthcare professional.",
     "save_meal": "Save Meal",
-    "saving": "Saving..."
+    "saving": "Saving...",
+    "loading": "Loading meal...",
+    "not_found": "We couldn't find this meal.",
+    "scored_against": "Scored against: {{option}}",
+    "satisfaction_label": "(plan satisfied)",
+    "disallowed_penalty": "(not allowed)",
+    "plan_components": "Plan components",
+    "optional_component": "(optional)",
+    "disallowed_label": "Not allowed",
+    "assumptions": "What was assumed",
+    "plan_notes": "Notes about your plan",
+    "confidence_level_high": "high",
+    "confidence_level_medium": "medium",
+    "confidence_level_low": "low"
   },
   "editProfile": {
     "title": "Edit Profile",

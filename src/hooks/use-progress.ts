@@ -123,6 +123,44 @@ export function useWeeklyProgress() {
   });
 }
 
+/**
+ * Average score of the 7 days before the current week, so the weekly view can
+ * show a real trend instead of a placeholder. Returns null when there is no
+ * data for that period — the caller should hide the trend rather than invent one.
+ */
+export function usePreviousWeekAverage() {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ["previous-week-average", user?.id],
+    queryFn: async (): Promise<number | null> => {
+      if (isTestUser(user?.email)) return 78;
+      if (!user?.id) return null;
+
+      const end = new Date();
+      end.setDate(end.getDate() - 7);
+      const start = new Date();
+      start.setDate(start.getDate() - 13);
+
+      const { data, error } = await supabase
+        .from("daily_progress")
+        .select("average_score, meals_logged")
+        .eq("user_id", user.id)
+        .gte("date", getLocalDateString(start))
+        .lte("date", getLocalDateString(end));
+
+      if (error) throw error;
+
+      const withData = (data ?? []).filter((d) => (d.meals_logged ?? 0) > 0);
+      if (withData.length === 0) return null;
+
+      const sum = withData.reduce((acc, d) => acc + (d.average_score || 0), 0);
+      return Math.round(sum / withData.length);
+    },
+    enabled: !!user,
+  });
+}
+
 async function calculateStreak(userId: string): Promise<number> {
   const { data, error } = await supabase
     .from("daily_progress")

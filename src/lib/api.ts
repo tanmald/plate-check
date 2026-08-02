@@ -4,7 +4,23 @@ import { supabase } from './supabase';
 // Type Definitions
 // ============================================================================
 
-export type MatchType = 'required' | 'allowed' | 'off_plan';
+/**
+ * Match classification returned by analyze-meal.
+ *
+ * 'required' and 'allowed' are legacy values that still exist in meal_logs
+ * rows written before the option-satisfaction scoring model shipped; keep
+ * them so old meals still render.
+ */
+export type MatchType =
+  | 'on_plan'
+  | 'addon'
+  | 'off_plan'
+  | 'disallowed'
+  | 'required'
+  | 'allowed';
+
+export type ConfidenceLevel = 'high' | 'medium' | 'low';
+export type PhotoQuality = 'clear' | 'partial' | 'poor';
 
 export interface DetectedFood {
   name: string;
@@ -12,6 +28,23 @@ export interface DetectedFood {
   confidence: number;
   category?: string;
   matchType?: MatchType;
+  /** Name of the plan component this food satisfies, when it satisfies one. */
+  component?: string;
+}
+
+/**
+ * One component of the plan option the meal was scored against, with the
+ * partial credit (0..1) the analysis gave it.
+ */
+export interface MealComponentResult {
+  name: string;
+  required: boolean;
+  present: boolean;
+  satisfaction: number;
+  matchedFood?: string;
+  /** What is actually visible in the photo supporting (or failing) this component. */
+  evidence?: string;
+  weight?: number;
 }
 
 export interface SuggestedSwap {
@@ -25,14 +58,28 @@ export interface AnalyzeMealRequest {
   mealType: string;
   userId: string;
   planId?: string;
+  /** BCP-47 tag of the UI language, so the analysis prose comes back translated. */
+  language?: string;
 }
 
 export interface AnalyzeMealResponse {
   score: number;
+  /** The plan option the plate best matched, or null when the plan has no options. */
+  bestOption: { number: number; description: string } | null;
+  components: MealComponentResult[];
   detectedFoods: DetectedFood[];
+  offPlan: string[];
+  disallowed: string[];
   missingRequired: string[];
   feedback: string;
-  confidence: 'high' | 'medium' | 'low';
+  confidence: ConfidenceLevel;
+  photoQuality: PhotoQuality;
+  /** Anything the analysis inferred rather than clearly saw. */
+  assumptions: string[];
+  /** Problems with the plan itself (vague option, missing quantity, likely mistranslation). */
+  planNotes: string[];
+  /** `confidence`, downgraded when the photo was partial or poor. */
+  analysisConfidence: ConfidenceLevel;
   suggestedSwaps: SuggestedSwap[];
 }
 
@@ -126,6 +173,40 @@ async function retryWithBackoff<T>(
 // ============================================================================
 
 /**
+ * Fill in any field the edge function omitted, so the UI can read the whole
+ * shape unconditionally. Also normalises meals stored before the
+ * option-satisfaction model shipped, which carry only the legacy fields.
+ */
+export function normalizeAnalyzeMealResponse(
+  raw: Partial<AnalyzeMealResponse> & { score: number }
+): AnalyzeMealResponse {
+  const detectedFoods = raw.detectedFoods ?? [];
+
+  return {
+    score: raw.score,
+    bestOption: raw.bestOption ?? null,
+    components: raw.components ?? [],
+    detectedFoods,
+    offPlan:
+      raw.offPlan ??
+      detectedFoods.filter((f) => f.matchType === 'off_plan').map((f) => f.name),
+    disallowed:
+      raw.disallowed ??
+      detectedFoods
+        .filter((f) => f.matchType === 'disallowed')
+        .map((f) => f.name),
+    missingRequired: raw.missingRequired ?? [],
+    feedback: raw.feedback ?? '',
+    confidence: raw.confidence ?? 'medium',
+    photoQuality: raw.photoQuality ?? 'clear',
+    assumptions: raw.assumptions ?? [],
+    planNotes: raw.planNotes ?? [],
+    analysisConfidence: raw.analysisConfidence ?? raw.confidence ?? 'medium',
+    suggestedSwaps: raw.suggestedSwaps ?? [],
+  };
+}
+
+/**
  * Call the analyze-meal Edge Function
  * Analyzes a meal photo against a nutrition plan and returns an alignment score
  */
@@ -165,7 +246,7 @@ export async function analyzeMeal(
         );
       }
 
-      return data as AnalyzeMealResponse;
+      return normalizeAnalyzeMealResponse(data);
     } catch (error) {
       if (error instanceof EdgeFunctionError) {
         throw error;

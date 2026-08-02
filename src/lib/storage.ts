@@ -49,6 +49,32 @@ export async function getMealPhotoSignedUrl(path: string): Promise<string> {
 }
 
 /**
+ * Sign several meal photos in one request, for lists of meals.
+ * Returns a path → signed URL map; paths that fail to sign are simply absent,
+ * so a single bad photo never blocks the rest of the list from rendering.
+ */
+export async function getMealPhotoSignedUrls(
+  paths: string[]
+): Promise<Record<string, string>> {
+  if (paths.length === 0) return {};
+
+  const { data, error } = await supabase.storage
+    .from('meal-photos')
+    .createSignedUrls(paths, 3600); // 1 hour
+
+  if (error || !data) {
+    console.error('Failed to sign meal photo URLs:', error);
+    return {};
+  }
+
+  return Object.fromEntries(
+    data
+      .filter((entry) => entry.signedUrl && entry.path)
+      .map((entry) => [entry.path as string, entry.signedUrl])
+  );
+}
+
+/**
  * Delete a meal photo
  */
 export async function deleteMealPhoto(path: string): Promise<void> {

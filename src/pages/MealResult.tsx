@@ -15,30 +15,13 @@ import {
 } from "@/lib/scoring";
 import { useUpdateMealLog } from "@/hooks/use-update-meal-log";
 import { useAuth } from "@/hooks/use-auth";
-import { isTestUser } from "@/lib/test-data";
+import { isTestUser, mockAnalysisResult } from "@/lib/test-data";
+import type { AnalyzeMealResponse } from "@/lib/api";
 import posthog from "@/lib/posthog";
 import { useTranslation } from "react-i18next";
 
-const mockResult = {
-  score: 78,
-  status: "Aligned" as const,
-  confidence: "high" as const,
-  detectedFoods: [
-    { name: "Grilled chicken breast", matched: true, category: "Protein" },
-    { name: "Brown rice", matched: true, category: "Carbs" },
-    { name: "Steamed broccoli", matched: true, category: "Vegetables" },
-    { name: "Caesar dressing", matched: false, category: "Sauce" },
-  ],
-  feedback:
-    "Great protein choice! The chicken and rice match your lunch template. Consider using olive oil instead of Caesar dressing for better plan adherence.",
-  suggestions: [
-    {
-      food: "Caesar dressing",
-      replacement: "Olive oil & lemon",
-      reason: "Lower sodium, fits plan",
-    },
-  ],
-};
+/** Placeholder shown only to test-mode users, who have no real analysis. */
+const mockResult: AnalyzeMealResponse = mockAnalysisResult;
 
 export default function MealResult() {
   const { t } = useTranslation();
@@ -64,7 +47,7 @@ export default function MealResult() {
   const notFound = !analysisResult && !isTest && !isLoadingSavedMeal && !savedMealLog;
 
   const result = effectiveResult ?? mockResult;
-  const missingRequired: string[] = effectiveResult?.missingRequired ?? [];
+  const planComponents = effectiveResult?.components ?? [];
 
   const [editableFoods, setEditableFoods] = useState<EditableFood[]>([]);
   const [hasChanges, setHasChanges] = useState(false);
@@ -79,8 +62,10 @@ export default function MealResult() {
       matched: food.matched,
       matchType: food.matchType,
       category: food.category || "Other",
+      component: food.component,
     }));
     setEditableFoods(initialFoods);
+    setHasChanges(false);
   }, [effectiveResult]);
 
   useEffect(() => {
@@ -91,8 +76,12 @@ export default function MealResult() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const breakdown = getScoreBreakdown(editableFoods, missingRequired);
-  const currentScore = breakdown.score;
+  const breakdown = getScoreBreakdown(editableFoods, planComponents);
+
+  // The edge function's score is authoritative — it scored the plate against the
+  // components of the plan option it best matched. Only recompute locally once
+  // the user has corrected the detected foods.
+  const currentScore = hasChanges ? breakdown.score : result.score ?? breakdown.score;
 
   const handleFoodUpdate = (id: string, updates: Partial<EditableFood>) => {
     setEditableFoods((prev) =>
@@ -102,8 +91,8 @@ export default function MealResult() {
         if ("matched" in updates && !("matchType" in updates)) {
           if (!updates.matched) {
             merged.matchType = "off_plan";
-          } else if (food.matchType === "off_plan") {
-            merged.matchType = "allowed";
+          } else if (food.matchType === "off_plan" || food.matchType === "disallowed") {
+            merged.matchType = "on_plan";
           }
         }
         return merged;
@@ -130,13 +119,11 @@ export default function MealResult() {
     setHasChanges(true);
   };
 
-  const suggestions = effectiveResult && effectiveResult !== mockResult
-    ? effectiveResult.suggestedSwaps.map((swap) => ({
-        food: swap.original,
-        replacement: Array.isArray(swap.suggested) ? swap.suggested.join(", ") : swap.suggested,
-        reason: swap.reason,
-      }))
-    : mockResult.suggestions;
+  const suggestions = (effectiveResult?.suggestedSwaps ?? []).map((swap) => ({
+    food: swap.original,
+    replacement: Array.isArray(swap.suggested) ? swap.suggested.join(", ") : swap.suggested,
+    reason: swap.reason,
+  }));
 
   const handleSave = async () => {
     if (hasChanges && mealLogId && !isTestUser(user?.email)) {
@@ -170,7 +157,10 @@ export default function MealResult() {
     }
   };
 
-  const confidenceInfo = getConfidenceLabel(result.confidence);
+  // Prefer analysisConfidence: it is `confidence` downgraded when the photo was
+  // partial or poor, so it reflects how much the result can actually be trusted.
+  const shownConfidence = effectiveResult?.analysisConfidence ?? result.confidence;
+  const confidenceInfo = getConfidenceLabel(shownConfidence);
   const activeFoodsCount = editableFoods.filter((f) => !f.isDeleted).length;
 
   if (isLoadingSavedMeal) {
@@ -227,7 +217,7 @@ export default function MealResult() {
 
         {/* Score Section */}
         <div className="flex flex-col items-center pt-4">
-          <AlignmentScore score={currentScore} size="lg" animated />
+          <AlignmentScore score={currentScore} size="lg" animated showLabel={false} />
           <div className="mt-4 text-center">
             <p className={cn(
               "text-lg font-semibold",
@@ -245,20 +235,31 @@ export default function MealResult() {
           <CardContent className="p-4 space-y-4">
             <h3 className="font-semibold text-sm">{t("mealResult.score_breakdown")}</h3>
 
+            {effectiveResult?.bestOption && (
+              <p className="text-xs text-muted-foreground">
+                {t("mealResult.scored_against", {
+                  option: effectiveResult.bestOption.description,
+                })}
+              </p>
+            )}
+
             <div className="flex flex-wrap items-center gap-1.5 text-xs p-3 bg-muted/40 rounded-lg font-mono">
-              <span className="text-foreground font-medium">100</span>
-              {breakdown.missingPenalty > 0 && (
-                <>
-                  <span className="text-muted-foreground">−</span>
-                  <span className="text-destructive font-medium">{breakdown.missingPenalty}</span>
-                  <span className="text-muted-foreground">{t("mealResult.missing_penalty")}</span>
-                </>
-              )}
+              <span className="text-foreground font-medium">
+                {Math.round(breakdown.satisfaction * 100)}
+              </span>
+              <span className="text-muted-foreground">{t("mealResult.satisfaction_label")}</span>
               {breakdown.offPlanPenalty > 0 && (
                 <>
                   <span className="text-muted-foreground">−</span>
                   <span className="text-warning font-medium">{breakdown.offPlanPenalty}</span>
                   <span className="text-muted-foreground">{t("mealResult.off_plan_penalty")}</span>
+                </>
+              )}
+              {breakdown.disallowedPenalty > 0 && (
+                <>
+                  <span className="text-muted-foreground">−</span>
+                  <span className="text-destructive font-medium">{breakdown.disallowedPenalty}</span>
+                  <span className="text-muted-foreground">{t("mealResult.disallowed_penalty")}</span>
                 </>
               )}
               <span className="text-muted-foreground">=</span>
@@ -270,49 +271,42 @@ export default function MealResult() {
               </span>
             </div>
 
-            {breakdown.requiredPresent.length > 0 && (
-              <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-2">
-                  {t("mealResult.required_on_plate")}
+            {breakdown.components.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">
+                  {t("mealResult.plan_components")}
                 </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {breakdown.requiredPresent.map((food) => (
-                    <span key={food.id} className="inline-flex items-center gap-1 px-2.5 py-1 bg-success/10 text-success border border-success/20 rounded-full text-xs font-medium">
-                      <Check className="w-3 h-3" /> {food.name}
+                {breakdown.components.map((component, i) => (
+                  <div key={i} className="flex items-start gap-2 text-xs">
+                    {component.present ? (
+                      <Check className="w-3.5 h-3.5 text-success mt-0.5 flex-shrink-0" />
+                    ) : (
+                      <X className="w-3.5 h-3.5 text-destructive mt-0.5 flex-shrink-0" />
+                    )}
+                    <div className="flex-1">
+                      <span className={cn(
+                        "font-medium",
+                        component.present ? "text-foreground" : "text-destructive"
+                      )}>
+                        {component.name}
+                      </span>
+                      {!component.required && (
+                        <span className="ml-1 text-muted-foreground">
+                          {t("mealResult.optional_component")}
+                        </span>
+                      )}
+                      {component.matchedFood && (
+                        <span className="ml-1 text-muted-foreground">→ {component.matchedFood}</span>
+                      )}
+                      {component.evidence && (
+                        <p className="text-muted-foreground mt-0.5">{component.evidence}</p>
+                      )}
+                    </div>
+                    <span className="text-muted-foreground font-mono flex-shrink-0">
+                      {Math.round(component.satisfaction * 100)}%
                     </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {breakdown.allowedPresent.length > 0 && (
-              <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-2">
-                  {t("mealResult.allowed_on_plate")}
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {breakdown.allowedPresent.map((food) => (
-                    <span key={food.id} className="inline-flex items-center gap-1 px-2.5 py-1 bg-secondary text-secondary-foreground border border-border rounded-full text-xs">
-                      {food.name}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {breakdown.missingRequired.length > 0 && (
-              <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-2">
-                  {t("mealResult.required_missing")}
-                  <span className="ml-1 text-destructive">(−{breakdown.missingPenalty} pts)</span>
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {breakdown.missingRequired.map((food, i) => (
-                    <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 bg-destructive/10 text-destructive border border-destructive/20 rounded-full text-xs font-medium">
-                      <X className="w-3 h-3" /> {food}
-                    </span>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
             )}
 
@@ -332,11 +326,54 @@ export default function MealResult() {
               </div>
             )}
 
-            {breakdown.missingRequired.length === 0 && breakdown.offPlan.length === 0 && editableFoods.length > 0 && (
-              <p className="text-xs text-success text-center py-1">{t("mealResult.all_matched")}</p>
+            {breakdown.disallowed.length > 0 && (
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium mb-2">
+                  {t("mealResult.disallowed_label")}
+                  <span className="ml-1 text-destructive">(−{breakdown.disallowedPenalty} pts)</span>
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {breakdown.disallowed.map((food) => (
+                    <span key={food.id} className="inline-flex items-center gap-1 px-2.5 py-1 bg-destructive/10 text-destructive border border-destructive/20 rounded-full text-xs">
+                      <X className="w-3 h-3" /> {food.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
             )}
+
+            {breakdown.missingComponents.length === 0 &&
+              breakdown.offPlan.length === 0 &&
+              breakdown.disallowed.length === 0 &&
+              editableFoods.length > 0 && (
+                <p className="text-xs text-success text-center py-1">{t("mealResult.all_matched")}</p>
+              )}
           </CardContent>
         </Card>
+
+        {/* What the analysis could not verify */}
+        {(effectiveResult?.assumptions?.length || effectiveResult?.planNotes?.length) ? (
+          <Card className="card-shadow border-l-4 border-l-muted-foreground/30">
+            <CardContent className="p-4 space-y-3">
+              {effectiveResult.assumptions?.length > 0 && (
+                <div>
+                  <h3 className="font-semibold text-sm mb-1">{t("mealResult.assumptions")}</h3>
+                  <ul className="text-xs text-muted-foreground list-disc pl-4 space-y-0.5">
+                    {effectiveResult.assumptions.map((a, i) => <li key={i}>{a}</li>)}
+                  </ul>
+                </div>
+              )}
+              {effectiveResult.planNotes?.length > 0 && (
+                <div>
+                  <h3 className="font-semibold text-sm mb-1">{t("mealResult.plan_notes")}</h3>
+                  <ul className="text-xs text-muted-foreground list-disc pl-4 space-y-0.5">
+                    {effectiveResult.planNotes.map((n, i) => <li key={i}>{n}</li>)}
+                  </ul>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ) : null}
 
         {/* Detected Foods - Editable */}
         <Card className="card-shadow">
@@ -411,7 +448,9 @@ export default function MealResult() {
         <div className="flex items-center justify-center gap-2 p-3 bg-muted/50 rounded-xl">
           <Info className="w-4 h-4 text-muted-foreground" />
           <p className="text-xs text-muted-foreground text-center">
-            {t("mealResult.analysis_confidence", { confidence: result.confidence })}
+            {t("mealResult.analysis_confidence", {
+              confidence: t(`mealResult.confidence_level_${shownConfidence}`),
+            })}
           </p>
         </div>
 

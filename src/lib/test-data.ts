@@ -194,15 +194,27 @@ export const mockDailyStats = {
 // Mock data matching Edge Function response format (AnalyzeMealResponse)
 export const mockAnalysisResult = {
   score: 80,
+  bestOption: { number: 1, description: "Lean protein + whole grain + vegetables" },
+  components: [
+    { name: "Lean protein", required: true, present: true, satisfaction: 1, matchedFood: "Grilled chicken breast", evidence: "Clearly visible grilled chicken breast.", weight: 1 },
+    { name: "Whole grain", required: true, present: true, satisfaction: 1, matchedFood: "Brown rice", evidence: "A portion of brown rice on the plate.", weight: 1 },
+    { name: "Vegetables", required: true, present: true, satisfaction: 0.7, matchedFood: "Steamed broccoli", evidence: "Broccoli present, portion looks smaller than half the plate.", weight: 1 },
+  ],
   detectedFoods: [
-    { name: "Grilled chicken breast", matched: true, matchType: "required" as const, confidence: 0.95, category: "Protein" },
-    { name: "Brown rice", matched: true, matchType: "allowed" as const, confidence: 0.92, category: "Carbs" },
-    { name: "Steamed broccoli", matched: true, matchType: "required" as const, confidence: 0.88, category: "Vegetables" },
+    { name: "Grilled chicken breast", matched: true, matchType: "on_plan" as const, confidence: 0.95, category: "Protein", component: "Lean protein" },
+    { name: "Brown rice", matched: true, matchType: "on_plan" as const, confidence: 0.92, category: "Carbs", component: "Whole grain" },
+    { name: "Steamed broccoli", matched: true, matchType: "on_plan" as const, confidence: 0.88, category: "Vegetables", component: "Vegetables" },
     { name: "Caesar dressing", matched: false, matchType: "off_plan" as const, confidence: 0.85, category: "Sauce" },
   ],
-  missingRequired: ["Lean protein"],
+  offPlan: ["Caesar dressing"],
+  disallowed: [],
+  missingRequired: [],
   feedback: "Great protein choice! The chicken and rice match your lunch template. Consider using olive oil instead of Caesar dressing for better plan adherence.",
   confidence: "high" as const,
+  photoQuality: "clear" as const,
+  assumptions: [],
+  planNotes: [],
+  analysisConfidence: "high" as const,
   suggestedSwaps: [
     { original: "Caesar dressing", suggested: ["Olive oil & lemon", "Balsamic vinegar"], reason: "Lower sodium, fits plan" },
   ],

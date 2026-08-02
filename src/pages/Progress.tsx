@@ -6,30 +6,60 @@ import { Button } from "@/components/ui/button";
 import { WeeklyChart } from "@/components/WeeklyChart";
 import { MealCard } from "@/components/MealCard";
 import { ProgressPageSkeleton } from "@/components/PageSkeletons";
-import { useTodayMeals } from "@/hooks/use-meals";
-import { useDailyProgress, useWeeklyProgress } from "@/hooks/use-progress";
+import { useDailyProgress, useWeeklyProgress, usePreviousWeekAverage } from "@/hooks/use-progress";
+import { useDailyInsights } from "@/hooks/use-daily-insights";
 import { toast } from "sonner";
 import { TrendingUp, TrendingDown, Target, AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 
 export default function Progress() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [activeTab, setActiveTab] = useState<"daily" | "weekly">("daily");
-  const { data: todayMeals = [], isLoading: mealsLoading } = useTodayMeals();
+  const {
+    meals: todayMeals,
+    pendingMeals,
+    insights,
+    totalPlannedMeals,
+    isLoading: insightsLoading,
+  } = useDailyInsights();
   const { data: dailyStats, isLoading: dailyLoading } = useDailyProgress();
   const { data: weeklyData = [], isLoading: weeklyLoading } = useWeeklyProgress();
+  const { data: lastWeekAverage } = usePreviousWeekAverage();
 
-  const isLoading = mealsLoading || dailyLoading || weeklyLoading;
+  const isLoading = insightsLoading || dailyLoading || weeklyLoading;
 
-  const weeklyAverage = Math.round(weeklyData.reduce((acc, d) => acc + d.score, 0) / (weeklyData.length || 1));
-  const onPlanDays = weeklyData.filter(d => d.score >= 60).length;
-  const offPlanPercentage = Math.round(((7 - onPlanDays) / 7) * 100);
-  const lastWeekAverage = 78;
-  const trend = weeklyAverage - lastWeekAverage;
+  // Only average days that actually have data, so unlogged days don't drag the
+  // week down to a number the user never earned.
+  const daysWithData = weeklyData.filter((d) => d.mealsLogged > 0);
+  const weeklyAverage = daysWithData.length
+    ? Math.round(daysWithData.reduce((acc, d) => acc + d.score, 0) / daysWithData.length)
+    : 0;
+  const onPlanDays = daysWithData.filter((d) => d.score >= 70).length;
+  const offPlanPercentage = daysWithData.length
+    ? Math.round(((daysWithData.length - onPlanDays) / daysWithData.length) * 100)
+    : 0;
+  const bestDay = daysWithData.reduce<(typeof daysWithData)[number] | null>(
+    (best, d) => (best === null || d.score > best.score ? d : best),
+    null
+  );
+  // Only show a trend when there is a real previous week to compare against.
+  const trend =
+    lastWeekAverage != null && daysWithData.length > 0
+      ? weeklyAverage - lastWeekAverage
+      : null;
 
   const handlePreviousDay = () => toast.info(t("common.coming_soon", "Previous day navigation coming soon"));
   const handlePreviousWeek = () => toast.info(t("common.coming_soon", "Previous week navigation coming soon"));
+
+  const weekRangeLabel = (() => {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(start.getDate() - 6);
+    const fmt = (d: Date) =>
+      d.toLocaleDateString(i18n.language, { month: "short", day: "numeric" });
+    return `${fmt(start)} – ${fmt(end)}`;
+  })();
 
   const getScoreLabel = (score: number) => {
     if (score >= 70) return t("progress.aligned");
@@ -37,12 +67,27 @@ export default function Progress() {
     return t("progress.not_aligned");
   };
 
-  const adherenceByMeal = [
-    { meal: t("log.breakfast"), adherence: 92, icon: "🌅" },
-    { meal: t("log.lunch"),     adherence: 78, icon: "☀️" },
-    { meal: t("log.dinner"),    adherence: 71, icon: "🌙" },
-    { meal: t("mealCard.snack"), adherence: 85, icon: "🍎" },
-  ];
+  // Adherence per meal type, from the meals actually logged today.
+  const adherenceByMeal = Object.values(
+    todayMeals.reduce<Record<string, { meal: string; total: number; count: number; icon: string }>>(
+      (acc, m) => {
+        const icons: Record<string, string> = {
+          breakfast: "🌅", lunch: "☀️", dinner: "🌙", snack: "🍎",
+        };
+        const entry = acc[m.type] ?? {
+          meal: t(`mealCard.${m.type}`, m.type),
+          total: 0,
+          count: 0,
+          icon: icons[m.type] ?? "🍽️",
+        };
+        entry.total += m.score;
+        entry.count += 1;
+        acc[m.type] = entry;
+        return acc;
+      },
+      {}
+    )
+  ).map((e) => ({ meal: e.meal, icon: e.icon, adherence: Math.round(e.total / e.count) }));
 
   return (
     <div className="min-h-screen bg-background pb-6 md:pb-0">
@@ -94,7 +139,13 @@ export default function Progress() {
               </Button>
               <div className="text-center">
                 <p className="font-semibold">{t("progress.today")}</p>
-                <p className="text-sm text-muted-foreground">Sunday, Jan 5</p>
+                <p className="text-sm text-muted-foreground">
+                  {new Date().toLocaleDateString(i18n.language, {
+                    weekday: "long",
+                    month: "short",
+                    day: "numeric",
+                  })}
+                </p>
               </div>
               <Button variant="ghost" size="icon" disabled>
                 <ChevronRight className="w-5 h-5" />
@@ -115,7 +166,10 @@ export default function Progress() {
                   {getScoreLabel(dailyStats?.dailyScore || 0)}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {t("progress.meals_logged", { logged: dailyStats?.mealsLogged || 0, total: dailyStats?.totalMeals || 4 })}
+                  {t("progress.meals_logged", {
+                    logged: todayMeals.length,
+                    total: totalPlannedMeals || todayMeals.length,
+                  })}
                 </p>
               </CardContent>
             </Card>
@@ -136,43 +190,70 @@ export default function Progress() {
                   </Link>
                 ))}
 
-                {/* Pending meal */}
-                <Card className="card-shadow border-dashed border-2 animate-fade-up animate-delay-300">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center">
-                        <span className="text-2xl opacity-50">🌙</span>
+                {/* Meals in the plan that haven't been logged yet */}
+                {pendingMeals.map((pending) => (
+                  <Card
+                    key={pending.type}
+                    className="card-shadow border-dashed border-2 animate-fade-up animate-delay-300"
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center">
+                          <span className="text-2xl opacity-50">{pending.icon}</span>
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium text-muted-foreground">{pending.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {t("progress.not_logged")}
+                            {pending.scheduledTime && ` • ${pending.scheduledTime}`}
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-muted-foreground">{t("progress.dinner_pending")}</p>
-                        <p className="text-sm text-muted-foreground">{t("progress.not_logged")}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             </div>
 
-            {/* Daily Insights */}
+            {/* Daily Insights — derived from the meals actually logged today */}
             <Card className="card-shadow animate-fade-up animate-delay-400">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base">{t("progress.todays_insights")}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="flex items-start gap-3 p-3 bg-success/10 rounded-lg">
-                  <CheckCircle2 className="w-5 h-5 text-success mt-0.5" />
-                  <div>
-                    <p className="font-medium text-sm">{t("progress.insight_breakfast_title")}</p>
-                    <p className="text-xs text-muted-foreground">{t("progress.insight_breakfast_desc")}</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3 p-3 bg-warning/10 rounded-lg">
-                  <AlertCircle className="w-5 h-5 text-warning mt-0.5" />
-                  <div>
-                    <p className="font-medium text-sm">{t("progress.insight_lunch_title")}</p>
-                    <p className="text-xs text-muted-foreground">{t("progress.insight_lunch_desc")}</p>
-                  </div>
-                </div>
+                {insights.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">{t("progress.no_insights")}</p>
+                ) : (
+                  insights.map((insight, idx) => {
+                    const values = {
+                      ...insight.values,
+                      meal: t(`mealCard.${insight.values.meal}`, String(insight.values.meal)),
+                    };
+                    return (
+                      <div
+                        key={idx}
+                        className={cn(
+                          "flex items-start gap-3 p-3 rounded-lg",
+                          insight.tone === "positive" ? "bg-success/10" : "bg-warning/10"
+                        )}
+                      >
+                        {insight.tone === "positive" ? (
+                          <CheckCircle2 className="w-5 h-5 text-success mt-0.5 flex-shrink-0" />
+                        ) : (
+                          <AlertCircle className="w-5 h-5 text-warning mt-0.5 flex-shrink-0" />
+                        )}
+                        <div>
+                          <p className="font-medium text-sm">
+                            {t(`progress.${insight.key}_title`, values)}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {t(`progress.${insight.key}_desc`, values)}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </CardContent>
             </Card>
           </div>
@@ -185,7 +266,7 @@ export default function Progress() {
               </Button>
               <div className="text-center">
                 <p className="font-semibold">{t("progress.this_week")}</p>
-                <p className="text-sm text-muted-foreground">Dec 30 - Jan 5</p>
+                <p className="text-sm text-muted-foreground">{weekRangeLabel}</p>
               </div>
               <Button variant="ghost" size="icon" disabled>
                 <ChevronRight className="w-5 h-5" />
@@ -197,13 +278,15 @@ export default function Progress() {
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base">{t("progress.daily_adherence")}</CardTitle>
-                  <div className={cn(
-                    "flex items-center gap-1 text-sm font-medium",
-                    trend >= 0 ? "text-success" : "text-destructive"
-                  )}>
-                    {trend >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-                    {t("progress.vs_last_week", { sign: trend >= 0 ? "+" : "", diff: trend })}
-                  </div>
+                  {trend !== null && (
+                    <div className={cn(
+                      "flex items-center gap-1 text-sm font-medium",
+                      trend >= 0 ? "text-success" : "text-destructive"
+                    )}>
+                      {trend >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+                      {t("progress.vs_last_week", { sign: trend >= 0 ? "+" : "", diff: trend })}
+                    </div>
+                  )}
                 </div>
               </CardHeader>
               <CardContent>
@@ -240,6 +323,9 @@ export default function Progress() {
                 <CardTitle className="text-base">{t("progress.adherence_by_meal")}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                {adherenceByMeal.length === 0 && (
+                  <p className="text-sm text-muted-foreground">{t("progress.no_meal_breakdown")}</p>
+                )}
                 {adherenceByMeal.map((item, idx) => (
                   <div
                     key={item.meal}
@@ -273,20 +359,37 @@ export default function Progress() {
                 <CardTitle className="text-base">{t("progress.weekly_insights")}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="flex items-start gap-3 p-3 bg-success/10 rounded-lg">
-                  <CheckCircle2 className="w-5 h-5 text-success mt-0.5" />
-                  <div>
-                    <p className="font-medium text-sm">{t("progress.insight_weekly_1_title")}</p>
-                    <p className="text-xs text-muted-foreground">{t("progress.insight_weekly_1_desc")}</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3 p-3 bg-warning/10 rounded-lg">
-                  <AlertCircle className="w-5 h-5 text-warning mt-0.5" />
-                  <div>
-                    <p className="font-medium text-sm">{t("progress.insight_weekly_2_title")}</p>
-                    <p className="text-xs text-muted-foreground">{t("progress.insight_weekly_2_desc")}</p>
-                  </div>
-                </div>
+                {daysWithData.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">{t("progress.no_insights")}</p>
+                ) : (
+                  <>
+                    <div className="flex items-start gap-3 p-3 bg-success/10 rounded-lg">
+                      <CheckCircle2 className="w-5 h-5 text-success mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium text-sm">
+                          {t("progress.insight_best_day_title", { day: bestDay?.day ?? "" })}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {t("progress.insight_best_day_desc", { score: bestDay?.score ?? 0 })}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3 p-3 bg-warning/10 rounded-lg">
+                      <AlertCircle className="w-5 h-5 text-warning mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium text-sm">
+                          {t("progress.insight_days_on_plan_title", {
+                            onPlan: onPlanDays,
+                            total: daysWithData.length,
+                          })}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {t("progress.insight_days_on_plan_desc")}
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
           </div>

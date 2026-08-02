@@ -36,7 +36,10 @@
     "todays_meals": "Refeições de Hoje",
     "view_all": "Ver tudo",
     "dinner_suggestion": "Sugestão de jantar",
-    "dinner_suggestion_desc": "Com base no teu plano, considera salmão grelhado com quinoa e legumes assados."
+    "dinner_suggestion_desc": "Com base no teu plano, considera salmão grelhado com quinoa e legumes assados.",
+    "next_meal": "A seguir: {{meal}}",
+    "next_meal_at": "Agendado para as {{time}}.",
+    "next_meal_desc": "Ainda não registaste esta refeição hoje."
   },
   "log": {
     "title": "Registar Refeição",
@@ -130,7 +133,20 @@
     "insight_weekly_1_title": "Rotina matinal consistente",
     "insight_weekly_1_desc": "Pequenos-almoços consistentes durante toda a semana",
     "insight_weekly_2_title": "Sexta-feira fora do plano",
-    "insight_weekly_2_desc": "Refeição social - marcado como excepção"
+    "insight_weekly_2_desc": "Refeição social - marcado como excepção",
+    "insight_best_meal_title": "Boa escolha: {{meal}}",
+    "insight_best_meal_desc": "Pontuação de {{score}} — {{foods}}",
+    "insight_low_meal_title": "{{meal}} ficou abaixo do plano",
+    "insight_low_meal_desc": "Pontuação de {{score}}. Abre a refeição para veres o que faltou.",
+    "insight_pending_meals_title": "Ainda faltam {{count}} refeições",
+    "insight_pending_meals_desc": "Regista-as para o teu dia ficar completo.",
+    "no_insights": "Regista uma refeição para veres insights do teu dia.",
+    "meals_pending_title": "Ainda por registar",
+    "insight_best_day_title": "Melhor dia: {{day}}",
+    "insight_best_day_desc": "Pontuação de {{score}} nesse dia.",
+    "insight_days_on_plan_title": "{{onPlan}} de {{total}} dias no plano",
+    "insight_days_on_plan_desc": "Conta os dias com pontuação de 70 ou mais.",
+    "no_meal_breakdown": "Ainda não há refeições registadas para comparar."
   },
   "settings": {
     "title": "Definições",
@@ -183,7 +199,20 @@
     "analysis_confidence": "Confiança da análise: {{confidence}}. Os resultados podem variar consoante a qualidade da foto.",
     "wellness_disclaimer": "A PlateCheck é uma ferramenta de bem-estar, não um dispositivo médico. Os resultados são estimativas baseadas na análise da foto e não devem substituir o conselho de um profissional de saúde qualificado.",
     "save_meal": "Guardar Refeição",
-    "saving": "A guardar..."
+    "saving": "A guardar...",
+    "loading": "A carregar refeição...",
+    "not_found": "Não encontrámos esta refeição.",
+    "scored_against": "Avaliado contra: {{option}}",
+    "satisfaction_label": "(plano cumprido)",
+    "disallowed_penalty": "(não permitido)",
+    "plan_components": "Componentes do plano",
+    "optional_component": "(opcional)",
+    "disallowed_label": "Não permitido",
+    "assumptions": "O que foi assumido",
+    "plan_notes": "Notas sobre o teu plano",
+    "confidence_level_high": "alta",
+    "confidence_level_medium": "média",
+    "confidence_level_low": "baixa"
   },
   "editProfile": {
     "title": "Editar Perfil",

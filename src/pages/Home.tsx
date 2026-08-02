@@ -6,9 +6,9 @@ import { AlignmentScore, getScoreStatus } from "@/components/AlignmentScore";
 import { MealCard } from "@/components/MealCard";
 import { HomePageSkeleton } from "@/components/PageSkeletons";
 import { useAuth, useUserProfile } from "@/hooks/use-auth";
-import { useTodayMeals } from "@/hooks/use-meals";
 import { useNutritionPlan } from "@/hooks/use-nutrition-plan";
 import { useDailyProgress } from "@/hooks/use-progress";
+import { useDailyInsights } from "@/hooks/use-daily-insights";
 import { Flame, TrendingUp, Calendar, Camera, Info } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -23,7 +23,12 @@ export default function Home() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { profile } = useUserProfile();
-  const { data: meals = [], isLoading: mealsLoading } = useTodayMeals();
+  const {
+    meals,
+    pendingMeals,
+    totalPlannedMeals,
+    isLoading: insightsLoading,
+  } = useDailyInsights();
   const { data: planData, isLoading: planLoading } = useNutritionPlan();
   const { data: dailyStats, isLoading: statsLoading } = useDailyProgress();
 
@@ -31,10 +36,10 @@ export default function Home() {
   const dailyScore = dailyStats?.dailyScore || 0;
   const streak = dailyStats?.streak || 0;
   const weeklyAverage = dailyStats?.weeklyAverage || 0;
-  const mealsLogged = dailyStats?.mealsLogged || 0;
-  const totalMeals = dailyStats?.totalMeals || 4;
+  const mealsLogged = meals.length;
+  const totalMeals = totalPlannedMeals || meals.length || 1;
 
-  const isLoading = mealsLoading || planLoading || statsLoading;
+  const isLoading = insightsLoading || planLoading || statsLoading;
 
   return (
     <div className="min-h-screen bg-background pb-6 md:pb-0">
@@ -148,20 +153,26 @@ export default function Home() {
               </div>
             )}
 
-            {/* Next meal suggestion */}
-            <Card className="card-shadow border-l-4 border-l-accent animate-fade-up animate-delay-300 hover-lift">
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  <div className="text-2xl">🍽️</div>
-                  <div>
-                    <h3 className="font-semibold text-sm">{t("home.dinner_suggestion")}</h3>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {t("home.dinner_suggestion_desc")}
-                    </p>
+            {/* Next meal still to log, from the user's own plan */}
+            {pendingMeals.length > 0 && (
+              <Card className="card-shadow border-l-4 border-l-accent animate-fade-up animate-delay-300 hover-lift">
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="text-2xl">{pendingMeals[0].icon}</div>
+                    <div>
+                      <h3 className="font-semibold text-sm">
+                        {t("home.next_meal", { meal: pendingMeals[0].name })}
+                      </h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {pendingMeals[0].scheduledTime
+                          ? t("home.next_meal_at", { time: pendingMeals[0].scheduledTime })
+                          : t("home.next_meal_desc")}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
           </>
         )}
 

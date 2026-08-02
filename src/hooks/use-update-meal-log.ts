@@ -46,8 +46,12 @@ export function useUpdateMealLog() {
 
       return { success: true };
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["meals"] });
+      queryClient.invalidateQueries({ queryKey: ["meal-log", variables.id] });
+      // The DB trigger re-aggregates the day when adherence_score changes.
+      queryClient.invalidateQueries({ queryKey: ["daily-progress"] });
+      queryClient.invalidateQueries({ queryKey: ["weekly-progress"] });
     },
   });
 }

@@ -2,9 +2,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/use-auth";
 import { isTestUser, mockMeals, mockAnalysisResult } from "@/lib/test-data";
-import { uploadMealPhoto, getMealPhotoSignedUrl } from "@/lib/storage";
-import { analyzeMeal, AnalyzeMealResponse } from "@/lib/api";
+import { uploadMealPhoto, getMealPhotoSignedUrl, getMealPhotoSignedUrls } from "@/lib/storage";
+import { analyzeMeal, AnalyzeMealResponse, normalizeAnalyzeMealResponse } from "@/lib/api";
 import { getLocalDateString } from "@/lib/date";
+import i18n from "@/i18n";
 
 // detection_confidence is a NUMERIC column; the AI response gives a label.
 const CONFIDENCE_TO_NUMBER: Record<string, number> = {
@@ -21,13 +22,7 @@ export interface MealLogResult extends AnalyzeMealResponse {
 interface MealLogRow {
   id: string;
   adherence_score: number | null;
-  scoring_result: {
-    detectedFoods?: AnalyzeMealResponse["detectedFoods"];
-    missingRequired?: string[];
-    feedback?: string;
-    confidence?: AnalyzeMealResponse["confidence"];
-    suggestedSwaps?: AnalyzeMealResponse["suggestedSwaps"];
-  } | null;
+  scoring_result: Partial<AnalyzeMealResponse> | null;
 }
 
 /**
@@ -52,14 +47,14 @@ export function useMealLog(mealLogId?: string) {
       if (error) throw error;
       if (!data) return null;
 
-      const result = data.scoring_result;
+      // adherence_score is the source of truth for the number (it reflects any
+      // user corrections saved after the analysis); the rest comes from the
+      // stored analysis payload.
       return {
-        score: data.adherence_score ?? 0,
-        detectedFoods: result?.detectedFoods ?? [],
-        missingRequired: result?.missingRequired ?? [],
-        feedback: result?.feedback ?? "",
-        confidence: result?.confidence ?? "medium",
-        suggestedSwaps: result?.suggestedSwaps ?? [],
+        ...normalizeAnalyzeMealResponse({
+          ...(data.scoring_result ?? {}),
+          score: data.adherence_score ?? 0,
+        }),
         mealLogId: data.id,
       };
     },
@@ -113,22 +108,33 @@ export function useMeals(date?: string) {
 
           if (error) throw error;
 
+          const rows = data || [];
+
+          // meal-photos is a private bucket: photo_path is a storage path, not a
+          // usable src. Sign them all in one request.
+          const signedUrls = await getMealPhotoSignedUrls(
+            rows.map((m) => m.photo_path).filter(Boolean) as string[]
+          );
+
           // Transform database format to app format
-          return (data || []).map((meal) => ({
-                    id: meal.id,
-                    type: meal.meal_type as "breakfast" | "lunch" | "dinner" | "snack",
-                    name: meal.meal_type
-                      ? meal.meal_type.charAt(0).toUpperCase() + meal.meal_type.slice(1)
-                                : "Meal",
-                    time: new Date(meal.logged_at).toLocaleTimeString("en-US", {
-                                hour: "numeric",
-                                minute: "2-digit",
-                    }),
-                    score: meal.adherence_score || 0,
-                    imageUrl: meal.photo_path || undefined,
-                    foods: meal.detected_foods || [],
-                    feedback: (meal.scoring_result as { feedback?: string } | null)?.feedback || undefined,
-          }));
+          return rows.map((meal) => {
+                    const foods: string[] = meal.detected_foods || [];
+                    return {
+                      id: meal.id,
+                      type: meal.meal_type as "breakfast" | "lunch" | "dinner" | "snack",
+                      // The card already shows the translated meal type, so use the
+                      // plate's contents as the name rather than repeating it.
+                      name: foods.length > 0 ? foods.slice(0, 3).join(", ") : "",
+                      time: new Date(meal.logged_at).toLocaleTimeString([], {
+                                  hour: "numeric",
+                                  minute: "2-digit",
+                      }),
+                      score: meal.adherence_score || 0,
+                      imageUrl: meal.photo_path ? signedUrls[meal.photo_path] : undefined,
+                      foods,
+                      feedback: (meal.scoring_result as { feedback?: string } | null)?.feedback || undefined,
+                    };
+          });
         },
         enabled: !!user,
   });
@@ -181,6 +187,7 @@ export function useCreateMealLog() {
                               mealType,
                               userId: user.id,
                               planId,
+                              language: i18n.language,
                   });
 
                   const now = new Date();
@@ -195,13 +202,10 @@ export function useCreateMealLog() {
                                     adherence_score: analysisResult.score,
                                     detected_foods: analysisResult.detectedFoods.map((f) => f.name),
                                     detection_confidence: CONFIDENCE_TO_NUMBER[analysisResult.confidence] ?? 0.6,
-                                    scoring_result: {
-                                                    detectedFoods: analysisResult.detectedFoods,
-                                                    missingRequired: analysisResult.missingRequired,
-                                                    feedback: analysisResult.feedback,
-                                                    confidence: analysisResult.confidence,
-                                                    suggestedSwaps: analysisResult.suggestedSwaps,
-                                    },
+                                    // Store the whole analysis: the option it was scored
+                                    // against, per-component evidence and the plan notes are
+                                    // what make the score explainable when reopened later.
+                                    scoring_result: analysisResult,
                                     status: "scored",
                                     logged_at: now.toISOString(),
                                     local_date: getLocalDateString(now),

@@ -1,8 +1,14 @@
 /**
- * Client-side scoring utility for real-time alignment score calculation
+ * Client-side scoring utility.
+ *
+ * The authoritative score comes from the `analyze-meal` edge function, which
+ * scores the plate against the components of the plan option it best matches.
+ * This module mirrors that same formula so the number can be recomputed live
+ * when the user corrects the detected foods — without the client and the
+ * backend ever disagreeing about how a score is derived.
  */
 
-import type { MatchType } from './api';
+import type { MatchType, MealComponentResult } from './api';
 
 export interface EditableFood {
   id: string;
@@ -13,58 +19,106 @@ export interface EditableFood {
   isNew?: boolean;
   isDeleted?: boolean;
   originalName?: string;
+  /** Plan component this food satisfies, when the analysis matched one. */
+  component?: string;
 }
 
 export interface ScoreBreakdown {
   score: number;
-  requiredPresent: EditableFood[];
-  allowedPresent: EditableFood[];
+  /** Weighted fraction (0..1) of the option's required components satisfied. */
+  satisfaction: number;
+  components: MealComponentResult[];
+  satisfiedComponents: MealComponentResult[];
+  missingComponents: MealComponentResult[];
+  onPlan: EditableFood[];
+  addons: EditableFood[];
   offPlan: EditableFood[];
-  missingRequired: string[];
-  missingPenalty: number;
+  disallowed: EditableFood[];
   offPlanPenalty: number;
+  disallowedPenalty: number;
+}
+
+const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
+
+const componentWeight = (c: Pick<MealComponentResult, 'required' | 'weight'>) =>
+  typeof c.weight === 'number' ? c.weight : c.required ? 1 : 0;
+
+/**
+ * Normalise legacy match types. Meals logged before the option-satisfaction
+ * model stored 'required'/'allowed'; both mean "counts towards the plan".
+ */
+function resolveType(f: EditableFood): MatchType {
+  if (f.matchType === 'required' || f.matchType === 'allowed') return 'on_plan';
+  if (f.matchType) return f.matchType;
+  return f.matched ? 'on_plan' : 'off_plan';
 }
 
 /**
- * Score formula (transparent and deterministic):
- *   100 base
- *   − 20 per missing required food  (capped at −60)
- *   − 10 per off-plan food detected (capped at −40)
+ * Score formula (mirrors `analyze-meal`):
+ *   round(satisfaction × 100)
+ *   − 10 per off-plan food      (capped at −30)
+ *   − 20 per disallowed food    (capped at −40)
  *
- * When matchType is unavailable (legacy / mock data), falls back to:
- *   matched = true  → 'allowed'
- *   matched = false → 'off_plan'
+ * `satisfaction` is the weighted share of the chosen option's required
+ * components that the plate satisfies, with partial credit. A required
+ * component whose matched food the user deleted drops to 0.
  */
 export function getScoreBreakdown(
   foods: EditableFood[],
-  missingRequired: string[] = []
+  components: MealComponentResult[] = []
 ): ScoreBreakdown {
   const active = foods.filter((f) => !f.isDeleted);
+  const deletedNames = new Set(
+    foods.filter((f) => f.isDeleted).map((f) => f.name.toLowerCase())
+  );
 
-  const resolveType = (f: EditableFood): MatchType =>
-    f.matchType ?? (f.matched ? 'allowed' : 'off_plan');
+  // Re-evaluate each component against the user's edits: if the food that
+  // satisfied it was removed, it is no longer satisfied.
+  const resolved = components.map((c) => {
+    const matchedRemoved =
+      !!c.matchedFood && deletedNames.has(c.matchedFood.toLowerCase());
+    const satisfaction = matchedRemoved ? 0 : clamp01(c.satisfaction ?? 0);
+    return { ...c, satisfaction, present: satisfaction >= 0.5 };
+  });
 
-  const requiredPresent = active.filter((f) => resolveType(f) === 'required');
-  const allowedPresent = active.filter((f) => resolveType(f) === 'allowed');
+  const required = resolved.filter((c) => c.required);
+  const denom = required.reduce((sum, c) => sum + componentWeight(c), 0);
+  const numer = required.reduce(
+    (sum, c) => sum + componentWeight(c) * c.satisfaction,
+    0
+  );
+  // No required components (plan-less meal): nothing to fall short of.
+  const satisfaction = denom > 0 ? numer / denom : 1;
+
+  const onPlan = active.filter((f) => resolveType(f) === 'on_plan');
+  const addons = active.filter((f) => resolveType(f) === 'addon');
   const offPlan = active.filter((f) => resolveType(f) === 'off_plan');
+  const disallowed = active.filter((f) => resolveType(f) === 'disallowed');
 
-  const missingPenalty = Math.min(60, missingRequired.length * 20);
-  const offPlanPenalty = Math.min(40, offPlan.length * 10);
+  const offPlanPenalty = Math.min(30, offPlan.length * 10);
+  const disallowedPenalty = Math.min(40, disallowed.length * 20);
 
-  const score = Math.max(0, Math.min(100, 100 - missingPenalty - offPlanPenalty));
+  const score = Math.max(
+    0,
+    Math.min(
+      100,
+      Math.round(satisfaction * 100 - offPlanPenalty - disallowedPenalty)
+    )
+  );
 
-  return { score, requiredPresent, allowedPresent, offPlan, missingRequired, missingPenalty, offPlanPenalty };
-}
-
-/**
- * Calculate alignment score based on matched/unmatched foods.
- * Kept for compatibility — delegates to getScoreBreakdown.
- */
-export function calculateAlignmentScore(
-  foods: EditableFood[],
-  missingRequired: string[] = []
-): number {
-  return getScoreBreakdown(foods, missingRequired).score;
+  return {
+    score,
+    satisfaction,
+    components: resolved,
+    satisfiedComponents: resolved.filter((c) => c.present),
+    missingComponents: required.filter((c) => !c.present),
+    onPlan,
+    addons,
+    offPlan,
+    disallowed,
+    offPlanPenalty,
+    disallowedPenalty,
+  };
 }
 
 /**
