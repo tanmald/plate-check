@@ -171,7 +171,6 @@
     "enrolled": "You're in! Day 1 starts now.",
     "error_enroll": "Couldn't start the challenge. Please try again.",
     "start_cta": "Start {{name}}",
-    "view_dashboard": "View dashboard",
     "mode_strict": "All or nothing",
     "mode_flexible": "Flexible",
     "restart_warning": "Miss any task and the whole run restarts at Day 1 — that's the rule.",

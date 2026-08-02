@@ -64,7 +64,11 @@ export function ChallengeHeatmap({
   const logsByDate = new Map(logs.map((log) => [log.date, log]));
 
   const isCompact = variant === "compact";
-  const cellClass = isCompact ? "w-2.5 h-2.5" : "w-3.5 h-3.5";
+  // Height stays fixed; width comes from `flex-1` on each column below, so
+  // the whole grid stretches to fill the card instead of hugging the left
+  // edge with a wall of empty space (a fixed 75-day range easily fits any
+  // phone width — no need for GitHub's horizontal-scroll approach here).
+  const cellHeightClass = isCompact ? "h-2.5" : "h-3.5";
   const daysComplete = logs.filter((log) => log.allComplete).length;
 
   const monthLabels = columns.map((column, index) => {
@@ -85,69 +89,67 @@ export function ChallengeHeatmap({
       role="img"
       aria-label={t("challenges.heatmap_summary", { complete: daysComplete, total: durationDays })}
     >
-      <div className="overflow-x-auto">
-        <div className="inline-flex gap-1">
-          {!isCompact && (
-            <div className="grid grid-rows-7 gap-1 mr-1" aria-hidden="true">
-              {Array.from({ length: 7 }, (_, row) => (
-                <div key={row} className={cn("flex items-center", cellClass)}>
-                  {LABELLED_WEEKDAY_ROWS.includes(row) && (
-                    <span className="text-[8px] leading-none text-muted-foreground">
-                      {new Date(`${addDaysIso(WEEKDAY_LABEL_MONDAY, row)}T00:00:00.000Z`).toLocaleDateString(
-                        locale,
-                        { weekday: "short", timeZone: "UTC" }
-                      )}
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {columns.map((column, columnIndex) => (
-            <div key={columnIndex} className="flex flex-col gap-1">
-              {!isCompact && (
-                <span className="h-3 text-[9px] leading-none text-muted-foreground whitespace-nowrap">
-                  {monthLabels[columnIndex]}
-                </span>
-              )}
-              <div className="grid grid-rows-7 gap-1">
-                {column.map((date, rowIndex) => {
-                  if (!date) {
-                    return <div key={rowIndex} className={cellClass} aria-hidden="true" />;
-                  }
-
-                  const isFuture = daysBetweenIso(today, date) > 0;
-                  const log = logsByDate.get(date);
-                  const done = countDone(log);
-                  const label = t("challenges.heatmap_cell_label", {
-                    date: new Date(`${date}T00:00:00.000Z`).toLocaleDateString(locale, {
-                      day: "numeric",
-                      month: "short",
-                      timeZone: "UTC",
-                    }),
-                    done,
-                    total: totalTasks,
-                  });
-
-                  return (
-                    <div
-                      key={rowIndex}
-                      title={label}
-                      aria-label={label}
-                      className={cn(
-                        "rounded-[2px]",
-                        cellClass,
-                        isFuture ? "bg-muted/40" : INTENSITY_CLASS[intensityLevel(done, totalTasks)],
-                        date === today && "ring-1 ring-primary ring-offset-1 ring-offset-background"
-                      )}
-                    />
-                  );
-                })}
+      <div className="flex gap-1 w-full">
+        {!isCompact && (
+          <div className="grid grid-rows-7 gap-1 mr-1 shrink-0" aria-hidden="true">
+            {Array.from({ length: 7 }, (_, row) => (
+              <div key={row} className={cn("flex items-center", cellHeightClass)}>
+                {LABELLED_WEEKDAY_ROWS.includes(row) && (
+                  <span className="text-[8px] leading-none text-muted-foreground">
+                    {new Date(`${addDaysIso(WEEKDAY_LABEL_MONDAY, row)}T00:00:00.000Z`).toLocaleDateString(
+                      locale,
+                      { weekday: "short", timeZone: "UTC" }
+                    )}
+                  </span>
+                )}
               </div>
+            ))}
+          </div>
+        )}
+
+        {columns.map((column, columnIndex) => (
+          <div key={columnIndex} className="flex-1 min-w-0 flex flex-col gap-1">
+            {!isCompact && (
+              <span className="h-3 text-[9px] leading-none text-muted-foreground whitespace-nowrap overflow-hidden">
+                {monthLabels[columnIndex]}
+              </span>
+            )}
+            <div className="grid grid-rows-7 gap-1">
+              {column.map((date, rowIndex) => {
+                if (!date) {
+                  return <div key={rowIndex} className={cellHeightClass} aria-hidden="true" />;
+                }
+
+                const isFuture = daysBetweenIso(today, date) > 0;
+                const log = logsByDate.get(date);
+                const done = countDone(log);
+                const label = t("challenges.heatmap_cell_label", {
+                  date: new Date(`${date}T00:00:00.000Z`).toLocaleDateString(locale, {
+                    day: "numeric",
+                    month: "short",
+                    timeZone: "UTC",
+                  }),
+                  done,
+                  total: totalTasks,
+                });
+
+                return (
+                  <div
+                    key={rowIndex}
+                    title={label}
+                    aria-label={label}
+                    className={cn(
+                      "w-full rounded-[2px]",
+                      cellHeightClass,
+                      isFuture ? "bg-muted/40" : INTENSITY_CLASS[intensityLevel(done, totalTasks)],
+                      date === today && "ring-1 ring-primary ring-offset-1 ring-offset-background"
+                    )}
+                  />
+                );
+              })}
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
 
       {!isCompact && (

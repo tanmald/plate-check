@@ -74,7 +74,10 @@ function NavItemContent({
           <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-destructive" />
         )}
       </div>
-      <span className="text-[10px] font-medium text-muted-foreground">{label}</span>
+      {/* w-full + truncate: with 3 items sharing one side, a long label
+          (translated or not) ellipsizes instead of pushing the item off
+          the edge of the screen — see the min-w-0 on the link itself below. */}
+      <span className="text-[9px] font-medium text-muted-foreground w-full text-center truncate">{label}</span>
     </>
   );
 }
@@ -90,7 +93,7 @@ function NavItemLink({ item, showBadge }: { item: NavItem; showBadge?: boolean }
       className={({ isActive }) =>
         cn(
           "flex flex-col items-center gap-1 rounded-lg transition-colors",
-          item.isCenter ? "relative -mt-4" : "px-4 py-2",
+          item.isCenter ? "relative -mt-4" : "flex-1 min-w-0 px-0.5 py-2",
           !item.isCenter && isActive && "text-primary",
           !item.isCenter && !isActive && "text-muted-foreground hover:text-foreground"
         )
@@ -118,16 +121,24 @@ export function BottomNav() {
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border safe-bottom z-50">
-      <div className="relative flex items-center justify-between px-2 h-16 w-full">
-        <div className="flex items-center justify-around flex-1 pr-8">
+      <div className="relative flex items-center h-16 w-full px-0.5">
+        {/* Both sides get an equal flex-1 share — NOT proportional to item
+            count — so this spacer lands exactly at the floating center
+            button's true 50% position regardless of the 2-left/3-right
+            split. (Proportional sizing was tried and rejected: it gives
+            each item more even width, but shifts this spacer off-center
+            and reopens the overlap it exists to prevent.) The 3-item side
+            being tighter per-item is instead handled by tighter padding
+            and a smaller label font on side items. */}
+        <div className="flex items-center justify-around flex-1 min-w-0">
           {leftItems.map((item) => (
             <NavItemLink key={item.to} item={item} />
           ))}
         </div>
-        <div className="absolute left-1/2 transform -translate-x-1/2 -translate-y-2">
-          <NavItemLink item={centerItem} />
-        </div>
-        <div className="flex items-center justify-around flex-1 pl-8">
+        {/* Reserves room for the floating center button in normal flow, so
+            side groups never crowd under it. */}
+        <div className="w-14 shrink-0" aria-hidden="true" />
+        <div className="flex items-center justify-around flex-1 min-w-0">
           {rightItems.map((item) => (
             <NavItemLink
               key={item.to}
@@ -135,6 +146,9 @@ export function BottomNav() {
               showBadge={item.to === "/challenges" ? hasPendingChallengeTasks : undefined}
             />
           ))}
+        </div>
+        <div className="absolute left-1/2 transform -translate-x-1/2 -translate-y-2">
+          <NavItemLink item={centerItem} />
         </div>
       </div>
     </nav>

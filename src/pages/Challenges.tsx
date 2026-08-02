@@ -1,9 +1,9 @@
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BottomNav } from "@/components/BottomNav";
-import { ChallengeDayRing } from "@/components/challenges/ChallengeDayRing";
 import { useChallengeCatalog, useActiveChallenge, useEnrollInChallenge } from "@/hooks/use-challenges";
 import { useNutritionPlan } from "@/hooks/use-nutrition-plan";
 import { AlertTriangle, BookOpen, Camera, Droplet, Dumbbell, Loader2, Trophy, Utensils } from "lucide-react";
@@ -21,6 +21,15 @@ export default function Challenges() {
   const hasPlan = planData?.hasPlan ?? false;
   const isLoading = catalogLoading || activeLoading;
   const hasActiveEnrollment = active?.enrollment.status === "active";
+
+  // The hub is only useful for picking a challenge — once one is already
+  // running, land straight on its dashboard instead of making the user
+  // find and tap the active card every time they open this tab.
+  useEffect(() => {
+    if (!isLoading && hasActiveEnrollment && active) {
+      navigate(`/challenges/${active.enrollment.id}`, { replace: true });
+    }
+  }, [isLoading, hasActiveEnrollment, active, navigate]);
 
   const handleStart = (challengeId: string) => {
     if (!hasPlan) {
@@ -48,31 +57,15 @@ export default function Challenges() {
       </header>
 
       <main className="px-4 py-6 space-y-6 max-w-lg mx-auto">
-        {isLoading ? (
+        {/* Loading covers the brief window where an active enrollment is
+            known but the redirect effect above hasn't navigated away yet —
+            this page only ever renders the catalog when there's nothing active. */}
+        {isLoading || hasActiveEnrollment ? (
           <div className="flex items-center justify-center min-h-[200px]">
             <Loader2 className="w-8 h-8 text-primary animate-spin" />
           </div>
         ) : (
           <>
-            {hasActiveEnrollment && active && (
-              <Link to={`/challenges/${active.enrollment.id}`} className="block animate-fade-up">
-                <Card className="card-shadow hover-lift">
-                  <CardContent className="p-5 flex items-center gap-4">
-                    <ChallengeDayRing day={active.enrollment.currentDay} totalDays={active.challenge.durationDays} size="md" />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold">{active.challenge.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {t("challenges.tasks_done_today", {
-                          done: Object.values(active.todayLog?.tasks ?? {}).filter((s) => s.done).length,
-                          total: active.challenge.rules.tasks.length,
-                        })}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            )}
-
             {!hasPlan && (
               <div className="flex items-start gap-2 rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm text-warning">
                 <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
@@ -83,7 +76,6 @@ export default function Challenges() {
             <div className="space-y-3">
               <h2 className="text-lg font-semibold">{t("challenges.catalog_title")}</h2>
               {catalog.map((challenge) => {
-                const isActiveThis = hasActiveEnrollment && active?.challenge.id === challenge.id;
                 const isStrict = challenge.rules.fail_policy !== "none";
 
                 return (
@@ -130,19 +122,9 @@ export default function Challenges() {
                       <p className="text-xs text-muted-foreground">
                         {isStrict ? t("challenges.restart_warning") : t("challenges.flexible_note")}
                       </p>
-                      {isActiveThis && active ? (
-                        <Button asChild variant="outline" className="w-full">
-                          <Link to={`/challenges/${active.enrollment.id}`}>{t("challenges.view_dashboard")}</Link>
-                        </Button>
-                      ) : (
-                        <Button
-                          className="w-full"
-                          disabled={enroll.isPending || hasActiveEnrollment}
-                          onClick={() => handleStart(challenge.id)}
-                        >
-                          {enroll.isPending ? t("common.loading") : t("challenges.start_cta", { name: challenge.name })}
-                        </Button>
-                      )}
+                      <Button className="w-full" disabled={enroll.isPending} onClick={() => handleStart(challenge.id)}>
+                        {enroll.isPending ? t("common.loading") : t("challenges.start_cta", { name: challenge.name })}
+                      </Button>
                     </CardContent>
                   </Card>
                 );

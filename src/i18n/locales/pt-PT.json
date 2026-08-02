@@ -171,7 +171,6 @@
     "enrolled": "Estás dentro! O Dia 1 começa agora.",
     "error_enroll": "Não foi possível iniciar o desafio. Tenta novamente.",
     "start_cta": "Começar {{name}}",
-    "view_dashboard": "Ver painel",
     "mode_strict": "Tudo ou nada",
     "mode_flexible": "Flexível",
     "restart_warning": "Falhares uma tarefa e a corrida toda recomeça no Dia 1 — essa é a regra.",
