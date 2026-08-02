@@ -39,6 +39,145 @@ export type Database = {
   }
   public: {
     Tables: {
+      challenge_daily_logs: {
+        Row: {
+          all_complete: boolean
+          completed_at: string | null
+          created_at: string | null
+          date: string
+          day_number: number
+          enrollment_id: string
+          id: string
+          photo_path: string | null
+          restart_count: number
+          tasks: Json
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          all_complete?: boolean
+          completed_at?: string | null
+          created_at?: string | null
+          date: string
+          day_number: number
+          enrollment_id: string
+          id?: string
+          photo_path?: string | null
+          restart_count?: number
+          tasks?: Json
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          all_complete?: boolean
+          completed_at?: string | null
+          created_at?: string | null
+          date?: string
+          day_number?: number
+          enrollment_id?: string
+          id?: string
+          photo_path?: string | null
+          restart_count?: number
+          tasks?: Json
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_daily_logs_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "challenge_enrollments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      challenge_enrollments: {
+        Row: {
+          challenge_id: string
+          completed_at: string | null
+          created_at: string | null
+          current_day: number
+          failed_on_day: number | null
+          failed_reason: string | null
+          id: string
+          restart_count: number
+          started_at: string
+          status: string
+          timezone: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          challenge_id: string
+          completed_at?: string | null
+          created_at?: string | null
+          current_day?: number
+          failed_on_day?: number | null
+          failed_reason?: string | null
+          id?: string
+          restart_count?: number
+          started_at?: string
+          status?: string
+          timezone?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          challenge_id?: string
+          completed_at?: string | null
+          created_at?: string | null
+          current_day?: number
+          failed_on_day?: number | null
+          failed_reason?: string | null
+          id?: string
+          restart_count?: number
+          started_at?: string
+          status?: string
+          timezone?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_enrollments_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      challenges: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          duration_days: number
+          id: string
+          name: string
+          rules: Json
+          slug: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          duration_days: number
+          id?: string
+          name: string
+          rules?: Json
+          slug: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          duration_days?: number
+          id?: string
+          name?: string
+          rules?: Json
+          slug?: string
+        }
+        Relationships: []
+      }
       daily_progress: {
         Row: {
           average_score: number | null

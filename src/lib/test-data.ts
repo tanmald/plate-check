@@ -465,3 +465,124 @@ export const mockIngestToken = {
   createdAt: `${daysAgoIso(9)}T08:00:00.000Z`,
   lastUsedAt: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
 };
+
+// ─── Challenges mock data ───────────────────────────────────────────────────
+// Type-only import: erased at compile time, so this doesn't create a runtime
+// circular dependency with use-challenges.ts (which imports these mocks).
+import type {
+  ActiveChallengeData,
+  ChallengeCatalogEntry,
+  ChallengeDailyLog,
+  ChallengeTaskDef,
+} from "@/hooks/use-challenges";
+
+// Mirrors the `rules.tasks` seeded in supabase/migrations for both challenges —
+// keep the two in step or test-user mode drifts from the real catalog.
+const mockChallengeTasks: ChallengeTaskDef[] = [
+  { key: "diet", type: "meal_adherence", label: "Follow your plan, no alcohol, no cheat meals", config: { min_meal_score: 70, all_planned_meals_logged: true } },
+  { key: "water", type: "counter", label: "Drink 3.8 L of water", config: { goal: 3800, unit: "ml", quick_add: [250, 500, 750] } },
+  { key: "workout1", type: "activity", label: "45-min workout", config: { min_minutes: 45 } },
+  { key: "workout2", type: "activity", label: "45-min workout — outdoors", config: { min_minutes: 45, outdoor_required: true } },
+  { key: "reading", type: "counter", label: "Read 10 pages of non-fiction", config: { goal: 10, unit: "pages" } },
+  { key: "photo", type: "photo", label: "Progress photo", config: {} },
+];
+
+export const mockChallengeCatalog: ChallengeCatalogEntry[] = [
+  {
+    id: "mock-75-flex-id",
+    slug: "75-flex",
+    name: "75 Flexible",
+    description:
+      "The same six daily habits as 75 Hard — follow your plan, drink a gallon of water, two 45-minute workouts (one outdoors), 10 pages of non-fiction, and a progress photo — but missing a day never ends the run. You still finish on Day 75, and you see exactly how many days you completed.",
+    durationDays: 75,
+    rules: { fail_policy: "none", tasks: mockChallengeTasks },
+  },
+  {
+    id: "mock-75-hard-id",
+    slug: "75-hard",
+    name: "75 Hard",
+    description:
+      "Follow a diet with zero deviations (no alcohol, no cheat meals), drink a gallon of water, complete two 45-minute workouts (one outdoors), read 10 pages of non-fiction, and take a daily progress photo — every day for 75 days. Miss anything and you restart at Day 1.",
+    durationDays: 75,
+    rules: { fail_policy: "restart", tasks: mockChallengeTasks },
+  },
+];
+
+/**
+ * `doneKeys` drives the heatmap's intensity, so the demo run below varies it
+ * per day — a uniformly-complete fixture renders as a flat block and shows
+ * nothing about how the ramp reads.
+ */
+function mockChallengeDayLog(dayNumber: number, daysAgo: number, doneKeys: string[]): ChallengeDailyLog {
+  const date = daysAgoIso(daysAgo);
+  const isDone = (key: string) => doneKeys.includes(key);
+  const allComplete = mockChallengeTasks.every((task) => isDone(task.key));
+
+  return {
+    id: `mock-log-day-${dayNumber}`,
+    enrollmentId: "mock-enrollment-id",
+    restartCount: 0,
+    dayNumber,
+    date,
+    tasks: {
+      diet: {
+        done: isDone("diet"),
+        auto: true,
+        meals_scored: isDone("diet") ? 3 : 1,
+        meals_required: 3,
+        min_score: 70,
+        meals_all_above_min: isDone("diet"),
+        no_alcohol_confirmed: isDone("diet"),
+      },
+      water: { done: isDone("water"), value: isDone("water") ? 3800 : 1750 },
+      workout1: { done: isDone("workout1"), minutes: isDone("workout1") ? 50 : 0 },
+      workout2: { done: isDone("workout2"), minutes: isDone("workout2") ? 45 : 0, outdoor: isDone("workout2") },
+      reading: { done: isDone("reading"), value: isDone("reading") ? 10 : 4, book: "Atomic Habits" },
+      photo: { done: isDone("photo"), photo_path: isDone("photo") ? `mock/day-${dayNumber}.jpg` : undefined },
+    },
+    allComplete,
+    completedAt: allComplete ? `${date}T23:00:00.000Z` : null,
+    photoPath: isDone("photo") ? `mock/day-${dayNumber}.jpg` : null,
+  };
+}
+
+const ALL_TASK_KEYS = mockChallengeTasks.map((task) => task.key);
+
+/** A believable run: mostly good, a few partial days, a couple skipped entirely. */
+const MOCK_DAY_SHAPES: Record<number, string[]> = {
+  4: ["diet", "water", "reading"],
+  7: [],
+  11: ["diet", "water", "workout1", "reading", "photo"],
+  12: ["water", "reading"],
+  16: [],
+  18: ["diet", "water", "workout1", "workout2", "reading"],
+  21: ["diet", "water", "reading", "photo"],
+};
+
+export const mockChallengeHistory: ChallengeDailyLog[] = [
+  ...Array.from({ length: 22 }, (_, i) => {
+    const dayNumber = i + 1;
+    return mockChallengeDayLog(dayNumber, 22 - i, MOCK_DAY_SHAPES[dayNumber] ?? ALL_TASK_KEYS);
+  }),
+  // Today, mid-progress: 4 of 6 ticked.
+  mockChallengeDayLog(23, 0, ["diet", "water", "workout1", "reading"]),
+];
+
+export function mockActiveChallengeData(): ActiveChallengeData {
+  return {
+    enrollment: {
+      id: "mock-enrollment-id",
+      challengeId: "mock-75-flex-id",
+      status: "active",
+      startedAt: daysAgoIso(22),
+      timezone: "UTC",
+      currentDay: 23,
+      restartCount: 0,
+      failedOnDay: null,
+      failedReason: null,
+      completedAt: null,
+    },
+    challenge: mockChallengeCatalog[0],
+    todayLog: mockChallengeHistory[22],
+  };
+}
