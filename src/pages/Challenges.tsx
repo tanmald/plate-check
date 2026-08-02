@@ -7,6 +7,7 @@ import { ChallengeDayRing } from "@/components/challenges/ChallengeDayRing";
 import { useChallengeCatalog, useActiveChallenge, useEnrollInChallenge } from "@/hooks/use-challenges";
 import { useNutritionPlan } from "@/hooks/use-nutrition-plan";
 import { AlertTriangle, BookOpen, Camera, Droplet, Dumbbell, Loader2, Trophy, Utensils } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 export default function Challenges() {
@@ -83,12 +84,25 @@ export default function Challenges() {
               <h2 className="text-lg font-semibold">{t("challenges.catalog_title")}</h2>
               {catalog.map((challenge) => {
                 const isActiveThis = hasActiveEnrollment && active?.challenge.id === challenge.id;
+                const isStrict = challenge.rules.fail_policy !== "none";
 
                 return (
                   <Card key={challenge.id} className="card-shadow">
                     <CardContent className="p-4 space-y-3">
                       <div>
-                        <p className="font-semibold">{challenge.name}</p>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="font-semibold">{challenge.name}</p>
+                          <span
+                            className={cn(
+                              "text-[10px] font-medium px-2 py-0.5 rounded-full",
+                              isStrict
+                                ? "bg-destructive/10 text-destructive"
+                                : "bg-primary/10 text-primary"
+                            )}
+                          >
+                            {isStrict ? t("challenges.mode_strict") : t("challenges.mode_flexible")}
+                          </span>
+                        </div>
                         <p className="text-sm text-muted-foreground mt-1">{challenge.description}</p>
                       </div>
                       <div className="flex flex-wrap gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
@@ -113,7 +127,9 @@ export default function Challenges() {
                           {t("challenges.rule_photo")}
                         </span>
                       </div>
-                      <p className="text-xs text-muted-foreground">{t("challenges.restart_warning")}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {isStrict ? t("challenges.restart_warning") : t("challenges.flexible_note")}
+                      </p>
                       {isActiveThis && active ? (
                         <Button asChild variant="outline" className="w-full">
                           <Link to={`/challenges/${active.enrollment.id}`}>{t("challenges.view_dashboard")}</Link>
@@ -124,7 +140,7 @@ export default function Challenges() {
                           disabled={enroll.isPending || hasActiveEnrollment}
                           onClick={() => handleStart(challenge.id)}
                         >
-                          {enroll.isPending ? t("common.loading") : t("challenges.start_cta")}
+                          {enroll.isPending ? t("common.loading") : t("challenges.start_cta", { name: challenge.name })}
                         </Button>
                       )}
                     </CardContent>

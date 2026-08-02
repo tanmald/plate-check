@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/use-auth";
 import { isTestUser, mockChallengeCatalog, mockActiveChallengeData, mockChallengeHistory } from "@/lib/test-data";
 import { uploadChallengePhoto } from "@/lib/storage";
+import { daysBetweenIso, nextDayIso } from "@/lib/challenge-dates";
 import type { Json } from "@/types/database.types";
 
 export type ChallengeTaskType = "meal_adherence" | "counter" | "activity" | "photo";
@@ -24,8 +25,15 @@ export interface ChallengeTaskDef {
   config: ChallengeTaskConfig;
 }
 
+/**
+ * `restart` is 75 Hard's rule: any incomplete day at rollover ends the run.
+ * `none` still tracks the same tasks and still finishes on the last calendar
+ * day, but a missed day costs nothing beyond a paler square in the heatmap.
+ */
+export type ChallengeFailPolicy = "restart" | "none";
+
 export interface ChallengeRules {
-  fail_policy: "restart" | "lose_day";
+  fail_policy: ChallengeFailPolicy;
   tasks: ChallengeTaskDef[];
 }
 
@@ -41,6 +49,12 @@ export interface ChallengeCatalogEntry {
 export interface ChallengeTaskState {
   done: boolean;
   auto?: boolean;
+  /**
+   * The user ticked (or un-ticked) this task by hand, overriding whatever the
+   * task's own rule would derive. Set by the row's done-toggle; cleared when
+   * they go back to using the counter/stepper, so the count decides again.
+   */
+  manual_override?: boolean;
   value?: number;
   minutes?: number;
   outdoor?: boolean;
@@ -50,6 +64,8 @@ export interface ChallengeTaskState {
   meals_scored?: number;
   meals_required?: number;
   min_score?: number;
+  /** Whether every meal logged that day cleared `min_score` — lets the client re-derive `done` without refetching meals. */
+  meals_all_above_min?: boolean;
   no_alcohol_confirmed?: boolean;
 }
 
@@ -170,18 +186,6 @@ export function localDateString(timezone: string, date: Date = new Date()): stri
   return `${y}-${m}-${d}`;
 }
 
-function daysBetween(startDate: string, endDate: string): number {
-  const start = new Date(`${startDate}T00:00:00Z`);
-  const end = new Date(`${endDate}T00:00:00Z`);
-  return Math.round((end.getTime() - start.getTime()) / 86_400_000);
-}
-
-function nextDayIso(date: string): string {
-  const d = new Date(`${date}T00:00:00.000Z`);
-  d.setUTCDate(d.getUTCDate() + 1);
-  return d.toISOString();
-}
-
 function isTaskDone(tasks: Record<string, ChallengeTaskState>, key: string): boolean {
   return tasks[key]?.done === true;
 }
@@ -285,14 +289,21 @@ async function syncDietTaskAndCompletion(
     const scores = (meals || []).map((m) => m.adherence_score ?? 0);
     const mealsScored = scores.length;
     const allAboveMin = scores.length > 0 && scores.every((s) => s >= minScore);
-    const noAlcoholConfirmed = tasks.diet?.no_alcohol_confirmed ?? false;
+    const previous = tasks[dietDef.key];
+    const noAlcoholConfirmed = previous?.no_alcohol_confirmed ?? false;
 
-    tasks.diet = {
-      done: mealsScored >= requiredCount && allAboveMin && noAlcoholConfirmed,
+    // A hand-ticked diet task keeps whatever the user set; the meal figures
+    // below still refresh so the row shows the truth underneath the override.
+    const autoDone = mealsScored >= requiredCount && allAboveMin && noAlcoholConfirmed;
+
+    tasks[dietDef.key] = {
+      ...previous,
+      done: previous?.manual_override ? (previous.done ?? false) : autoDone,
       auto: true,
       meals_scored: mealsScored,
       meals_required: requiredCount,
       min_score: minScore,
+      meals_all_above_min: allAboveMin,
       no_alcohol_confirmed: noAlcoholConfirmed,
     };
   }
@@ -320,10 +331,12 @@ async function syncDietTaskAndCompletion(
 
 /**
  * Client-side day-rollover judge (see docs/FEATURE_CHALLENGES.md §3
- * "Day evaluation mechanics"): on every load, evaluate any calendar days
- * that have fully elapsed in the enrollment's timezone since it was last
- * advanced. A day with any incomplete task at rollover fails the run;
- * clearing every elapsed day advances current_day (or completes the run).
+ * "Day evaluation mechanics"): on every load, evaluate any calendar days that
+ * have fully elapsed in the enrollment's timezone since it was last advanced.
+ *
+ * Either way `current_day` tracks the calendar, so day numbers always line up
+ * with real dates. The `fail_policy` only decides what an incomplete elapsed
+ * day costs: under `restart` it ends the run, under `none` it costs nothing.
  */
 async function evaluateAndAdvance(
   enrollment: ChallengeEnrollment,
@@ -333,16 +346,17 @@ async function evaluateAndAdvance(
   if (enrollment.status !== "active") return enrollment;
 
   const todayLocal = localDateString(enrollment.timezone);
-  const expectedDay = daysBetween(enrollment.startedAt, todayLocal) + 1;
+  const expectedDay = daysBetweenIso(enrollment.startedAt, todayLocal) + 1;
   if (expectedDay <= enrollment.currentDay) return enrollment;
 
-  let day = enrollment.currentDay;
-  while (day < expectedDay) {
-    const log = await fetchDailyLogRow(enrollment.id, enrollment.restartCount, day);
-    const tasks = (log?.tasks as unknown as Record<string, ChallengeTaskState>) || {};
-    const complete = log?.all_complete ?? false;
+  const failsOnMissedDay = challenge.rules.fail_policy !== "none";
 
-    if (!complete) {
+  if (failsOnMissedDay) {
+    for (let day = enrollment.currentDay; day < expectedDay; day++) {
+      const log = await fetchDailyLogRow(enrollment.id, enrollment.restartCount, day);
+      if (log?.all_complete) continue;
+
+      const tasks = (log?.tasks as unknown as Record<string, ChallengeTaskState>) || {};
       const reason = `${firstIncompleteLabel(tasks, challenge.rules.tasks)} incomplete`;
       const { data: updated, error } = await supabase
         .from("challenge_enrollments")
@@ -353,23 +367,22 @@ async function evaluateAndAdvance(
       if (error) throw error;
       return mapEnrollment(updated);
     }
+  }
 
-    day++;
-    if (day > challenge.durationDays) {
-      const { data: updated, error } = await supabase
-        .from("challenge_enrollments")
-        .update({ status: "completed", completed_at: new Date().toISOString(), current_day: challenge.durationDays })
-        .eq("id", enrollment.id)
-        .select("*")
-        .single();
-      if (error) throw error;
-      return mapEnrollment(updated);
-    }
+  if (expectedDay > challenge.durationDays) {
+    const { data: updated, error } = await supabase
+      .from("challenge_enrollments")
+      .update({ status: "completed", completed_at: new Date().toISOString(), current_day: challenge.durationDays })
+      .eq("id", enrollment.id)
+      .select("*")
+      .single();
+    if (error) throw error;
+    return mapEnrollment(updated);
   }
 
   const { data: updated, error } = await supabase
     .from("challenge_enrollments")
-    .update({ current_day: day })
+    .update({ current_day: expectedDay })
     .eq("id", enrollment.id)
     .select("*")
     .single();
@@ -420,11 +433,16 @@ export function useActiveChallenge() {
       if (isTestUser(user?.email)) return mockActiveChallengeData();
       if (!user?.id) return null;
 
+      // A partial unique index keeps this to one row, but take the newest
+      // explicitly so legacy data from before that index degrades to "most
+      // recent run" instead of throwing.
       const { data: row, error } = await supabase
         .from("challenge_enrollments")
         .select("*, challenges(*)")
         .eq("user_id", user.id)
         .eq("status", "active")
+        .order("created_at", { ascending: false })
+        .limit(1)
         .maybeSingle();
       if (error) throw error;
       if (!row) return null;
@@ -572,19 +590,7 @@ export function useUpdateChallengeTask() {
       return { taskKey, patch };
     },
     onSuccess: (result, variables) => {
-      if (isTestUser(user?.email)) {
-        queryClient.setQueriesData<ActiveChallengeData | null>(
-          { queryKey: ["active-challenge", user?.id] },
-          (old) => mergeTaskIntoCache(old, variables.taskKey, variables.patch, variables.taskDefs)
-        );
-        queryClient.setQueriesData<ActiveChallengeData | null>(
-          { queryKey: ["challenge-enrollment"] },
-          (old) => mergeTaskIntoCache(old, variables.taskKey, variables.patch, variables.taskDefs)
-        );
-        return;
-      }
-      queryClient.invalidateQueries({ queryKey: ["active-challenge"] });
-      queryClient.invalidateQueries({ queryKey: ["challenge-enrollment"] });
+      applyTaskResultToCaches(queryClient, user, variables.taskKey, variables.patch, variables.taskDefs);
     },
   });
 }
@@ -601,6 +607,31 @@ function mergeTaskIntoCache(
   return { ...old, todayLog: { ...old.todayLog, tasks, allComplete } };
 }
 
+/**
+ * Test mode has no database to re-read, so the patch is folded straight into
+ * the cached queries; real mode just refetches. Either way `challenge-history`
+ * has to be refreshed too, or the heatmap keeps showing a stale today.
+ */
+function applyTaskResultToCaches(
+  queryClient: ReturnType<typeof useQueryClient>,
+  user: { id?: string; email?: string } | null | undefined,
+  taskKey: string,
+  patch: Partial<ChallengeTaskState>,
+  taskDefs: ChallengeTaskDef[]
+) {
+  if (isTestUser(user?.email)) {
+    for (const queryKey of [["active-challenge", user?.id], ["challenge-enrollment"]]) {
+      queryClient.setQueriesData<ActiveChallengeData | null>({ queryKey }, (old) =>
+        mergeTaskIntoCache(old, taskKey, patch, taskDefs)
+      );
+    }
+    return;
+  }
+  queryClient.invalidateQueries({ queryKey: ["active-challenge"] });
+  queryClient.invalidateQueries({ queryKey: ["challenge-enrollment"] });
+  queryClient.invalidateQueries({ queryKey: ["challenge-history"] });
+}
+
 export function useUploadChallengePhoto() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -615,9 +646,11 @@ export function useUploadChallengePhoto() {
       taskDefs: ChallengeTaskDef[];
       file: File;
     }) => {
+      const taskKey = taskDefs.find((t) => t.type === "photo")?.key ?? "photo";
+
       if (isTestUser(user?.email)) {
         await new Promise((resolve) => setTimeout(resolve, 800));
-        return { photoPath: "mock-photo-path" };
+        return { photoPath: "mock-photo-path", taskKey };
       }
 
       const { path } = await uploadChallengePhoto(file);
@@ -630,7 +663,9 @@ export function useUploadChallengePhoto() {
       if (fetchError) throw fetchError;
 
       const tasks: Record<string, ChallengeTaskState> = { ...(current.tasks as unknown as Record<string, ChallengeTaskState>) };
-      tasks.photo = { done: true, photo_path: path };
+      // Merge rather than replace: uploading a photo shouldn't discard a note
+      // or a manual override already recorded against this task.
+      tasks[taskKey] = { ...tasks[taskKey], done: true, photo_path: path, manual_override: false };
       const allComplete = computeAllComplete(tasks, taskDefs);
 
       const { error } = await supabase
@@ -644,18 +679,16 @@ export function useUploadChallengePhoto() {
         .eq("id", logId);
       if (error) throw error;
 
-      return { photoPath: path };
+      return { photoPath: path, taskKey };
     },
-    onSuccess: ({ photoPath }, variables) => {
-      if (isTestUser(user?.email)) {
-        queryClient.setQueriesData<ActiveChallengeData | null>(
-          { queryKey: ["active-challenge", user?.id] },
-          (old) => mergeTaskIntoCache(old, "photo", { done: true, photo_path: photoPath }, variables.taskDefs)
-        );
-        return;
-      }
-      queryClient.invalidateQueries({ queryKey: ["active-challenge"] });
-      queryClient.invalidateQueries({ queryKey: ["challenge-enrollment"] });
+    onSuccess: ({ photoPath, taskKey }, variables) => {
+      applyTaskResultToCaches(
+        queryClient,
+        user,
+        taskKey,
+        { done: true, photo_path: photoPath, manual_override: false },
+        variables.taskDefs
+      );
     },
   });
 }

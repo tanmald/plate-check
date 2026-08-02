@@ -39,6 +39,7 @@ interface ChallengeTaskRowProps extends TaskDetailProps {
 }
 
 export function ChallengeTaskRow({ taskDef, state, onUpdate, onPhotoCapture, disabled }: ChallengeTaskRowProps) {
+  const { t } = useTranslation();
   const done = state?.done ?? false;
   const Icon = TASK_ICONS[taskDef.key] ?? Circle;
 
@@ -69,11 +70,22 @@ export function ChallengeTaskRow({ taskDef, state, onUpdate, onPhotoCapture, dis
               <PhotoTaskDetail state={state} onCapture={onPhotoCapture} disabled={disabled} />
             )}
           </div>
-          {done ? (
-            <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
-          ) : (
-            <Circle className="w-5 h-5 text-muted-foreground shrink-0" />
-          )}
+          {/* Every task is tickable by hand, whatever its own rule says — the
+              counters and steppers are there to help, not to gatekeep. */}
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => onUpdate({ done: !done, manual_override: true })}
+            aria-pressed={done}
+            aria-label={done ? t("challenges.mark_not_done") : t("challenges.mark_done")}
+            className="shrink-0 rounded-full transition-transform active:scale-90 disabled:opacity-40"
+          >
+            {done ? (
+              <CheckCircle2 className="w-5 h-5 text-success" />
+            ) : (
+              <Circle className="w-5 h-5 text-muted-foreground" />
+            )}
+          </button>
         </div>
       </CardContent>
     </Card>
@@ -86,11 +98,23 @@ function DietTaskDetail({ state, onUpdate, disabled }: TaskDetailProps) {
   const mealsRequired = state?.meals_required ?? 1;
   const minScore = state?.min_score ?? 70;
   const done = state?.done ?? false;
+  const autoVerified = done && !state?.manual_override;
+
+  // Toggling alcohol has to re-derive `done` here as well as server-side —
+  // otherwise the write recomputes the day's completion against a stale value.
+  const handleAlcoholChange = (confirmed: boolean) => {
+    const meetsMealRules = mealsScored >= mealsRequired && (state?.meals_all_above_min ?? false);
+    onUpdate(
+      state?.manual_override
+        ? { no_alcohol_confirmed: confirmed }
+        : { no_alcohol_confirmed: confirmed, done: meetsMealRules && confirmed }
+    );
+  };
 
   return (
     <div className="space-y-2 mt-1">
       <p className="text-xs text-muted-foreground">
-        {done
+        {autoVerified
           ? t("challenges.diet_auto_verified")
           : t("challenges.diet_progress", { scored: mealsScored, required: mealsRequired, minScore })}
       </p>
@@ -98,7 +122,7 @@ function DietTaskDetail({ state, onUpdate, disabled }: TaskDetailProps) {
         <Checkbox
           checked={state?.no_alcohol_confirmed ?? false}
           disabled={disabled}
-          onCheckedChange={(checked) => onUpdate({ no_alcohol_confirmed: checked === true })}
+          onCheckedChange={(checked) => handleAlcoholChange(checked === true)}
         />
         {t("challenges.diet_no_alcohol")}
       </label>
@@ -118,9 +142,11 @@ function CounterTaskDetail({ taskDef, state, onUpdate, disabled }: TaskDetailPro
   const quickAdd = taskDef.config.quick_add ?? [1, 5, 10];
   const pct = Math.min(100, Math.round((value / goal) * 100));
 
+  // Touching the counter hands control back to the goal: whatever was ticked
+  // by hand before, the count decides from here.
   const addValue = (amount: number) => {
     const next = Math.max(0, value + amount);
-    onUpdate({ value: next, done: next >= goal });
+    onUpdate({ value: next, done: next >= goal, manual_override: false });
   };
 
   return (
@@ -137,7 +163,12 @@ function CounterTaskDetail({ taskDef, state, onUpdate, disabled }: TaskDetailPro
           </Button>
         ))}
         {value > 0 && (
-          <Button size="sm" variant="ghost" disabled={disabled} onClick={() => onUpdate({ value: 0, done: false })}>
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={disabled}
+            onClick={() => onUpdate({ value: 0, done: false, manual_override: false })}
+          >
             {t("challenges.counter_reset")}
           </Button>
         )}
@@ -153,13 +184,25 @@ function ActivityTaskDetail({ taskDef, state, onUpdate, disabled }: TaskDetailPr
   const minMinutes = taskDef.config.min_minutes ?? 45;
   const outdoorRequired = taskDef.config.outdoor_required ?? false;
 
+  // As with the counters, using the stepper re-derives `done` from the goal
+  // and drops any manual tick.
   const setMinutes = (next: number) => {
     const clamped = Math.max(0, next);
-    onUpdate({ minutes: clamped, outdoor, done: clamped >= minMinutes && (!outdoorRequired || outdoor) });
+    onUpdate({
+      minutes: clamped,
+      outdoor,
+      done: clamped >= minMinutes && (!outdoorRequired || outdoor),
+      manual_override: false,
+    });
   };
 
   const toggleOutdoor = (checked: boolean) => {
-    onUpdate({ minutes, outdoor: checked, done: minutes >= minMinutes && (!outdoorRequired || checked) });
+    onUpdate({
+      minutes,
+      outdoor: checked,
+      done: minutes >= minMinutes && (!outdoorRequired || checked),
+      manual_override: false,
+    });
   };
 
   return (

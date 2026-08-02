@@ -7,7 +7,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { CameraView } from "@/components/CameraView";
 import { ChallengeDayRing } from "@/components/challenges/ChallengeDayRing";
 import { ChallengeTaskRow } from "@/components/challenges/ChallengeTaskRow";
-import { ChallengeStreakStrip } from "@/components/challenges/ChallengeStreakStrip";
+import { ChallengeHeatmap } from "@/components/challenges/ChallengeHeatmap";
 import { ChallengeFailureScreen } from "@/components/challenges/ChallengeFailureScreen";
 import { ChallengeCompletionScreen } from "@/components/challenges/ChallengeCompletionScreen";
 import {
@@ -17,6 +17,7 @@ import {
   useUploadChallengePhoto,
   useRestartChallenge,
   useAbandonChallenge,
+  type ChallengeDailyLog,
   type ChallengeTaskState,
 } from "@/hooks/use-challenges";
 import { ChevronLeft, Flame, History, Loader2 } from "lucide-react";
@@ -78,7 +79,14 @@ export default function ChallengeDashboard() {
   }
 
   if (enrollment.status === "completed") {
-    return <ChallengeCompletionScreen enrollment={enrollment} history={history} onDone={() => navigate("/challenges")} />;
+    return (
+      <ChallengeCompletionScreen
+        enrollment={enrollment}
+        challenge={challenge}
+        history={history}
+        onDone={() => navigate("/challenges")}
+      />
+    );
   }
 
   if (enrollment.status === "abandoned") {
@@ -93,9 +101,26 @@ export default function ChallengeDashboard() {
   const taskDefs = challenge.rules.tasks;
   const tasks = todayLog?.tasks ?? {};
   const doneCount = taskDefs.filter((def) => tasks[def.key]?.done).length;
-  const hour = new Date().getHours();
-  const atRisk = hour >= 20 && doneCount < taskDefs.length;
-  const currentRunHistory = history.filter((log) => log.restartCount === enrollment.restartCount);
+  const tasksLeft = taskDefs.length - doneCount;
+  const failsOnMissedDay = challenge.rules.fail_policy !== "none";
+
+  // Read the hour in the enrollment's timezone, the same clock the rollover
+  // judge uses — otherwise a travelling user gets warned on the wrong evening.
+  const localHour = Number(
+    new Intl.DateTimeFormat("en-GB", {
+      timeZone: enrollment.timezone,
+      hour: "2-digit",
+      hour12: false,
+    }).format(new Date())
+  );
+  const atRisk = failsOnMissedDay && localHour >= 20 && tasksLeft > 0;
+
+  // Today's row is already fresh on `todayLog`; overlay it so the heatmap
+  // reflects a tick immediately even if the history query hasn't refetched.
+  const currentRunHistory = mergeTodayLog(
+    history.filter((log) => log.restartCount === enrollment.restartCount),
+    todayLog
+  );
 
   const handleTaskUpdate = (taskKey: string, patch: Partial<ChallengeTaskState>) => {
     if (!todayLog) return;
@@ -150,12 +175,16 @@ export default function ChallengeDashboard() {
           </CardContent>
         </Card>
 
-        {atRisk && (
+        {atRisk ? (
           <div className="flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive animate-fade-up">
             <Flame className="w-4 h-4 shrink-0" />
             {t("challenges.day_at_risk")}
           </div>
-        )}
+        ) : tasksLeft > 0 ? (
+          <p className="text-sm text-muted-foreground">
+            {t("challenges.tasks_remaining_today", { count: tasksLeft })}
+          </p>
+        ) : null}
 
         <div className="space-y-3">
           {taskDefs.map((def) => (
@@ -163,7 +192,10 @@ export default function ChallengeDashboard() {
               key={def.key}
               taskDef={def}
               state={tasks[def.key]}
-              disabled={updateTask.isPending || uploadPhoto.isPending}
+              disabled={
+                (updateTask.isPending && updateTask.variables?.taskKey === def.key) ||
+                (uploadPhoto.isPending && def.type === "photo")
+              }
               onUpdate={(patch) => handleTaskUpdate(def.key, patch)}
               onPhotoCapture={() => setShowCamera(true)}
             />
@@ -171,9 +203,16 @@ export default function ChallengeDashboard() {
         </div>
 
         {currentRunHistory.length > 0 && (
-          <div>
-            <p className="text-sm font-medium mb-2">{t("challenges.streak_title")}</p>
-            <ChallengeStreakStrip logs={currentRunHistory} currentDay={enrollment.currentDay} />
+          <div className="space-y-2">
+            <p className="text-sm font-medium">{t("challenges.heatmap_title")}</p>
+            <ChallengeHeatmap
+              variant="compact"
+              logs={currentRunHistory}
+              startedAt={enrollment.startedAt}
+              durationDays={challenge.durationDays}
+              totalTasks={taskDefs.length}
+              timezone={enrollment.timezone}
+            />
           </div>
         )}
       </main>
@@ -183,4 +222,11 @@ export default function ChallengeDashboard() {
       <BottomNav />
     </div>
   );
+}
+
+/** Replaces (or appends) today's entry so the heatmap tracks live ticks. */
+function mergeTodayLog(logs: ChallengeDailyLog[], todayLog: ChallengeDailyLog | null): ChallengeDailyLog[] {
+  if (!todayLog) return logs;
+  const withoutToday = logs.filter((log) => log.date !== todayLog.date);
+  return [...withoutToday, todayLog];
 }
